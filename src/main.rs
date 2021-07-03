@@ -1,13 +1,20 @@
 use clap::{AppSettings, Clap};
+use dsc::config::DsConfig;
 use serde::{Deserialize, Serialize};
+
+pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     let opts = MainOpts::parse();
-
     println!(
-        "Using config: {:?} and verbosity={}",
+        "Using config: {:?}, verbosity={}",
         opts.config, opts.verbose
     );
+
+    let cfg: DsConfig = dsc::read_config(&opts.config).expect("Config could not be read");
+
+    println!("base={:?}", cfg.docspell_url);
+
     match opts.subcmd {
         SubCommand::Version => {
             println!("{:#?}", version());
@@ -16,7 +23,7 @@ fn main() {
 }
 
 #[derive(Clap)]
-#[clap(version = "0.1.0", author = "eikek")]
+#[clap(version = VERSION)]
 #[clap(setting = AppSettings::ColoredHelp)]
 struct MainOpts {
     #[clap(short, long)]
