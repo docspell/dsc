@@ -1,6 +1,7 @@
 pub mod cmd;
 pub mod config;
 pub mod opts;
+pub mod types;
 
 use clap::Clap;
 use cmd::{Cmd, CmdArgs};
@@ -42,5 +43,6 @@ pub fn execute_cmd(cfg: &DsConfig, opts: &MainOpts) -> Result<(), DscError> {
         SubCommand::Version(input) => input.exec(&args).map_err(DscError::Cmd),
         SubCommand::Login(input) => input.exec(&args).map_err(DscError::Cmd),
         SubCommand::Search(input) => input.exec(&args).map_err(DscError::Cmd),
+        SubCommand::SearchSummary(input) => input.exec(&args).map_err(DscError::Cmd),
     }
 }

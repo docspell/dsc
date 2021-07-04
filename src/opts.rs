@@ -1,5 +1,6 @@
 use crate::cmd::login;
 use crate::cmd::search;
+use crate::cmd::search_summary;
 use crate::cmd::version;
 use clap::{AppSettings, Clap};
 use serde::{Deserialize, Serialize};
@@ -44,6 +45,9 @@ pub enum SubCommand {
 
     #[clap(about("Search for documents"))]
     Search(search::Input),
+
+    #[clap(about("Search and show a result summary"))]
+    SearchSummary(search_summary::Input),
 }
 
 #[derive(Clap, std::fmt::Debug, Copy, Clone, Serialize, Deserialize)]

@@ -1,5 +1,6 @@
 pub mod login;
 pub mod search;
+pub mod search_summary;
 pub mod version;
 
 use crate::config::DsConfig;

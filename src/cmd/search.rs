@@ -1,8 +1,8 @@
 use crate::cmd::login;
 use crate::cmd::{Cmd, CmdArgs, CmdError};
 use crate::config::DsConfig;
+use crate::types::SearchResult;
 use clap::Clap;
-use serde::{Deserialize, Serialize};
 
 #[derive(Clap, std::fmt::Debug)]
 pub struct Input {
@@ -23,7 +23,7 @@ impl Cmd for Input {
     }
 }
 
-fn search(args: &Input, cfg: &DsConfig) -> Result<Response, CmdError> {
+fn search(args: &Input, cfg: &DsConfig) -> Result<SearchResult, CmdError> {
     let url = format!("{}/api/v1/sec/item/search", cfg.docspell_url);
     let client = reqwest::blocking::Client::new();
     let token = login::session_token()?;
@@ -39,79 +39,6 @@ fn search(args: &Input, cfg: &DsConfig) -> Result<Response, CmdError> {
         .send()
         .and_then(|r| r.error_for_status())
         .map_err(CmdError::HttpError)?
-        .json::<Response>()
+        .json::<SearchResult>()
         .map_err(CmdError::HttpError)
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct IdName {
-    id: String,
-    name: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Attach {
-    id: String,
-    position: u32,
-    name: String,
-    pageCount: u32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Tag {
-    id: String,
-    name: String,
-    category: Option<String>,
-    created: u64,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct CustomField {
-    id: String,
-    name: String,
-    label: Option<String>,
-    ftype: String,
-    value: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Highlight {
-    name: String,
-    lines: Box<[String]>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Item {
-    id: String,
-    name: String,
-    state: String,
-    date: u64,
-    dueDate: Option<u64>,
-    source: String,
-    direction: Option<String>,
-    #[serde(alias = "corrOrg")]
-    corr_org: Option<IdName>,
-    #[serde(alias = "corrPerson")]
-    corr_person: Option<IdName>,
-    #[serde(alias = "concPerson")]
-    conc_person: Option<IdName>,
-    #[serde(alias = "concEquipment")]
-    conc_equip: Option<IdName>,
-    folder: Option<IdName>,
-    attachments: Box<[Attach]>,
-    tags: Box<[Tag]>,
-    customfields: Box<[CustomField]>,
-    notes: Option<String>,
-    highlighting: Box<[Highlight]>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Group {
-    name: String,
-    items: Box<[Item]>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Response {
-    groups: Box<[Group]>,
 }
