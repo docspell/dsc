@@ -11,6 +11,15 @@ pub struct MainOpts {
     #[clap(short, long, about("Specify a config file to load"))]
     pub config: Option<String>,
 
+    #[clap(flatten)]
+    pub common_opts: CommonOpts,
+
+    #[clap(subcommand)]
+    pub subcmd: SubCommand,
+}
+
+#[derive(Clap, Debug)]
+pub struct CommonOpts {
     #[clap(
         short,
         long,
@@ -21,23 +30,6 @@ pub struct MainOpts {
 
     #[clap(short, long, about("Specify an output format. One of: json, lisp"))]
     pub format: Option<Format>,
-
-    #[clap(subcommand)]
-    pub subcmd: SubCommand,
-}
-
-pub struct CommonOpts {
-    pub verbose: i32,
-    pub format: Option<Format>,
-}
-
-impl MainOpts {
-    pub fn common_opts(&self) -> CommonOpts {
-        CommonOpts {
-            verbose: self.verbose,
-            format: self.format,
-        }
-    }
 }
 
 #[derive(Clap, std::fmt::Debug)]

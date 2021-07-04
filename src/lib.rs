@@ -35,7 +35,7 @@ pub fn execute() -> Result<(), DscError> {
 pub fn execute_cmd(cfg: &DsConfig, opts: &MainOpts) -> Result<(), DscError> {
     let args = CmdArgs {
         cfg: cfg,
-        opts: &opts.common_opts(),
+        opts: &opts.common_opts,
     };
     match &opts.subcmd {
         SubCommand::Version(input) => {
