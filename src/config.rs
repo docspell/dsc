@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::default;
 use std::path::{Path, PathBuf};
 
-#[derive(Configr, Serialize, Deserialize)]
+#[derive(Configr, Serialize, Deserialize, std::fmt::Debug)]
 pub struct DsConfig {
     pub docspell_url: String,
 }
@@ -34,7 +34,7 @@ pub enum ConfigError {
 impl default::Default for DsConfig {
     fn default() -> Self {
         Self {
-            docspell_url: "https://localhost:7880".into(),
+            docspell_url: "http://localhost:7880".into(),
         }
     }
 }

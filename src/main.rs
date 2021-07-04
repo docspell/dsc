@@ -1,60 +1,19 @@
-use clap::{AppSettings, Clap};
+use dsc::cmd::Cmd;
 use dsc::config::DsConfig;
-use serde::{Deserialize, Serialize};
+use dsc::opts::SubCommand;
+use log;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 fn main() {
-    let opts = MainOpts::parse();
-    println!(
-        "Using config: {:?}, verbosity={}",
-        opts.config, opts.verbose
-    );
-
+    env_logger::init();
+    let opts = dsc::read_args();
     let cfg: DsConfig = dsc::read_config(&opts.config).expect("Config could not be read");
 
-    println!("base={:?}", cfg.docspell_url);
-
     match opts.subcmd {
-        SubCommand::Version => {
-            println!("{:#?}", version());
+        SubCommand::Version(input) => {
+            log::info!("Running version: {:?}", input);
+            input.exec(cfg).expect("Command failed");
         }
     }
-}
-
-#[derive(Clap)]
-#[clap(version = VERSION)]
-#[clap(setting = AppSettings::ColoredHelp)]
-struct MainOpts {
-    #[clap(short, long)]
-    config: Option<String>,
-
-    #[clap(short, long, parse(from_occurrences))]
-    verbose: i32,
-
-    #[clap(subcommand)]
-    subcmd: SubCommand,
-}
-
-#[derive(Clap)]
-enum SubCommand {
-    Version,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct VersionDto {
-    version: String,
-    #[serde(alias = "builtAtMillis")]
-    built_at_millis: i64,
-    #[serde(alias = "builtAtString")]
-    built_at_string: String,
-    #[serde(alias = "gitCommit")]
-    git_commit: String,
-    #[serde(alias = "gitVersion")]
-    git_version: String,
-}
-
-fn version() -> Result<VersionDto, reqwest::Error> {
-    return reqwest::blocking::get("https://docs.daheim.site/api/info/version")?
-        .json::<VersionDto>();
 }
