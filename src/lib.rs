@@ -3,7 +3,7 @@ pub mod config;
 pub mod opts;
 
 use clap::Clap;
-use cmd::Cmd;
+use cmd::{Cmd, CmdArgs};
 use config::DsConfig;
 use log;
 use opts::{MainOpts, SubCommand};
@@ -33,10 +33,14 @@ pub fn execute() -> Result<(), DscError> {
 }
 
 pub fn execute_cmd(cfg: &DsConfig, opts: &MainOpts) -> Result<(), DscError> {
+    let args = CmdArgs {
+        cfg: cfg,
+        opts: &opts.common_opts(),
+    };
     match &opts.subcmd {
         SubCommand::Version(input) => {
-            log::info!("Running version: {:?}", input);
-            input.exec(cfg).map_err(DscError::Cmd)
+            log::info!("Running command: {:?}", opts.subcmd);
+            input.exec(&args).map_err(DscError::Cmd)
         }
     }
 }

@@ -1,18 +1,14 @@
-use crate::cmd::{Cmd, CmdError};
+use crate::cmd::{Cmd, CmdArgs, CmdError};
 use crate::config::DsConfig;
-use crate::opts::Format;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clap, std::fmt::Debug)]
-pub struct Input {
-    #[clap(short, long)]
-    pub format: Option<Format>,
-}
+pub struct Input {}
 
 impl Cmd for Input {
-    fn exec(&self, cfg: &DsConfig) -> Result<(), CmdError> {
-        let result = version(cfg).and_then(|r| Self::make_str(self.format.as_ref(), &r));
+    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
+        let result = version(args.cfg).and_then(|r| args.make_str(&r));
         println!("{:}", result?);
         Ok(())
     }

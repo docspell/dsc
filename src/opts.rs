@@ -1,5 +1,6 @@
 use crate::cmd::version;
 use clap::{AppSettings, Clap};
+use serde::{Deserialize, Serialize};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -18,8 +19,25 @@ pub struct MainOpts {
     )]
     pub verbose: i32,
 
+    #[clap(short, long, about("Specify an output format. One of: json, lisp"))]
+    pub format: Option<Format>,
+
     #[clap(subcommand)]
     pub subcmd: SubCommand,
+}
+
+pub struct CommonOpts {
+    pub verbose: i32,
+    pub format: Option<Format>,
+}
+
+impl MainOpts {
+    pub fn common_opts(&self) -> CommonOpts {
+        CommonOpts {
+            verbose: self.verbose,
+            format: self.format,
+        }
+    }
 }
 
 #[derive(Clap, std::fmt::Debug)]
@@ -28,7 +46,7 @@ pub enum SubCommand {
     Version(version::Input),
 }
 
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Clap, std::fmt::Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Format {
     Json,
     Lisp,

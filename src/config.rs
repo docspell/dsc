@@ -1,3 +1,4 @@
+use crate::opts::Format;
 use configr::toml;
 use configr::ConfigError as ConfigrError;
 use configr::{Config, Configr};
@@ -8,6 +9,7 @@ use std::path::{Path, PathBuf};
 #[derive(Configr, Serialize, Deserialize, std::fmt::Debug)]
 pub struct DsConfig {
     pub docspell_url: String,
+    pub default_format: Format,
 }
 
 #[derive(Debug, snafu::Snafu)]
@@ -35,6 +37,7 @@ impl default::Default for DsConfig {
     fn default() -> Self {
         Self {
             docspell_url: "http://localhost:7880".into(),
+            default_format: Format::Json,
         }
     }
 }
