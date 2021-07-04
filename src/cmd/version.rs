@@ -11,13 +11,8 @@ pub struct Input {
 }
 
 impl Cmd for Input {
-    fn exec(&self, cfg: DsConfig) -> Result<(), CmdError> {
-        let resp = version(&cfg);
-        let result = match self.format {
-            Some(Format::Json) => resp.and_then(|r| Self::json_str(&r)),
-            Some(Format::Lisp) => resp.and_then(|r| Self::sexpr_str(&r)),
-            None => resp.and_then(|r| Self::json_str(&r)),
-        };
+    fn exec(&self, cfg: &DsConfig) -> Result<(), CmdError> {
+        let result = version(cfg).and_then(|r| Self::make_str(self.format.as_ref(), &r));
         println!("{:}", result?);
         Ok(())
     }
