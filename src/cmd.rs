@@ -1,3 +1,5 @@
+pub mod login;
+pub mod search;
 pub mod version;
 
 use crate::config::DsConfig;
@@ -28,4 +30,6 @@ pub enum CmdError {
     HttpError(reqwest::Error),
     JsonSerError(serde_json::Error),
     SexprError(serde_lexpr::Error),
+    AuthError(String),
+    IOError(std::io::Error),
 }

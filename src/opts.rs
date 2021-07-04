@@ -1,3 +1,5 @@
+use crate::cmd::login;
+use crate::cmd::search;
 use crate::cmd::version;
 use clap::{AppSettings, Clap};
 use serde::{Deserialize, Serialize};
@@ -36,6 +38,12 @@ pub struct CommonOpts {
 pub enum SubCommand {
     #[clap(about("Prints the server version"))]
     Version(version::Input),
+
+    #[clap(about("Login into the Docspell server"))]
+    Login(login::Input),
+
+    #[clap(about("Search for documents"))]
+    Search(search::Input),
 }
 
 #[derive(Clap, std::fmt::Debug, Copy, Clone, Serialize, Deserialize)]

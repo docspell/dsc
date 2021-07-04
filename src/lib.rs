@@ -37,10 +37,10 @@ pub fn execute_cmd(cfg: &DsConfig, opts: &MainOpts) -> Result<(), DscError> {
         cfg: cfg,
         opts: &opts.common_opts,
     };
+    log::info!("Running command: {:?}", opts.subcmd);
     match &opts.subcmd {
-        SubCommand::Version(input) => {
-            log::info!("Running command: {:?}", opts.subcmd);
-            input.exec(&args).map_err(DscError::Cmd)
-        }
+        SubCommand::Version(input) => input.exec(&args).map_err(DscError::Cmd),
+        SubCommand::Login(input) => input.exec(&args).map_err(DscError::Cmd),
+        SubCommand::Search(input) => input.exec(&args).map_err(DscError::Cmd),
     }
 }
