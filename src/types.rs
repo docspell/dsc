@@ -4,6 +4,25 @@ pub const DOCSPELL_AUTH: &'static str = "X-Docspell-Auth";
 pub const DOCSPELL_ADMIN: &'static str = "Docspell-Admin-Secret";
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct BasicResult {
+    success: bool,
+    message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VersionInfo {
+    pub version: String,
+    #[serde(alias = "builtAtMillis")]
+    pub built_at_millis: i64,
+    #[serde(alias = "builtAtString")]
+    pub built_at_string: String,
+    #[serde(alias = "gitCommit")]
+    pub git_commit: String,
+    #[serde(alias = "gitVersion")]
+    pub git_version: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Tag {
     pub id: String,
     pub name: String,

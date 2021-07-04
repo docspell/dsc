@@ -1,5 +1,5 @@
 use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::config::DsConfig;
+use crate::opts::ConfigOpts;
 use crate::types::DOCSPELL_AUTH;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ pub struct Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = login(self, args.cfg).and_then(|r| args.make_str(&r));
+        let result = login(self, args.opts).and_then(|r| args.make_str(&r));
         println!("{:}", result?);
         Ok(())
     }
@@ -52,7 +52,7 @@ pub struct AuthResp {
     pub valid_ms: u64,
 }
 
-fn login(args: &Input, cfg: &DsConfig) -> Result<AuthResp, CmdError> {
+fn login(args: &Input, cfg: &ConfigOpts) -> Result<AuthResp, CmdError> {
     let url = format!("{}/api/v1/open/auth/login", cfg.docspell_url);
     let body = AuthRequest {
         account: args.user.clone(),
@@ -74,7 +74,7 @@ fn login(args: &Input, cfg: &DsConfig) -> Result<AuthResp, CmdError> {
     })
 }
 
-fn session(token: &str, cfg: &DsConfig) -> Result<AuthResp, CmdError> {
+fn session(token: &str, cfg: &ConfigOpts) -> Result<AuthResp, CmdError> {
     let url = format!("{}/api/v1/sec/auth/session", cfg.docspell_url);
     let client = reqwest::blocking::Client::new();
     let result = client
@@ -103,7 +103,7 @@ fn store_session(resp: &AuthResp) -> Result<(), CmdError> {
     }
 }
 
-pub fn session_token(cfg: &DsConfig) -> Result<String, CmdError> {
+pub fn session_token(cfg: &ConfigOpts) -> Result<String, CmdError> {
     match dirs::config_dir() {
         Some(mut dir) => {
             dir.push("dsc");

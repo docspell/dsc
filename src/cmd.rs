@@ -1,10 +1,10 @@
+pub mod admin_previews;
 pub mod login;
 pub mod search;
 pub mod search_summary;
 pub mod version;
 
-use crate::config::DsConfig;
-use crate::opts::{CommonOpts, Format};
+use crate::opts::{ConfigOpts, Format};
 use serde::Serialize;
 
 pub trait Cmd {
@@ -12,18 +12,22 @@ pub trait Cmd {
 }
 
 pub struct CmdArgs<'a> {
-    pub cfg: &'a DsConfig,
-    pub opts: &'a CommonOpts,
+    pub opts: &'a ConfigOpts,
 }
 
 impl CmdArgs<'_> {
     fn make_str<A: Serialize>(&self, arg: &A) -> Result<String, CmdError> {
-        let fmt = self.opts.format.unwrap_or(self.cfg.default_format);
+        let fmt = self.opts.format;
         match fmt {
             Format::Json => serde_json::to_string(arg).map_err(CmdError::JsonSerError),
             Format::Lisp => serde_lexpr::to_string(arg).map_err(CmdError::SexprError),
         }
     }
+
+    // fn admin_secret(&self) -> Result<String, CmdError> {
+    //     let s: Option<String> = self.opts.admin_secret.or(self.cfg.admin_secret);
+    //     s.ok_or(CmdError::AuthError("No admin secret given!".into()))
+    // }
 }
 
 #[derive(Debug)]

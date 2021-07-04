@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 pub struct DsConfig {
     pub docspell_url: String,
     pub default_format: Format,
+    pub admin_secret: Option<String>,
 }
 
 #[derive(Debug, snafu::Snafu)]
@@ -38,6 +39,7 @@ impl default::Default for DsConfig {
         Self {
             docspell_url: "http://localhost:7880".into(),
             default_format: Format::Json,
+            admin_secret: None,
         }
     }
 }

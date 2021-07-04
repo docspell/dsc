@@ -1,7 +1,9 @@
+use crate::cmd::admin_previews;
 use crate::cmd::login;
 use crate::cmd::search;
 use crate::cmd::search_summary;
 use crate::cmd::version;
+use crate::config::DsConfig;
 use clap::{AppSettings, Clap};
 use serde::{Deserialize, Serialize};
 
@@ -46,6 +48,45 @@ pub struct CommonOpts {
     /// s-expressions. Use one of: json, lisp.
     #[clap(short, long)]
     pub format: Option<Format>,
+
+    /// For commands using the admin endpoint, this is the secret
+    /// required to access them. If not given here, it is taken from
+    /// the config file.
+    #[clap(short, long)]
+    pub admin_secret: Option<String>,
+
+    /// The (base) URL to the Docspell server. If not given, it must
+    /// be present in the config file.
+    #[clap(short, long)]
+    pub docspell_url: Option<String>,
+}
+
+// CommonOpts with fallback from DsConfig
+#[derive(Debug)]
+pub struct ConfigOpts {
+    pub verbose: i32,
+    pub format: Format,
+    pub docspell_url: String,
+    pub admin_secret: Option<String>,
+}
+
+impl CommonOpts {
+    pub fn merge(&self, cfg: &DsConfig) -> ConfigOpts {
+        ConfigOpts {
+            verbose: self.verbose,
+            format: self.format.unwrap_or(cfg.default_format),
+            docspell_url: self
+                .docspell_url
+                .as_ref()
+                .unwrap_or(&cfg.docspell_url)
+                .clone(),
+            admin_secret: self
+                .admin_secret
+                .as_ref()
+                .or(cfg.admin_secret.as_ref())
+                .map(String::clone),
+        }
+    }
 }
 
 #[derive(Clap, std::fmt::Debug)]
@@ -61,6 +102,9 @@ pub enum SubCommand {
 
     #[clap(setting = AppSettings::ColoredHelp)]
     SearchSummary(search_summary::Input),
+
+    #[clap(setting = AppSettings::ColoredHelp)]
+    GeneratePreviews(admin_previews::Input),
 }
 
 #[derive(Clap, std::fmt::Debug, Copy, Clone, Serialize, Deserialize)]

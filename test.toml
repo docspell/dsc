@@ -1,2 +1,3 @@
 docspell_url = "https://docs.daheim.site"
 default_format = "Json"
+admin_secret = "123"

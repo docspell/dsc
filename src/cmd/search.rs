@@ -1,6 +1,6 @@
 use crate::cmd::login;
 use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::config::DsConfig;
+use crate::opts::ConfigOpts;
 use crate::types::{SearchResult, DOCSPELL_AUTH};
 use clap::Clap;
 
@@ -27,13 +27,13 @@ pub struct Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = search(&self, args.cfg).and_then(|r| args.make_str(&r));
+        let result = search(&self, args.opts).and_then(|r| args.make_str(&r));
         println!("{:}", result?);
         Ok(())
     }
 }
 
-fn search(args: &Input, cfg: &DsConfig) -> Result<SearchResult, CmdError> {
+fn search(args: &Input, cfg: &ConfigOpts) -> Result<SearchResult, CmdError> {
     let url = format!("{}/api/v1/sec/item/search", cfg.docspell_url);
     let client = reqwest::blocking::Client::new();
     let token = login::session_token(cfg)?;
