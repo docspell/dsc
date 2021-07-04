@@ -7,11 +7,24 @@ use serde::{Deserialize, Serialize};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
+/// This is a command line interface to the docspell server. Docspell
+/// is a free document management system, designed for home use.
+///
+/// This program is meant to be used from other programs. As such, the
+/// main output format is either JSON or S-EXPR (lisp). Sub commands
+/// are usually mapped to a corresponding API endpoint on the server.
+///
+/// For more information, see https://docspell.org/docs/api.
 #[derive(Clap, std::fmt::Debug)]
-#[clap(version = VERSION)]
+#[clap(name = "dsc", version = VERSION)]
 #[clap(setting = AppSettings::ColoredHelp)]
 pub struct MainOpts {
-    #[clap(short, long, about("Specify a config file to load"))]
+    /// This can specify a path to a config file to load. It is
+    /// expected to be in TOML format. If not given, the default
+    /// config file is looked up based on the current OS. If no such
+    /// file exists, the default configuration is used and a new
+    /// config file is created from that.
+    #[clap(short, long)]
     pub config: Option<String>,
 
     #[clap(flatten)]
@@ -23,30 +36,30 @@ pub struct MainOpts {
 
 #[derive(Clap, Debug)]
 pub struct CommonOpts {
-    #[clap(
-        short,
-        long,
-        parse(from_occurrences),
-        about("Be more verbose when logging")
-    )]
+    /// Be more verbose when logging. Enable logging via env variable RUST_LOG=debug|info.
+    #[clap(short, long, parse(from_occurrences))]
     pub verbose: i32,
 
-    #[clap(short, long, about("Specify an output format. One of: json, lisp"))]
+    /// The output format. Some commands may ignore this option. This
+    /// defines how to format the output. The default is JSON or give
+    /// via the config file. Another option is `Lisp` which produces
+    /// s-expressions. Use one of: json, lisp.
+    #[clap(short, long)]
     pub format: Option<Format>,
 }
 
 #[derive(Clap, std::fmt::Debug)]
 pub enum SubCommand {
-    #[clap(about("Prints the server version"))]
+    #[clap(setting = AppSettings::ColoredHelp)]
     Version(version::Input),
 
-    #[clap(about("Login into the Docspell server"))]
+    #[clap(setting = AppSettings::ColoredHelp)]
     Login(login::Input),
 
-    #[clap(about("Search for documents"))]
+    #[clap(setting = AppSettings::ColoredHelp)]
     Search(search::Input),
 
-    #[clap(about("Search and show a result summary"))]
+    #[clap(setting = AppSettings::ColoredHelp)]
     SearchSummary(search_summary::Input),
 }
 

@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+pub const DOCSPELL_AUTH: &'static str = "X-Docspell-Auth";
+pub const DOCSPELL_ADMIN: &'static str = "Docspell-Admin-Secret";
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Tag {
     pub id: String,

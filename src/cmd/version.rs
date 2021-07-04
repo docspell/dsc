@@ -3,6 +3,7 @@ use crate::config::DsConfig;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
 
+/// Queries the server for its version information.
 #[derive(Clap, std::fmt::Debug)]
 pub struct Input {}
 
