@@ -5,25 +5,21 @@ use crate::types::BasicResult;
 use crate::types::DOCSPELL_ADMIN;
 use clap::Clap;
 
-/// Submits a task to generate preview images of all files.
+/// Submits a task to re-create the entire fulltext search index.
 #[derive(Clap, std::fmt::Debug)]
 pub struct Input {}
 
 impl AdminCmd for Input {
     fn exec(&self, secret: &str, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = generate_previews(secret, args.opts).and_then(|r| args.make_str(&r));
+        let result = recreate_index(secret, args.opts).and_then(|r| args.make_str(&r));
         println!("{:}", result?);
         Ok(())
     }
 }
 
-fn generate_previews(secret: &str, cfg: &ConfigOpts) -> Result<BasicResult, CmdError> {
-    let url = format!(
-        "{}/api/v1/admin/attachments/generatePreviews",
-        cfg.docspell_url
-    );
+fn recreate_index(secret: &str, cfg: &ConfigOpts) -> Result<BasicResult, CmdError> {
+    let url = format!("{}/api/v1/admin/fts/reIndexAll", cfg.docspell_url);
     let client = reqwest::blocking::Client::new();
-    log::debug!("Using secret: {:}", secret);
     client
         .post(url)
         .header(DOCSPELL_ADMIN, secret)
