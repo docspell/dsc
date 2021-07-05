@@ -43,6 +43,6 @@ pub fn execute_cmd(cfg: &DsConfig, opts: &MainOpts) -> Result<(), DscError> {
         SubCommand::Login(input) => input.exec(&args).map_err(DscError::Cmd),
         SubCommand::Search(input) => input.exec(&args).map_err(DscError::Cmd),
         SubCommand::SearchSummary(input) => input.exec(&args).map_err(DscError::Cmd),
-        SubCommand::GeneratePreviews(input) => input.exec(&args).map_err(DscError::Cmd),
+        SubCommand::Admin(input) => input.exec(&args).map_err(DscError::Cmd),
     }
 }

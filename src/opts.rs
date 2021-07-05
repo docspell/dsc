@@ -1,4 +1,4 @@
-use crate::cmd::admin_previews;
+use crate::cmd::admin;
 use crate::cmd::login;
 use crate::cmd::search;
 use crate::cmd::search_summary;
@@ -92,19 +92,27 @@ impl CommonOpts {
 #[derive(Clap, std::fmt::Debug)]
 pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version = VERSION)]
     Version(version::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version = VERSION)]
     Login(login::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version = VERSION)]
     Search(search::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version = VERSION)]
     SearchSummary(search_summary::Input),
 
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version = VERSION)]
+    // GeneratePreviews(admin_previews::Input),
     #[clap(setting = AppSettings::ColoredHelp)]
-    GeneratePreviews(admin_previews::Input),
+    #[clap(version = VERSION)]
+    Admin(admin::Input),
 }
 
 #[derive(Clap, std::fmt::Debug, Copy, Clone, Serialize, Deserialize)]

@@ -1,4 +1,4 @@
-pub mod admin_previews;
+pub mod admin;
 pub mod login;
 pub mod search;
 pub mod search_summary;
