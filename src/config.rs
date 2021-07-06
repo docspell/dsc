@@ -1,12 +1,9 @@
 use crate::opts::Format;
-use configr::toml;
-use configr::ConfigError as ConfigrError;
-use configr::{Config, Configr};
 use serde::{Deserialize, Serialize};
 use std::default;
 use std::path::{Path, PathBuf};
 
-#[derive(Configr, Serialize, Deserialize, std::fmt::Debug)]
+#[derive(Serialize, Deserialize, std::fmt::Debug)]
 pub struct DsConfig {
     pub docspell_url: String,
     pub default_format: Format,
@@ -30,6 +27,11 @@ pub enum ConfigError {
         source: toml::de::Error,
         path: PathBuf,
     },
+    #[snafu(display("The config file could not be serialized"))]
+    WriteFile {
+        source: toml::ser::Error,
+        path: PathBuf,
+    },
     #[snafu(display("The config directory could not be found"))]
     NoConfigDir,
 }
@@ -46,14 +48,66 @@ impl default::Default for DsConfig {
 
 impl DsConfig {
     pub fn read(file: &Option<String>) -> Result<DsConfig, ConfigError> {
-        let result = if let Some(cfg_file) = &file {
-            DsConfig::load_specific(Path::new(&cfg_file))
+        if let Some(cfg_file) = &file {
+            let given_path = Path::new(&cfg_file);
+            let cfg = given_path
+                .canonicalize()
+                .map_err(|e| ConfigError::ReadFile {
+                    source: e,
+                    path: given_path.to_path_buf(),
+                })?;
+            log::debug!("Load config from: {:}", cfg.display());
+            load_from(&cfg)
         } else {
             let mut dir = config_dir()?;
-            DsConfig::load_custom("dsc", &mut dir)
-        };
-        result.map_err(make_error)
+            dir.push("dsc");
+            dir.push("config.toml");
+            if dir.exists() {
+                log::debug!("Load config from: {:}", dir.display());
+                load_from(&dir)
+            } else {
+                log::debug!("No config file present; using default config");
+                Ok(DsConfig::default())
+            }
+        }
     }
+
+    pub fn write_default_file() -> Result<PathBuf, ConfigError> {
+        DsConfig::default().write_default()
+    }
+
+    pub fn write_default(&self) -> Result<PathBuf, ConfigError> {
+        let mut dir = config_dir()?;
+        dir.push("dsc");
+        dir.push("config.toml");
+        if dir.exists() {
+            log::info!("The default config file already exists. Not writing it!");
+            Err(ConfigError::CreateDefault {
+                source: std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    "The config file already exists!",
+                ),
+                path: dir,
+            })
+        } else {
+            log::debug!("Writing config file: {:}", dir.display());
+            write_to(self, &dir)?;
+            Ok(dir)
+        }
+    }
+}
+
+fn load_from(file: &Path) -> Result<DsConfig, ConfigError> {
+    let cnt = std::fs::read_to_string(file).map_err(|e| ConfigError::ReadFile {
+        source: e,
+        path: file.to_path_buf(),
+    });
+    cnt.and_then(|c| {
+        toml::from_str(&c).map_err(|e| ConfigError::ParseFile {
+            source: e,
+            path: file.to_path_buf(),
+        })
+    })
 }
 
 fn config_dir() -> Result<PathBuf, ConfigError> {
@@ -63,15 +117,24 @@ fn config_dir() -> Result<PathBuf, ConfigError> {
     }
 }
 
-fn make_error(cr: ConfigrError) -> ConfigError {
-    match cr {
-        ConfigrError::ReadConfig { source, path } => ConfigError::ReadFile { source, path },
-        ConfigrError::CreateFs { source, path } => ConfigError::CreateDefault { source, path },
-        ConfigrError::Deserialize {
-            source,
-            path,
-            toml: _,
-        } => ConfigError::ParseFile { source, path },
-        ConfigrError::ConfigDir => ConfigError::NoConfigDir,
+fn write_to(cfg: &DsConfig, file: &Path) -> Result<(), ConfigError> {
+    if !file.exists() {
+        if let Some(dir) = file.parent() {
+            std::fs::create_dir_all(dir).map_err(|e| ConfigError::CreateDefault {
+                source: e,
+                path: file.to_path_buf(),
+            })?;
+        }
     }
+    let cnt = toml::to_string(cfg).map_err(|e| ConfigError::WriteFile {
+        source: e,
+        path: file.to_path_buf(),
+    });
+
+    cnt.and_then(|c| {
+        std::fs::write(&file, &c).map_err(|e| ConfigError::CreateDefault {
+            source: e,
+            path: file.to_path_buf(),
+        })
+    })
 }

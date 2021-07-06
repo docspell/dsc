@@ -91,6 +91,12 @@ impl CommonOpts {
 
 #[derive(Clap, std::fmt::Debug)]
 pub enum SubCommand {
+    /// Write the default config to the file system and exit. The
+    /// location depends on the OS.
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version = VERSION)]
+    WriteDefaultConfig,
+
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version = VERSION)]
     Version(version::Input),

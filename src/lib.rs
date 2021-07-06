@@ -23,7 +23,7 @@ pub fn read_args() -> MainOpts {
 
 pub fn read_config(file: &Option<String>) -> Result<DsConfig, DscError> {
     let f = DsConfig::read(file);
-    log::debug!("Read config file: {:?}", f);
+    log::debug!("Config: {:?}", f);
     f.map_err(DscError::Config)
 }
 
@@ -39,6 +39,11 @@ pub fn execute_cmd(cfg: &DsConfig, opts: &MainOpts) -> Result<(), DscError> {
     };
     log::info!("Running command: {:?}", opts.subcmd);
     match &opts.subcmd {
+        SubCommand::WriteDefaultConfig => {
+            let cfg_file = DsConfig::write_default_file().map_err(DscError::Config)?;
+            eprintln!("Wrote config to {:}", cfg_file.display());
+            Ok(())
+        }
         SubCommand::Version(input) => input.exec(&args).map_err(DscError::Cmd),
         SubCommand::Login(input) => input.exec(&args).map_err(DscError::Cmd),
         SubCommand::Search(input) => input.exec(&args).map_err(DscError::Cmd),
