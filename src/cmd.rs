@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod file_exists;
 pub mod login;
 pub mod search;
 pub mod search_summary;
@@ -23,11 +24,6 @@ impl CmdArgs<'_> {
             Format::Lisp => serde_lexpr::to_string(arg).map_err(CmdError::SexprError),
         }
     }
-
-    // fn admin_secret(&self) -> Result<String, CmdError> {
-    //     let s: Option<String> = self.opts.admin_secret.or(self.cfg.admin_secret);
-    //     s.ok_or(CmdError::AuthError("No admin secret given!".into()))
-    // }
 }
 
 #[derive(Debug)]

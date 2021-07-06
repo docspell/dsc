@@ -49,5 +49,6 @@ pub fn execute_cmd(cfg: &DsConfig, opts: &MainOpts) -> Result<(), DscError> {
         SubCommand::Search(input) => input.exec(&args).map_err(DscError::Cmd),
         SubCommand::SearchSummary(input) => input.exec(&args).map_err(DscError::Cmd),
         SubCommand::Admin(input) => input.exec(&args).map_err(DscError::Cmd),
+        SubCommand::FileExists(input) => input.exec(&args).map_err(DscError::Cmd),
     }
 }

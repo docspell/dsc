@@ -1,4 +1,5 @@
 use crate::cmd::admin;
+use crate::cmd::file_exists;
 use crate::cmd::login;
 use crate::cmd::search;
 use crate::cmd::search_summary;
@@ -112,6 +113,10 @@ pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version = VERSION)]
     SearchSummary(search_summary::Input),
+
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version = VERSION)]
+    FileExists(file_exists::Input),
 
     // #[clap(setting = AppSettings::ColoredHelp)]
     // #[clap(version = VERSION)]
