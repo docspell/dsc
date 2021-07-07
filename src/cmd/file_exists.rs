@@ -14,14 +14,14 @@ pub struct Input {
     pub source: Option<String>,
 
     /// One or more files to check
-    pub file: PathBuf,
+    #[clap(required = true, min_values = 1)]
     pub files: Vec<PathBuf>,
 }
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = check_file(&self.file, self, args.opts).and_then(|r| args.make_str(&r));
-        println!("{:}", result?);
+        // let result = check_file(&self.file, self, args.opts).and_then(|r| args.make_str(&r));
+        // println!("{:}", result?);
         for file in &self.files {
             let result = check_file(&file, self, args.opts).and_then(|r| args.make_str(&r));
             println!("{:}", result?);
@@ -32,7 +32,8 @@ impl Cmd for Input {
 
 fn check_file(file: &PathBuf, args: &Input, cfg: &ConfigOpts) -> Result<CheckFileResult, CmdError> {
     let hash = file::digest_file_sha256(file).map_err(CmdError::IOError)?;
-    let result = check_hash(&hash, args, cfg)?;
+    let mut result = check_hash(&hash, args, cfg)?;
+    result.file = file.canonicalize().ok().map(|p| p.display().to_string());
     Ok(result)
 }
 
