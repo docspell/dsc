@@ -9,6 +9,7 @@ use cmd::{Cmd, CmdArgs};
 use config::DsConfig;
 use log;
 use opts::{MainOpts, SubCommand};
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum DscError {
@@ -22,8 +23,8 @@ pub fn read_args() -> MainOpts {
     m
 }
 
-pub fn read_config(file: &Option<String>) -> Result<DsConfig, DscError> {
-    let f = DsConfig::read(file);
+pub fn read_config(file: &Option<PathBuf>) -> Result<DsConfig, DscError> {
+    let f = DsConfig::read(file.as_ref());
     log::debug!("Config: {:?}", f);
     f.map_err(DscError::Config)
 }
@@ -31,7 +32,10 @@ pub fn read_config(file: &Option<String>) -> Result<DsConfig, DscError> {
 pub fn execute() -> Result<(), DscError> {
     let opts = read_args();
     let cfg = read_config(&opts.config);
-    cfg.and_then(|c| execute_cmd(&c, &opts))
+    cfg.and_then(|c| {
+        eprintln!("Docspell at: {:}", c.docspell_url);
+        execute_cmd(&c, &opts)
+    })
 }
 
 pub fn execute_cmd(cfg: &DsConfig, opts: &MainOpts) -> Result<(), DscError> {

@@ -6,8 +6,9 @@ use crate::cmd::search_summary;
 use crate::cmd::source;
 use crate::cmd::version;
 use crate::config::DsConfig;
-use clap::{AppSettings, Clap};
+use clap::{AppSettings, Clap, ValueHint};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -28,8 +29,8 @@ pub struct MainOpts {
     /// config file is looked up based on the current OS. If no such
     /// file exists, the default configuration is used and a new
     /// config file is created from that.
-    #[clap(short, long)]
-    pub config: Option<String>,
+    #[clap(short, long, parse(from_os_str), value_hint = ValueHint::FilePath)]
+    pub config: Option<PathBuf>,
 
     #[clap(flatten)]
     pub common_opts: CommonOpts,

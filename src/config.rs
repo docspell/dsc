@@ -47,9 +47,9 @@ impl default::Default for DsConfig {
 }
 
 impl DsConfig {
-    pub fn read(file: &Option<String>) -> Result<DsConfig, ConfigError> {
+    pub fn read(file: Option<&PathBuf>) -> Result<DsConfig, ConfigError> {
         if let Some(cfg_file) = &file {
-            let given_path = Path::new(&cfg_file);
+            let given_path = cfg_file.as_path();
             let cfg = given_path
                 .canonicalize()
                 .map_err(|e| ConfigError::ReadFile {
