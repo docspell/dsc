@@ -4,6 +4,37 @@ pub const DOCSPELL_AUTH: &'static str = "X-Docspell-Auth";
 pub const DOCSPELL_ADMIN: &'static str = "Docspell-Admin-Secret";
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct SourceList {
+    items: Box<[SourceAndTags]>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SourceAndTags {
+    source: Source,
+    tags: TagList,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TagList {
+    count: u32,
+    items: Box<[Tag]>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Source {
+    pub id: String,
+    pub abbrev: String,
+    pub description: Option<String>,
+    pub counter: u32,
+    pub enabled: bool,
+    pub priority: String,
+    pub folder: Option<String>,
+    pub file_filter: Option<String>,
+    pub language: Option<String>,
+    pub created: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CheckFileResult {
     pub exists: bool,
     pub items: Box<[ItemShort]>,

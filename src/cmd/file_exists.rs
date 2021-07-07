@@ -32,8 +32,8 @@ impl Cmd for Input {
 
 fn check_file(file: &PathBuf, args: &Input, cfg: &ConfigOpts) -> Result<CheckFileResult, CmdError> {
     let hash = file::digest_file_sha256(file).map_err(CmdError::IOError)?;
-    let mut result = check_hash(&hash, args, cfg)?;
-    result
+    let result = check_hash(&hash, args, cfg)?;
+    Ok(result)
 }
 
 fn check_hash(hash: &str, args: &Input, cfg: &ConfigOpts) -> Result<CheckFileResult, CmdError> {

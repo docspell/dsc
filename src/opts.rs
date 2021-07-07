@@ -3,6 +3,7 @@ use crate::cmd::file_exists;
 use crate::cmd::login;
 use crate::cmd::search;
 use crate::cmd::search_summary;
+use crate::cmd::source;
 use crate::cmd::version;
 use crate::config::DsConfig;
 use clap::{AppSettings, Clap};
@@ -118,9 +119,10 @@ pub enum SubCommand {
     #[clap(version = VERSION)]
     FileExists(file_exists::Input),
 
-    // #[clap(setting = AppSettings::ColoredHelp)]
-    // #[clap(version = VERSION)]
-    // GeneratePreviews(admin_previews::Input),
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version = VERSION)]
+    Source(source::Input),
+
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version = VERSION)]
     Admin(admin::Input),

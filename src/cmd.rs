@@ -3,6 +3,7 @@ pub mod file_exists;
 pub mod login;
 pub mod search;
 pub mod search_summary;
+pub mod source;
 pub mod version;
 
 use crate::opts::{ConfigOpts, Format};
