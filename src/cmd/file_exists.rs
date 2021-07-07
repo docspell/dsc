@@ -1,8 +1,9 @@
+use crate::cmd::login;
 use crate::cmd::{Cmd, CmdArgs, CmdError};
+use crate::file;
 use crate::opts::ConfigOpts;
+use crate::types::{CheckFileResult, DOCSPELL_AUTH};
 use clap::Clap;
-use sha2::{Digest, Sha256};
-use std::io;
 use std::path::PathBuf;
 
 /// Checks if the given files exist in docspell.
@@ -19,35 +20,40 @@ pub struct Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        println!(
-            "{:}: {:}",
-            self.file.display(),
-            digest_file::<Sha256>(&self.file).map_err(CmdError::IOError)?
-        );
-        println!("todo");
+        let result = check_file(&self.file, self, args.opts).and_then(|r| args.make_str(&r));
+        println!("{:}", result?);
+        for file in &self.files {
+            let result = check_file(&file, self, args.opts).and_then(|r| args.make_str(&r));
+            println!("{:}", result?);
+        }
         Ok(())
     }
 }
 
-const BUFFER_SIZE: usize = 1024;
-
-fn digest_file<D: Digest + Default>(file: &PathBuf) -> Result<String, io::Error> {
-    std::fs::File::open(file).and_then(|mut f| digest::<D, _>(&mut f))
+fn check_file(file: &PathBuf, args: &Input, cfg: &ConfigOpts) -> Result<CheckFileResult, CmdError> {
+    let hash = file::digest_file_sha256(file).map_err(CmdError::IOError)?;
+    let mut result = check_hash(&hash, args, cfg)?;
+    result
 }
 
-/// Compute digest value for given `Reader` and return it as hex string
-fn digest<D: Digest + Default, R: io::Read>(reader: &mut R) -> Result<String, io::Error> {
-    let mut sh = D::default();
-    let mut buffer = [0u8; BUFFER_SIZE];
-    loop {
-        let n = match reader.read(&mut buffer) {
-            Ok(n) => n,
-            Err(_) => return Err(io::Error::new(io::ErrorKind::Other, "Could not read file")),
-        };
-        sh.update(&buffer[..n]);
-        if n == 0 || n < BUFFER_SIZE {
-            break;
-        }
-    }
-    Ok(hex::encode(&sh.finalize()))
+fn check_hash(hash: &str, args: &Input, cfg: &ConfigOpts) -> Result<CheckFileResult, CmdError> {
+    let url = match &args.source {
+        Some(id) => format!("{}/api/v1/open/checkfile/{}/{}", cfg.docspell_url, id, hash),
+        None => format!("{}/api/v1/sec/checkfile/{}", cfg.docspell_url, hash),
+    };
+    let client = if args.source.is_none() {
+        let token = login::session_token(cfg)?;
+        reqwest::blocking::Client::new()
+            .get(url)
+            .header(DOCSPELL_AUTH, token)
+    } else {
+        reqwest::blocking::Client::new().get(url)
+    };
+
+    client
+        .send()
+        .and_then(|r| r.error_for_status())
+        .map_err(CmdError::HttpError)?
+        .json::<CheckFileResult>()
+        .map_err(CmdError::HttpError)
 }

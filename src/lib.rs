@@ -1,5 +1,6 @@
 pub mod cmd;
 pub mod config;
+mod file;
 pub mod opts;
 pub mod types;
 
