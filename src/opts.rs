@@ -21,7 +21,7 @@ pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 ///
 /// For more information, see https://docspell.org/docs/api.
 #[derive(Clap, std::fmt::Debug)]
-#[clap(name = "dsc", version = VERSION)]
+#[clap(name = "dsc", version)]
 #[clap(setting = AppSettings::ColoredHelp)]
 pub struct MainOpts {
     /// This can specify a path to a config file to load. It is

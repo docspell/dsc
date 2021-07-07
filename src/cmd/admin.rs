@@ -3,7 +3,6 @@ pub mod recreate_index;
 pub mod reset_password;
 
 use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::opts::VERSION;
 use clap::{AppSettings, Clap};
 
 /// [Admin] Commands that require the admin secret from the server
@@ -17,15 +16,15 @@ pub struct Input {
 #[derive(Clap, Debug)]
 pub enum AdminCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version = VERSION)]
+    #[clap(version)]
     GeneratePreviews(generate_previews::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version = VERSION)]
+    #[clap(version)]
     RecreateIndex(recreate_index::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version = VERSION)]
+    #[clap(version)]
     ResetPassword(reset_password::Input),
 }
 

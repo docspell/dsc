@@ -22,3 +22,8 @@ The `login` command can be used to initially login to docspell server.
 The simple form accepts a username and password. It also supports the
 [pass](https://www.passwordstore.org/) password manager. The retrieved
 session token is stored on your file system next to the config file.
+
+
+## Dev
+
+https://github.com/clap-rs/clap/tree/master/clap_derive/examples

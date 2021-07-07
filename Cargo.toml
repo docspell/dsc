@@ -3,6 +3,7 @@ name = "dsc"
 version = "0.1.0"
 authors = ["eikek <eikek@posteo.de>"]
 edition = "2018"
+description = "A command line interface to Docspell, a free DMS."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

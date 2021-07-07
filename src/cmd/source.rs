@@ -1,7 +1,6 @@
 pub mod list;
 
 use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::opts::VERSION;
 use clap::{AppSettings, Clap};
 
 /// Manage source urls for uploading files.
@@ -14,7 +13,7 @@ pub struct Input {
 #[derive(Clap, Debug)]
 pub enum SourceCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version = VERSION)]
+    #[clap(version)]
     List(list::Input),
 }
 
