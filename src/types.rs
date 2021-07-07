@@ -5,19 +5,19 @@ pub const DOCSPELL_ADMIN: &'static str = "Docspell-Admin-Secret";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SourceList {
-    items: Box<[SourceAndTags]>,
+    pub items: Vec<SourceAndTags>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SourceAndTags {
-    source: Source,
-    tags: TagList,
+    pub source: Source,
+    pub tags: TagList,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TagList {
-    count: u32,
-    items: Box<[Tag]>,
+    pub count: u32,
+    pub items: Vec<Tag>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -37,7 +37,7 @@ pub struct Source {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CheckFileResult {
     pub exists: bool,
-    pub items: Box<[ItemShort]>,
+    pub items: Vec<ItemShort>,
     pub file: Option<String>,
 }
 
@@ -98,12 +98,12 @@ pub struct CatCount {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TagCloud {
-    pub items: Box<[TagCount]>,
+    pub items: Vec<TagCount>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CatCloud {
-    pub items: Box<[CatCount]>,
+    pub items: Vec<CatCount>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -135,9 +135,9 @@ pub struct Summary {
     #[serde(alias = "tagCategoryCloud")]
     pub tag_category_cloud: Box<CatCloud>,
     #[serde(alias = "fieldStats")]
-    pub field_stats: Box<[FieldStats]>,
+    pub field_stats: Vec<FieldStats>,
     #[serde(alias = "folderStats")]
-    pub folder_stats: Box<[FolderStats]>,
+    pub folder_stats: Vec<FolderStats>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -161,7 +161,7 @@ pub struct CustomField {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Highlight {
     pub name: String,
-    pub lines: Box<[String]>,
+    pub lines: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -183,20 +183,20 @@ pub struct Item {
     #[serde(alias = "concEquipment")]
     pub conc_equip: Option<IdName>,
     pub folder: Option<IdName>,
-    pub attachments: Box<[Attach]>,
-    pub tags: Box<[Tag]>,
-    pub customfields: Box<[CustomField]>,
+    pub attachments: Vec<Attach>,
+    pub tags: Vec<Tag>,
+    pub customfields: Vec<CustomField>,
     pub notes: Option<String>,
-    pub highlighting: Box<[Highlight]>,
+    pub highlighting: Vec<Highlight>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Group {
     pub name: String,
-    pub items: Box<[Item]>,
+    pub items: Vec<Item>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchResult {
-    pub groups: Box<[Group]>,
+    pub groups: Vec<Group>,
 }
