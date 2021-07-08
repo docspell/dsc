@@ -31,7 +31,7 @@ pub struct EndpointOpts {
     header: Option<NameVal>,
 
     /// Use the integration endpoint without any credentials.
-    #[clap(long, group = "int")]
+    #[clap(long)]
     integration: bool,
 
     /// When using the integration endpoint, this is the collective to
@@ -82,23 +82,68 @@ fn check_file(file: &PathBuf, args: &Input, cfg: &ConfigOpts) -> Result<CheckFil
 }
 
 fn check_hash(hash: &str, args: &Input, cfg: &ConfigOpts) -> Result<CheckFileResult, CmdError> {
-    let url = match &args.endpoint.source {
-        Some(id) => format!("{}/api/v1/open/checkfile/{}/{}", cfg.docspell_url, id, hash),
-        None => format!("{}/api/v1/sec/checkfile/{}", cfg.docspell_url, hash),
-    };
-    let client = if args.endpoint.source.is_none() {
-        let token = login::session_token(cfg)?;
-        reqwest::blocking::Client::new()
-            .get(url)
-            .header(DOCSPELL_AUTH, token)
+    let url = if args.endpoint.integration {
+        let coll_id = args
+            .endpoint
+            .collective
+            .as_ref()
+            .ok_or(CmdError::InvalidInput(
+                "Collective must be present when using integration endpoint.".into(),
+            ))?;
+        let u = format!(
+            "{}/api/v1/open/integration/checkfile/{}/{}",
+            cfg.docspell_url, coll_id, hash
+        );
+        int_endpoint_available(create_client(&u, args, cfg)?, cfg, &coll_id)?;
+        u
     } else {
-        reqwest::blocking::Client::new().get(url)
+        match &args.endpoint.source {
+            Some(id) => format!("{}/api/v1/open/checkfile/{}/{}", cfg.docspell_url, id, hash),
+            None => format!("{}/api/v1/sec/checkfile/{}", cfg.docspell_url, hash),
+        }
     };
 
+    let client = create_client(&url, args, cfg)?;
     client
         .send()
         .and_then(|r| r.error_for_status())
         .map_err(CmdError::HttpError)?
         .json::<CheckFileResult>()
+        .map_err(CmdError::HttpError)
+}
+
+fn create_client(
+    url: &str,
+    args: &Input,
+    cfg: &ConfigOpts,
+) -> Result<reqwest::blocking::RequestBuilder, CmdError> {
+    if args.endpoint.source.is_none() && !args.endpoint.integration {
+        let token = login::session_token(cfg)?;
+        Ok(reqwest::blocking::Client::new()
+            .get(url)
+            .header(DOCSPELL_AUTH, token))
+    } else {
+        let c = reqwest::blocking::Client::new().get(url);
+        if let Some(h) = &args.endpoint.header {
+            log::debug!(
+                "Using integration endpoint with header: {}:{}",
+                h.name,
+                h.value
+            );
+            Ok(c.header(&h.name, &h.value))
+        } else {
+            Ok(c)
+        }
+    }
+}
+
+fn int_endpoint_available(
+    rb: reqwest::blocking::RequestBuilder,
+    cfg: &ConfigOpts,
+    collective: &str,
+) -> Result<reqwest::blocking::Response, CmdError> {
+    log::debug!("Checking availability of integration endpoint …");
+    rb.send()
+        .and_then(|r| r.error_for_status())
         .map_err(CmdError::HttpError)
 }

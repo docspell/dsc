@@ -34,4 +34,5 @@ pub enum CmdError {
     SexprError(serde_lexpr::Error),
     AuthError(String),
     IOError(std::io::Error),
+    InvalidInput(String),
 }
