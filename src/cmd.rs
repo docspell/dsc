@@ -35,4 +35,5 @@ pub enum CmdError {
     AuthError(String),
     IOError(std::io::Error),
     InvalidInput(String),
+    IntEndpointNotAvail,
 }
