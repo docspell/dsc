@@ -6,6 +6,7 @@ use crate::cmd::register;
 use crate::cmd::search;
 use crate::cmd::search_summary;
 use crate::cmd::source;
+use crate::cmd::upload;
 use crate::cmd::version;
 use crate::config::DsConfig;
 use clap::{AppSettings, ArgGroup, Clap, ValueHint};
@@ -137,6 +138,10 @@ pub enum SubCommand {
 
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
+    Upload(upload::Input),
+
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
     Admin(admin::Input),
 }
 
@@ -178,8 +183,7 @@ pub struct EndpointOpts {
     #[clap(long, short)]
     pub integration: bool,
 
-    /// When using the integration endpoint, this is the collective to
-    /// check against.
+    /// When using the integration endpoint, the collective is required.
     #[clap(long)]
     pub collective: Option<String>,
 }
@@ -234,4 +238,38 @@ impl std::str::FromStr for NameVal {
             value: s[pos + 1..].into(),
         })
     }
+}
+
+#[derive(Clap, Debug)]
+pub struct UploadMeta {
+    /// If set, all files are uploaded as one single item. Default is
+    /// to create one item per file.
+    #[clap(long = "single-item", parse(from_flag = std::ops::Not::not))]
+    pub multiple: bool,
+
+    /// Specify the direction of the item. One of: outgoing, incoming.
+    #[clap(long)]
+    pub direction: Option<String>,
+
+    /// Specify a folder to associate to the new item.
+    #[clap(long)]
+    pub folder: Option<String>,
+
+    /// Alow duplicates by skipping the duplicate check.
+    #[clap(long = "allow-dupes", parse(from_flag = std::ops::Not::not))]
+    pub skip_duplicates: bool,
+
+    /// Specify a list of tags to associate. Tags can be given by name
+    /// or id. The option can be repeated multiple times.
+    #[clap(long, required = false, min_values = 1, number_of_values = 1)]
+    pub tag: Vec<String>,
+
+    /// Only applicable for zip/eml files. Specify a file filter to
+    /// use when unpacking archives like zip files or eml files.
+    #[clap(long)]
+    pub file_filter: Option<String>,
+
+    /// Specify the language of the document.
+    #[clap(long, short)]
+    pub language: Option<String>,
 }

@@ -6,6 +6,7 @@ pub mod register;
 pub mod search;
 pub mod search_summary;
 pub mod source;
+pub mod upload;
 pub mod version;
 
 use crate::opts::{ConfigOpts, Format};
@@ -38,4 +39,20 @@ pub enum CmdError {
     IOError(std::io::Error),
     InvalidInput(String),
     IntEndpointNotAvail,
+}
+
+impl std::convert::From<serde_json::Error> for CmdError {
+    fn from(e: serde_json::Error) -> CmdError {
+        CmdError::JsonSerError(e)
+    }
+}
+impl std::convert::From<reqwest::Error> for CmdError {
+    fn from(e: reqwest::Error) -> CmdError {
+        CmdError::HttpError(e)
+    }
+}
+impl std::convert::From<std::io::Error> for CmdError {
+    fn from(e: std::io::Error) -> CmdError {
+        CmdError::IOError(e)
+    }
 }
