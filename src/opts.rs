@@ -2,6 +2,7 @@ use crate::cmd::admin;
 use crate::cmd::file_exists;
 use crate::cmd::geninvite;
 use crate::cmd::login;
+use crate::cmd::register;
 use crate::cmd::search;
 use crate::cmd::search_summary;
 use crate::cmd::source;
@@ -22,7 +23,7 @@ pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 /// are usually mapped to a corresponding API endpoint on the server.
 ///
 /// For more information, see https://docspell.org/docs/api.
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Clap, Debug)]
 #[clap(name = "dsc", version)]
 #[clap(setting = AppSettings::ColoredHelp)]
 pub struct MainOpts {
@@ -125,6 +126,10 @@ pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     GenInvite(geninvite::Input),
+
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    Register(register::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]

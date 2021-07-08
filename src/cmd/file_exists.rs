@@ -9,7 +9,7 @@ use reqwest::StatusCode;
 use std::path::PathBuf;
 
 /// Checks if the given files exist in docspell.
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Clap, Debug)]
 pub struct Input {
     #[clap(flatten)]
     pub endpoint: EndpointOpts,

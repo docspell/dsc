@@ -4,6 +4,15 @@ pub const DOCSPELL_AUTH: &'static str = "X-Docspell-Auth";
 pub const DOCSPELL_ADMIN: &'static str = "Docspell-Admin-Secret";
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct Registration {
+    #[serde(alias = "collectiveName", rename(serialize = "collectiveName"))]
+    pub collective_name: String,
+    pub login: String,
+    pub password: String,
+    pub invite: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct InviteResult {
     pub success: bool,
     pub message: String,
