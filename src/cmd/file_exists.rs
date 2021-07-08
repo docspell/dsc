@@ -22,8 +22,8 @@ pub struct Input {
 #[derive(Clap, Debug)]
 #[clap(group = ArgGroup::new("int"))]
 pub struct EndpointOpts {
-    /// Use the integration endpoint and provide the Basic auth header
-    /// as credential. This must be a `username:password` pair.
+    /// When using the integration endpoint, provides the Basic auth
+    /// header as credential. This must be a `username:password` pair.
     #[clap(long, group = "int")]
     basic: Option<NameVal>,
 
@@ -32,8 +32,9 @@ pub struct EndpointOpts {
     #[clap(long, group = "int")]
     header: Option<NameVal>,
 
-    /// Use the integration endpoint without any credentials.
-    #[clap(long)]
+    /// Use the integration endpoint. Credentials `--header|--basic`
+    /// must be specified if applicable.
+    #[clap(long, short)]
     integration: bool,
 
     /// When using the integration endpoint, this is the collective to
@@ -44,6 +45,17 @@ pub struct EndpointOpts {
     /// Use the given source id.
     #[clap(long, group = "int")]
     source: Option<String>,
+}
+
+impl Input {
+    fn collective_id(&self) -> Result<&String, CmdError> {
+        self.endpoint
+            .collective
+            .as_ref()
+            .ok_or(CmdError::InvalidInput(
+                "Collective must be present when using integration endpoint.".into(),
+            ))
+    }
 }
 
 #[derive(Debug)]
@@ -72,6 +84,7 @@ impl Cmd for Input {
             let result = check_file(&file, self, args.opts).and_then(|r| args.make_str(&r));
             println!("{:}", result?);
         }
+
         Ok(())
     }
 }
@@ -85,19 +98,11 @@ fn check_file(file: &PathBuf, args: &Input, cfg: &ConfigOpts) -> Result<CheckFil
 
 fn check_hash(hash: &str, args: &Input, cfg: &ConfigOpts) -> Result<CheckFileResult, CmdError> {
     let url = if args.endpoint.integration {
-        let coll_id = args
-            .endpoint
-            .collective
-            .as_ref()
-            .ok_or(CmdError::InvalidInput(
-                "Collective must be present when using integration endpoint.".into(),
-            ))?;
-        let u = format!(
+        let coll_id = args.collective_id()?;
+        format!(
             "{}/api/v1/open/integration/checkfile/{}/{}",
             cfg.docspell_url, coll_id, hash
-        );
-        int_endpoint_available(args, cfg, coll_id)?;
-        u
+        )
     } else {
         match &args.endpoint.source {
             Some(id) => format!("{}/api/v1/open/checkfile/{}/{}", cfg.docspell_url, id, hash),
