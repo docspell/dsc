@@ -1,5 +1,6 @@
 pub mod admin;
 pub mod file_exists;
+pub mod geninvite;
 pub mod login;
 pub mod search;
 pub mod search_summary;

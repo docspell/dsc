@@ -1,12 +1,14 @@
 use crate::cmd::admin;
 use crate::cmd::file_exists;
+use crate::cmd::geninvite;
 use crate::cmd::login;
 use crate::cmd::search;
 use crate::cmd::search_summary;
 use crate::cmd::source;
 use crate::cmd::version;
 use crate::config::DsConfig;
-use clap::{AppSettings, Clap, ValueHint};
+use clap::{AppSettings, ArgGroup, Clap, ValueHint};
+use reqwest::blocking::RequestBuilder;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -97,35 +99,39 @@ pub enum SubCommand {
     /// Write the default config to the file system and exit. The
     /// location depends on the OS.
     #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version = VERSION)]
+    #[clap(version)]
     WriteDefaultConfig,
 
     #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version = VERSION)]
+    #[clap(version)]
     Version(version::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version = VERSION)]
+    #[clap(version)]
     Login(login::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version = VERSION)]
+    #[clap(version)]
     Search(search::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version = VERSION)]
+    #[clap(version)]
     SearchSummary(search_summary::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version = VERSION)]
+    #[clap(version)]
     FileExists(file_exists::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version = VERSION)]
+    #[clap(version)]
+    GenInvite(geninvite::Input),
+
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
     Source(source::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version = VERSION)]
+    #[clap(version)]
     Admin(admin::Input),
 }
 
@@ -146,5 +152,81 @@ impl std::str::FromStr for Format {
         } else {
             Err(format!("Invalid format string: {}", s))
         }
+    }
+}
+
+#[derive(Clap, Debug)]
+#[clap(group = ArgGroup::new("int"))]
+pub struct EndpointOpts {
+    /// When using the integration endpoint, provides the Basic auth
+    /// header as credential. This must be a `username:password` pair.
+    #[clap(long, group = "int")]
+    pub basic: Option<NameVal>,
+
+    /// Use the integration endpoint and provide the http header as
+    /// credentials. This must be a `Header:Value` pair.
+    #[clap(long, group = "int")]
+    pub header: Option<NameVal>,
+
+    /// Use the integration endpoint. Credentials `--header|--basic`
+    /// must be specified if applicable.
+    #[clap(long, short)]
+    pub integration: bool,
+
+    /// When using the integration endpoint, this is the collective to
+    /// check against.
+    #[clap(long)]
+    pub collective: Option<String>,
+}
+
+impl EndpointOpts {
+    pub fn apply(&self, c: RequestBuilder) -> RequestBuilder {
+        self.apply_basic(self.apply_header(c))
+    }
+
+    fn apply_basic(&self, c: RequestBuilder) -> RequestBuilder {
+        if let Some(b) = &self.basic {
+            log::debug!(
+                "Using integration endpoint with basic auth: {}:{}",
+                b.name,
+                b.value
+            );
+            c.basic_auth(&b.name, Some(&b.value))
+        } else {
+            c
+        }
+    }
+
+    fn apply_header(&self, c: RequestBuilder) -> RequestBuilder {
+        if let Some(h) = &self.header {
+            log::debug!(
+                "Using integration endpoint with header: {}:{}",
+                h.name,
+                h.value
+            );
+            c.header(&h.name, &h.value)
+        } else {
+            c
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct NameVal {
+    pub name: String,
+    pub value: String,
+}
+
+impl std::str::FromStr for NameVal {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let pos = s
+            .find(':')
+            .ok_or_else(|| format!("Not a key:value pair, no `:` found in '{}'", s))?;
+        Ok(NameVal {
+            name: s[..pos].into(),
+            value: s[pos + 1..].into(),
+        })
     }
 }

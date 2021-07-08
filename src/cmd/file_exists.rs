@@ -1,9 +1,9 @@
 use crate::cmd::login;
 use crate::cmd::{Cmd, CmdArgs, CmdError};
 use crate::file;
-use crate::opts::ConfigOpts;
+use crate::opts::{ConfigOpts, EndpointOpts};
 use crate::types::{CheckFileResult, DOCSPELL_AUTH};
-use clap::{ArgGroup, Clap};
+use clap::Clap;
 use reqwest::blocking::RequestBuilder;
 use reqwest::StatusCode;
 use std::path::PathBuf;
@@ -14,39 +14,14 @@ pub struct Input {
     #[clap(flatten)]
     pub endpoint: EndpointOpts,
 
+    /// Use the given source id.
+    #[clap(long, group = "int")]
+    pub source: Option<String>,
+
     /// One or more files to check
     #[clap(required = true, min_values = 1)]
     pub files: Vec<PathBuf>,
 }
-
-#[derive(Clap, Debug)]
-#[clap(group = ArgGroup::new("int"))]
-pub struct EndpointOpts {
-    /// When using the integration endpoint, provides the Basic auth
-    /// header as credential. This must be a `username:password` pair.
-    #[clap(long, group = "int")]
-    basic: Option<NameVal>,
-
-    /// Use the integration endpoint and provide the http header as
-    /// credentials. This must be a `Header:Value` pair.
-    #[clap(long, group = "int")]
-    header: Option<NameVal>,
-
-    /// Use the integration endpoint. Credentials `--header|--basic`
-    /// must be specified if applicable.
-    #[clap(long, short)]
-    integration: bool,
-
-    /// When using the integration endpoint, this is the collective to
-    /// check against.
-    #[clap(long)]
-    collective: Option<String>,
-
-    /// Use the given source id.
-    #[clap(long, group = "int")]
-    source: Option<String>,
-}
-
 impl Input {
     fn collective_id(&self) -> Result<&String, CmdError> {
         self.endpoint
@@ -55,26 +30,6 @@ impl Input {
             .ok_or(CmdError::InvalidInput(
                 "Collective must be present when using integration endpoint.".into(),
             ))
-    }
-}
-
-#[derive(Debug)]
-struct NameVal {
-    name: String,
-    value: String,
-}
-
-impl std::str::FromStr for NameVal {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let pos = s
-            .find(':')
-            .ok_or_else(|| format!("Not a key:value pair, no `:` found in '{}'", s))?;
-        Ok(NameVal {
-            name: s[..pos].into(),
-            value: s[pos + 1..].into(),
-        })
     }
 }
 
@@ -104,7 +59,7 @@ fn check_hash(hash: &str, args: &Input, cfg: &ConfigOpts) -> Result<CheckFileRes
             cfg.docspell_url, coll_id, hash
         )
     } else {
-        match &args.endpoint.source {
+        match &args.source {
             Some(id) => format!("{}/api/v1/open/checkfile/{}/{}", cfg.docspell_url, id, hash),
             None => format!("{}/api/v1/sec/checkfile/{}", cfg.docspell_url, hash),
         }
@@ -120,37 +75,16 @@ fn check_hash(hash: &str, args: &Input, cfg: &ConfigOpts) -> Result<CheckFileRes
 }
 
 fn create_client(url: &str, args: &Input, cfg: &ConfigOpts) -> Result<RequestBuilder, CmdError> {
-    if args.endpoint.source.is_none() && !args.endpoint.integration {
+    if args.source.is_none() && !args.endpoint.integration {
         let token = login::session_token(cfg)?;
         Ok(reqwest::blocking::Client::new()
             .get(url)
             .header(DOCSPELL_AUTH, token))
     } else {
         let mut c = reqwest::blocking::Client::new().get(url);
-        if let Some(h) = &args.endpoint.header {
-            c = apply_int_header(h, c)
-        }
-        if let Some(b) = &args.endpoint.basic {
-            c = apply_int_basic(b, c)
-        }
+        c = args.endpoint.apply(c);
         Ok(c)
     }
-}
-fn apply_int_basic(b: &NameVal, c: RequestBuilder) -> RequestBuilder {
-    log::debug!(
-        "Using integration endpoint with basic auth: {}:{}",
-        b.name,
-        b.value
-    );
-    c.basic_auth(&b.name, Some(&b.value))
-}
-fn apply_int_header(h: &NameVal, c: RequestBuilder) -> RequestBuilder {
-    log::debug!(
-        "Using integration endpoint with header: {}:{}",
-        h.name,
-        h.value
-    );
-    c.header(&h.name, &h.value)
 }
 
 fn int_endpoint_available(

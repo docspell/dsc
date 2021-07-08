@@ -4,6 +4,18 @@ pub const DOCSPELL_AUTH: &'static str = "X-Docspell-Auth";
 pub const DOCSPELL_ADMIN: &'static str = "Docspell-Admin-Secret";
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct InviteResult {
+    pub success: bool,
+    pub message: String,
+    pub key: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GenInvite {
+    pub password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SourceList {
     pub items: Vec<SourceAndTags>,
 }

@@ -56,5 +56,6 @@ pub fn execute_cmd(cfg: &DsConfig, opts: &MainOpts) -> Result<(), DscError> {
         SubCommand::Source(input) => input.exec(&args).map_err(DscError::Cmd),
         SubCommand::Admin(input) => input.exec(&args).map_err(DscError::Cmd),
         SubCommand::FileExists(input) => input.exec(&args).map_err(DscError::Cmd),
+        SubCommand::GenInvite(input) => input.exec(&args).map_err(DscError::Cmd),
     }
 }
