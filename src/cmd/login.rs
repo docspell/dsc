@@ -1,24 +1,26 @@
 use crate::cmd::{Cmd, CmdArgs, CmdError};
+use crate::pass;
 use crate::types::DOCSPELL_AUTH;
-use clap::Clap;
+use clap::{ArgGroup, Clap};
 use serde::{Deserialize, Serialize};
 
 /// Performs a login given user credentials. The returned token is
 /// stored on disk and used for subsequent calls to secured api
 /// endpoints.
 #[derive(Clap, std::fmt::Debug)]
+#[clap(group = ArgGroup::new("pass"))]
 pub struct Input {
     /// The account name.
     #[clap(long, short)]
     user: String,
 
     /// The password used for authentication in plain text.
-    #[clap(long)]
+    #[clap(long, group = "pass")]
     password: Option<String>,
 
     /// An entry for the pass password manager. If this is given, the
     /// `password` option is ignored.
-    #[clap(long)]
+    #[clap(long, group = "pass")]
     pass_entry: Option<String>,
 }
 
@@ -55,7 +57,7 @@ fn login(opts: &Input, args: &CmdArgs) -> Result<AuthResp, CmdError> {
     let url = format!("{}/api/v1/open/auth/login", args.docspell_url());
     let body = AuthRequest {
         account: opts.user.clone(),
-        password: opts.password.clone().unwrap(),
+        password: get_password(opts, args)?,
         remember_me: false,
     };
     let client = reqwest::blocking::Client::new();
@@ -71,6 +73,16 @@ fn login(opts: &Input, args: &CmdArgs) -> Result<AuthResp, CmdError> {
         store_session(&r)?;
         Ok(r)
     })
+}
+
+fn get_password(opts: &Input, args: &CmdArgs) -> Result<String, CmdError> {
+    match args.pass_entry(&opts.pass_entry) {
+        Some(pe) => pass::pass_password(&pe).map_err(CmdError::IOError),
+        None => opts
+            .password
+            .clone()
+            .ok_or(CmdError::InvalidInput("No password provided!".into())),
+    }
 }
 
 fn session(token: &str, args: &CmdArgs) -> Result<AuthResp, CmdError> {

@@ -52,6 +52,10 @@ impl CmdArgs<'_> {
             .or(self.cfg.admin_secret.as_ref())
             .map(String::clone)
     }
+
+    fn pass_entry(&self, given: &Option<String>) -> Option<String> {
+        given.clone().or(self.cfg.pass_entry.clone())
+    }
 }
 
 #[derive(Debug)]
@@ -68,6 +72,11 @@ pub enum CmdError {
 impl std::convert::From<serde_json::Error> for CmdError {
     fn from(e: serde_json::Error) -> CmdError {
         CmdError::JsonSerError(e)
+    }
+}
+impl std::convert::From<serde_lexpr::Error> for CmdError {
+    fn from(e: serde_lexpr::Error) -> CmdError {
+        CmdError::SexprError(e)
     }
 }
 impl std::convert::From<reqwest::Error> for CmdError {

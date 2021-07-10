@@ -2,6 +2,7 @@ pub mod cmd;
 pub mod config;
 mod file;
 pub mod opts;
+mod pass;
 pub mod types;
 
 use clap::Clap;
@@ -31,17 +32,15 @@ pub fn read_config(file: &Option<PathBuf>) -> Result<DsConfig, DscError> {
 
 pub fn execute() -> Result<(), DscError> {
     let opts = read_args();
-    let cfg = read_config(&opts.config);
-    cfg.and_then(|c| {
-        eprintln!("Docspell at: {:}", c.docspell_url);
-        execute_cmd(&c, &opts)
-    })
+    let cfg = read_config(&opts.config)?;
+    eprintln!("Docspell at: {:}", cfg.docspell_url);
+    execute_cmd(cfg, opts)
 }
 
-pub fn execute_cmd(cfg: &DsConfig, opts: &MainOpts) -> Result<(), DscError> {
+pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), DscError> {
     let args = CmdArgs {
         opts: &opts.common_opts,
-        cfg,
+        cfg: &cfg,
     };
     log::info!("Running command: {:?}", opts.subcmd);
     match &opts.subcmd {

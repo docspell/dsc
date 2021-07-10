@@ -9,6 +9,7 @@ pub struct DsConfig {
     pub default_format: Format,
     pub admin_secret: Option<String>,
     pub default_source_id: Option<String>,
+    pub pass_entry: Option<String>,
 }
 
 #[derive(Debug, snafu::Snafu)]
@@ -44,6 +45,7 @@ impl default::Default for DsConfig {
             default_format: Format::Json,
             admin_secret: None,
             default_source_id: None,
+            pass_entry: None,
         }
     }
 }
