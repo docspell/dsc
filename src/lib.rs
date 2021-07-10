@@ -41,6 +41,7 @@ pub fn execute() -> Result<(), DscError> {
 pub fn execute_cmd(cfg: &DsConfig, opts: &MainOpts) -> Result<(), DscError> {
     let args = CmdArgs {
         opts: &opts.common_opts.merge(cfg),
+        cfg,
     };
     log::info!("Running command: {:?}", opts.subcmd);
     match &opts.subcmd {

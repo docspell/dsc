@@ -9,7 +9,10 @@ pub mod source;
 pub mod upload;
 pub mod version;
 
-use crate::opts::{ConfigOpts, Format};
+use crate::{
+    config::DsConfig,
+    opts::{ConfigOpts, Format},
+};
 use serde::Serialize;
 
 pub trait Cmd {
@@ -18,6 +21,7 @@ pub trait Cmd {
 
 pub struct CmdArgs<'a> {
     pub opts: &'a ConfigOpts,
+    pub cfg: &'a DsConfig,
 }
 
 impl CmdArgs<'_> {

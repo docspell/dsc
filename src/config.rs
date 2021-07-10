@@ -8,6 +8,7 @@ pub struct DsConfig {
     pub docspell_url: String,
     pub default_format: Format,
     pub admin_secret: Option<String>,
+    pub default_source_id: Option<String>,
 }
 
 #[derive(Debug, snafu::Snafu)]
@@ -42,6 +43,7 @@ impl default::Default for DsConfig {
             docspell_url: "http://localhost:7880".into(),
             default_format: Format::Json,
             admin_secret: None,
+            default_source_id: None,
         }
     }
 }
