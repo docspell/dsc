@@ -30,8 +30,7 @@ pub struct MainOpts {
     /// This can specify a path to a config file to load. It is
     /// expected to be in TOML format. If not given, the default
     /// config file is looked up based on the current OS. If no such
-    /// file exists, the default configuration is used and a new
-    /// config file is created from that.
+    /// file exists, the default configuration is used.
     #[clap(short, long, parse(from_os_str), value_hint = ValueHint::FilePath)]
     pub config: Option<PathBuf>,
 
@@ -49,7 +48,7 @@ pub struct CommonOpts {
     pub verbose: i32,
 
     /// The output format. Some commands may ignore this option. This
-    /// defines how to format the output. The default is JSON or give
+    /// defines how to format the output. The default is JSON or given
     /// via the config file. Another option is `Lisp` which produces
     /// s-expressions. Use one of: json, lisp.
     #[clap(short, long)]
