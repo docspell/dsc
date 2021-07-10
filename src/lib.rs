@@ -10,12 +10,23 @@ use cmd::{Cmd, CmdArgs};
 use config::DsConfig;
 use log;
 use opts::{MainOpts, SubCommand};
+use std::convert::From;
 use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum DscError {
     Cmd(cmd::CmdError),
     Config(config::ConfigError),
+}
+impl From<cmd::CmdError> for DscError {
+    fn from(e: cmd::CmdError) -> DscError {
+        DscError::Cmd(e)
+    }
+}
+impl From<config::ConfigError> for DscError {
+    fn from(e: config::ConfigError) -> DscError {
+        DscError::Config(e)
+    }
 }
 
 pub fn read_args() -> MainOpts {
@@ -45,19 +56,19 @@ pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), DscError> {
     log::info!("Running command: {:?}", opts.subcmd);
     match &opts.subcmd {
         SubCommand::WriteDefaultConfig => {
-            let cfg_file = DsConfig::write_default_file().map_err(DscError::Config)?;
+            let cfg_file = DsConfig::write_default_file()?;
             eprintln!("Wrote config to {:}", cfg_file.display());
-            Ok(())
         }
-        SubCommand::Version(input) => input.exec(&args).map_err(DscError::Cmd),
-        SubCommand::Login(input) => input.exec(&args).map_err(DscError::Cmd),
-        SubCommand::Search(input) => input.exec(&args).map_err(DscError::Cmd),
-        SubCommand::SearchSummary(input) => input.exec(&args).map_err(DscError::Cmd),
-        SubCommand::Source(input) => input.exec(&args).map_err(DscError::Cmd),
-        SubCommand::Admin(input) => input.exec(&args).map_err(DscError::Cmd),
-        SubCommand::FileExists(input) => input.exec(&args).map_err(DscError::Cmd),
-        SubCommand::GenInvite(input) => input.exec(&args).map_err(DscError::Cmd),
-        SubCommand::Register(input) => input.exec(&args).map_err(DscError::Cmd),
-        SubCommand::Upload(input) => input.exec(&args).map_err(DscError::Cmd),
-    }
+        SubCommand::Version(input) => input.exec(&args)?,
+        SubCommand::Login(input) => input.exec(&args)?,
+        SubCommand::Search(input) => input.exec(&args)?,
+        SubCommand::SearchSummary(input) => input.exec(&args)?,
+        SubCommand::Source(input) => input.exec(&args)?,
+        SubCommand::Admin(input) => input.exec(&args)?,
+        SubCommand::FileExists(input) => input.exec(&args)?,
+        SubCommand::GenInvite(input) => input.exec(&args)?,
+        SubCommand::Register(input) => input.exec(&args)?,
+        SubCommand::Upload(input) => input.exec(&args)?,
+    };
+    Ok(())
 }
