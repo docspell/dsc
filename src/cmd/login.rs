@@ -1,5 +1,4 @@
 use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::opts::ConfigOpts;
 use crate::types::DOCSPELL_AUTH;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
@@ -25,7 +24,7 @@ pub struct Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = login(self, args.opts).and_then(|r| args.make_str(&r));
+        let result = login(self, args).and_then(|r| args.make_str(&r));
         println!("{:}", result?);
         Ok(())
     }
@@ -52,11 +51,11 @@ pub struct AuthResp {
     pub valid_ms: u64,
 }
 
-fn login(args: &Input, cfg: &ConfigOpts) -> Result<AuthResp, CmdError> {
-    let url = format!("{}/api/v1/open/auth/login", cfg.docspell_url);
+fn login(opts: &Input, args: &CmdArgs) -> Result<AuthResp, CmdError> {
+    let url = format!("{}/api/v1/open/auth/login", args.docspell_url());
     let body = AuthRequest {
-        account: args.user.clone(),
-        password: args.password.clone().unwrap(),
+        account: opts.user.clone(),
+        password: opts.password.clone().unwrap(),
         remember_me: false,
     };
     let client = reqwest::blocking::Client::new();
@@ -74,8 +73,8 @@ fn login(args: &Input, cfg: &ConfigOpts) -> Result<AuthResp, CmdError> {
     })
 }
 
-fn session(token: &str, cfg: &ConfigOpts) -> Result<AuthResp, CmdError> {
-    let url = format!("{}/api/v1/sec/auth/session", cfg.docspell_url);
+fn session(token: &str, args: &CmdArgs) -> Result<AuthResp, CmdError> {
+    let url = format!("{}/api/v1/sec/auth/session", args.docspell_url());
     let client = reqwest::blocking::Client::new();
     let result = client
         .post(url)
@@ -103,7 +102,7 @@ fn store_session(resp: &AuthResp) -> Result<(), CmdError> {
     }
 }
 
-pub fn session_token(cfg: &ConfigOpts) -> Result<String, CmdError> {
+pub fn session_token(args: &CmdArgs) -> Result<String, CmdError> {
     match dirs::config_dir() {
         Some(mut dir) => {
             dir.push("dsc");
@@ -112,7 +111,7 @@ pub fn session_token(cfg: &ConfigOpts) -> Result<String, CmdError> {
             let resp: AuthResp =
                 serde_json::from_str(&cnt).map_err(|e| CmdError::AuthError(e.to_string()))?;
             get_token(resp)
-                .and_then(|t| session(&t, cfg))
+                .and_then(|t| session(&t, args))
                 .and_then(|r| get_token(r))
         }
         None => Err(CmdError::AuthError("Not logged in.".into())),

@@ -8,7 +8,6 @@ use crate::cmd::search_summary;
 use crate::cmd::source;
 use crate::cmd::upload;
 use crate::cmd::version;
-use crate::config::DsConfig;
 use clap::{AppSettings, ArgGroup, Clap, ValueHint};
 use reqwest::blocking::RequestBuilder;
 use serde::{Deserialize, Serialize};
@@ -66,34 +65,6 @@ pub struct CommonOpts {
     /// be present in the config file.
     #[clap(short, long)]
     pub docspell_url: Option<String>,
-}
-
-// CommonOpts with fallback from DsConfig
-#[derive(Debug)]
-pub struct ConfigOpts {
-    pub verbose: i32,
-    pub format: Format,
-    pub docspell_url: String,
-    pub admin_secret: Option<String>,
-}
-
-impl CommonOpts {
-    pub fn merge(&self, cfg: &DsConfig) -> ConfigOpts {
-        ConfigOpts {
-            verbose: self.verbose,
-            format: self.format.unwrap_or(cfg.default_format),
-            docspell_url: self
-                .docspell_url
-                .as_ref()
-                .unwrap_or(&cfg.docspell_url)
-                .clone(),
-            admin_secret: self
-                .admin_secret
-                .as_ref()
-                .or(cfg.admin_secret.as_ref())
-                .map(String::clone),
-        }
-    }
 }
 
 #[derive(Clap, std::fmt::Debug)]

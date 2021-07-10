@@ -62,8 +62,8 @@ fn upload_files(args: &Input, cfg: &CmdArgs) -> Result<BasicResult, CmdError> {
         )
     } else {
         match &args.source_id(cfg.cfg) {
-            Some(id) => format!("{}/api/v1/open/upload/item/{}", cfg.opts.docspell_url, id),
-            None => format!("{}/api/v1/sec/upload/item", cfg.opts.docspell_url),
+            Some(id) => format!("{}/api/v1/open/upload/item/{}", cfg.docspell_url(), id),
+            None => format!("{}/api/v1/sec/upload/item", cfg.docspell_url()),
         }
     };
 
@@ -105,13 +105,13 @@ fn upload_files(args: &Input, cfg: &CmdArgs) -> Result<BasicResult, CmdError> {
         .map_err(CmdError::HttpError)
 }
 
-fn create_client(url: &str, args: &Input, cfg: &CmdArgs) -> Result<RequestBuilder, CmdError> {
-    if args.source_id(cfg.cfg).is_none() && !args.endpoint.integration {
-        let token = login::session_token(cfg.opts)?;
+fn create_client(url: &str, opts: &Input, args: &CmdArgs) -> Result<RequestBuilder, CmdError> {
+    if opts.source_id(args.cfg).is_none() && !opts.endpoint.integration {
+        let token = login::session_token(args)?;
         Ok(Client::new().post(url).header(DOCSPELL_AUTH, token))
     } else {
         let mut c = Client::new().post(url);
-        c = args.endpoint.apply(c);
+        c = opts.endpoint.apply(c);
         Ok(c)
     }
 }

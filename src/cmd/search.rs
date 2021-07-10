@@ -1,6 +1,5 @@
 use crate::cmd::login;
 use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::opts::ConfigOpts;
 use crate::types::{SearchResult, DOCSPELL_AUTH};
 use clap::Clap;
 
@@ -27,24 +26,24 @@ pub struct Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = search(&self, args.opts).and_then(|r| args.make_str(&r));
+        let result = search(&self, args).and_then(|r| args.make_str(&r));
         println!("{:}", result?);
         Ok(())
     }
 }
 
-fn search(args: &Input, cfg: &ConfigOpts) -> Result<SearchResult, CmdError> {
-    let url = format!("{}/api/v1/sec/item/search", cfg.docspell_url);
+fn search(opts: &Input, args: &CmdArgs) -> Result<SearchResult, CmdError> {
+    let url = format!("{}/api/v1/sec/item/search", args.docspell_url());
     let client = reqwest::blocking::Client::new();
-    let token = login::session_token(cfg)?;
+    let token = login::session_token(args)?;
     client
         .get(url)
         .header(DOCSPELL_AUTH, token)
         .query(&[
-            ("limit", &args.limit.to_string()),
-            ("offset", &args.offset.to_string()),
-            ("withDetails", &args.with_details.to_string()),
-            ("q", &args.query),
+            ("limit", &opts.limit.to_string()),
+            ("offset", &opts.offset.to_string()),
+            ("withDetails", &opts.with_details.to_string()),
+            ("q", &opts.query),
         ])
         .send()
         .and_then(|r| r.error_for_status())

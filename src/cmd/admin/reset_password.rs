@@ -1,6 +1,5 @@
 use crate::cmd::admin::AdminCmd;
 use crate::cmd::{CmdArgs, CmdError};
-use crate::opts::ConfigOpts;
 use crate::types::DOCSPELL_ADMIN;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
@@ -13,14 +12,14 @@ pub struct Input {
 
 impl AdminCmd for Input {
     fn exec(&self, secret: &str, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = reset_password(secret, self, args.opts).and_then(|r| args.make_str(&r));
+        let result = reset_password(secret, self, args).and_then(|r| args.make_str(&r));
         println!("{:}", result?);
         Ok(())
     }
 }
 
-fn reset_password(secret: &str, input: &Input, cfg: &ConfigOpts) -> Result<Response, CmdError> {
-    let url = format!("{}/api/v1/admin/user/resetPassword", cfg.docspell_url);
+fn reset_password(secret: &str, input: &Input, args: &CmdArgs) -> Result<Response, CmdError> {
+    let url = format!("{}/api/v1/admin/user/resetPassword", args.docspell_url());
     let account = Account {
         account: input.account.clone(),
     };

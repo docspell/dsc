@@ -1,6 +1,5 @@
 use crate::cmd::login;
 use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::opts::ConfigOpts;
 use crate::types::{SourceAndTags, SourceList, DOCSPELL_AUTH};
 use clap::Clap;
 
@@ -29,7 +28,7 @@ impl Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let items = list_sources(args.opts).map(|r| r.items)?;
+        let items = list_sources(args).map(|r| r.items)?;
         let result = filter_sources(self, items);
         println!("{:}", args.make_str(&result)?);
         Ok(())
@@ -44,10 +43,10 @@ fn filter_sources(args: &Input, sources: Vec<SourceAndTags>) -> Vec<SourceAndTag
     }
 }
 
-fn list_sources(cfg: &ConfigOpts) -> Result<SourceList, CmdError> {
-    let url = format!("{}/api/v1/sec/source", cfg.docspell_url);
+fn list_sources(args: &CmdArgs) -> Result<SourceList, CmdError> {
+    let url = format!("{}/api/v1/sec/source", args.docspell_url());
     let client = reqwest::blocking::Client::new();
-    let token = login::session_token(cfg)?;
+    let token = login::session_token(args)?;
     client
         .get(url)
         .header(DOCSPELL_AUTH, token)

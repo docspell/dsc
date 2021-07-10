@@ -31,17 +31,15 @@ pub enum AdminCommand {
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
         let secret = args
-            .opts
-            .admin_secret
-            .as_ref()
+            .admin_secret()
             .ok_or(CmdError::AuthError("No admin secret provided".into()))?;
         if args.opts.verbose >= 2 {
             log::debug!("Using secret: {:}", secret);
         }
         match &self.subcmd {
-            AdminCommand::GeneratePreviews(input) => input.exec(secret, args),
-            AdminCommand::RecreateIndex(input) => input.exec(secret, args),
-            AdminCommand::ResetPassword(input) => input.exec(secret, args),
+            AdminCommand::GeneratePreviews(input) => input.exec(&secret, args),
+            AdminCommand::RecreateIndex(input) => input.exec(&secret, args),
+            AdminCommand::ResetPassword(input) => input.exec(&secret, args),
         }
     }
 }

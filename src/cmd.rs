@@ -11,7 +11,7 @@ pub mod version;
 
 use crate::{
     config::DsConfig,
-    opts::{ConfigOpts, Format},
+    opts::{CommonOpts, Format},
 };
 use serde::Serialize;
 
@@ -20,17 +20,37 @@ pub trait Cmd {
 }
 
 pub struct CmdArgs<'a> {
-    pub opts: &'a ConfigOpts,
+    pub opts: &'a CommonOpts,
     pub cfg: &'a DsConfig,
 }
 
 impl CmdArgs<'_> {
     fn make_str<A: Serialize>(&self, arg: &A) -> Result<String, CmdError> {
-        let fmt = self.opts.format;
+        let fmt = self.format();
         match fmt {
             Format::Json => serde_json::to_string(arg).map_err(CmdError::JsonSerError),
             Format::Lisp => serde_lexpr::to_string(arg).map_err(CmdError::SexprError),
         }
+    }
+
+    fn format(&self) -> Format {
+        self.opts.format.unwrap_or(self.cfg.default_format)
+    }
+
+    fn docspell_url(&self) -> String {
+        self.opts
+            .docspell_url
+            .as_ref()
+            .unwrap_or(&self.cfg.docspell_url)
+            .clone()
+    }
+
+    fn admin_secret(&self) -> Option<String> {
+        self.opts
+            .admin_secret
+            .as_ref()
+            .or(self.cfg.admin_secret.as_ref())
+            .map(String::clone)
     }
 }
 

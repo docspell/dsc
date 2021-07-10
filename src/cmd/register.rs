@@ -1,5 +1,4 @@
 use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::opts::ConfigOpts;
 use crate::types::{BasicResult, Registration};
 use clap::Clap;
 
@@ -27,19 +26,19 @@ pub struct Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = gen_invite(self, args.opts).and_then(|r| args.make_str(&r));
+        let result = gen_invite(self, args).and_then(|r| args.make_str(&r));
         println!("{:}", result?);
         Ok(())
     }
 }
 
-fn gen_invite(args: &Input, cfg: &ConfigOpts) -> Result<BasicResult, CmdError> {
-    let url = format!("{}/api/v1/open/signup/register", cfg.docspell_url);
+fn gen_invite(opts: &Input, args: &CmdArgs) -> Result<BasicResult, CmdError> {
+    let url = format!("{}/api/v1/open/signup/register", args.docspell_url());
     let body = &Registration {
-        collective_name: args.collective_name.clone(),
-        login: args.login.clone(),
-        password: args.password.clone(),
-        invite: args.invite.clone(),
+        collective_name: opts.collective_name.clone(),
+        login: opts.login.clone(),
+        password: opts.password.clone(),
+        invite: opts.invite.clone(),
     };
     log::debug!("Register new account: {:?}", body);
     let client = reqwest::blocking::Client::new();

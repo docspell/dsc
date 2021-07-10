@@ -1,6 +1,5 @@
 use crate::cmd::admin::AdminCmd;
 use crate::cmd::{CmdArgs, CmdError};
-use crate::opts::ConfigOpts;
 use crate::types::BasicResult;
 use crate::types::DOCSPELL_ADMIN;
 use clap::Clap;
@@ -11,16 +10,16 @@ pub struct Input {}
 
 impl AdminCmd for Input {
     fn exec(&self, secret: &str, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = generate_previews(secret, args.opts).and_then(|r| args.make_str(&r));
+        let result = generate_previews(secret, args).and_then(|r| args.make_str(&r));
         println!("{:}", result?);
         Ok(())
     }
 }
 
-fn generate_previews(secret: &str, cfg: &ConfigOpts) -> Result<BasicResult, CmdError> {
+fn generate_previews(secret: &str, args: &CmdArgs) -> Result<BasicResult, CmdError> {
     let url = format!(
         "{}/api/v1/admin/attachments/generatePreviews",
-        cfg.docspell_url
+        args.docspell_url()
     );
     let client = reqwest::blocking::Client::new();
     log::debug!("Using secret: {:}", secret);

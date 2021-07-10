@@ -1,6 +1,5 @@
 use crate::cmd::login;
 use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::opts::ConfigOpts;
 use crate::types::{Summary, DOCSPELL_AUTH};
 use clap::Clap;
 
@@ -13,20 +12,20 @@ pub struct Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = summary(&self, args.opts).and_then(|r| args.make_str(&r));
+        let result = summary(&self, args).and_then(|r| args.make_str(&r));
         println!("{:}", result?);
         Ok(())
     }
 }
 
-fn summary(args: &Input, cfg: &ConfigOpts) -> Result<Summary, CmdError> {
-    let url = format!("{}/api/v1/sec/item/searchStats", cfg.docspell_url);
+fn summary(opts: &Input, args: &CmdArgs) -> Result<Summary, CmdError> {
+    let url = format!("{}/api/v1/sec/item/searchStats", args.docspell_url());
     let client = reqwest::blocking::Client::new();
-    let token = login::session_token(cfg)?;
+    let token = login::session_token(args)?;
     client
         .get(url)
         .header(DOCSPELL_AUTH, token)
-        .query(&[("q", &args.query)])
+        .query(&[("q", &opts.query)])
         .send()
         .and_then(|r| r.error_for_status())
         .map_err(CmdError::HttpError)?
