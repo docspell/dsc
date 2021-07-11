@@ -1,4 +1,7 @@
+use prettytable::{cell, row, Table};
 use serde::{Deserialize, Serialize};
+
+use crate::sink::{SerError, Sink};
 
 pub const DOCSPELL_AUTH: &'static str = "X-Docspell-Auth";
 pub const DOCSPELL_ADMIN: &'static str = "Docspell-Admin-Secret";
@@ -111,6 +114,25 @@ pub struct VersionInfo {
     pub git_commit: String,
     #[serde(alias = "gitVersion")]
     pub git_version: String,
+}
+impl Sink for VersionInfo {
+    fn write_tabular(value: &VersionInfo) -> Result<(), SerError> {
+        let mut table = Table::new();
+        table.add_row(row![b =>
+            "version",
+            "built at millis",
+            "built at",
+            "commit",
+        ]);
+        table.add_row(row![
+            value.version,
+            value.built_at_millis,
+            value.built_at_string,
+            value.git_commit,
+        ]);
+        table.printstd();
+        Ok(())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

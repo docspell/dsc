@@ -12,6 +12,7 @@ pub mod version;
 use crate::{
     config::DsConfig,
     opts::{CommonOpts, Format},
+    sink::{SerError, Sink},
 };
 use serde::Serialize;
 
@@ -25,11 +26,19 @@ pub struct CmdArgs<'a> {
 }
 
 impl CmdArgs<'_> {
+    fn write_result<A: Sink + Serialize>(&self, value: A) -> Result<(), CmdError> {
+        let fmt = self.format();
+        Sink::write_value(fmt, &value)?;
+        Ok(())
+    }
+
+    #[deprecated]
     fn make_str<A: Serialize>(&self, arg: &A) -> Result<String, CmdError> {
         let fmt = self.format();
         match fmt {
             Format::Json => serde_json::to_string(arg).map_err(CmdError::JsonSerError),
             Format::Lisp => serde_lexpr::to_string(arg).map_err(CmdError::SexprError),
+            Format::Tabular => todo!(),
         }
     }
 
@@ -61,6 +70,7 @@ impl CmdArgs<'_> {
 #[derive(Debug)]
 pub enum CmdError {
     HttpError(reqwest::Error),
+    SerializeError(SerError),
     JsonSerError(serde_json::Error),
     SexprError(serde_lexpr::Error),
     AuthError(String),
@@ -87,5 +97,10 @@ impl std::convert::From<reqwest::Error> for CmdError {
 impl std::convert::From<std::io::Error> for CmdError {
     fn from(e: std::io::Error) -> CmdError {
         CmdError::IOError(e)
+    }
+}
+impl std::convert::From<SerError> for CmdError {
+    fn from(e: SerError) -> CmdError {
+        CmdError::SerializeError(e)
     }
 }

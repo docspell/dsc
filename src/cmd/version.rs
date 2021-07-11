@@ -8,8 +8,8 @@ pub struct Input {}
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = version(args).and_then(|r| args.make_str(&r));
-        println!("{:}", result?);
+        let result = version(args)?;
+        args.write_result(result)?;
         Ok(())
     }
 }

@@ -119,6 +119,7 @@ pub enum SubCommand {
 pub enum Format {
     Json,
     Lisp,
+    Tabular,
 }
 
 impl std::str::FromStr for Format {
@@ -129,6 +130,8 @@ impl std::str::FromStr for Format {
             Ok(Format::Json)
         } else if s.eq_ignore_ascii_case("lisp") {
             Ok(Format::Lisp)
+        } else if s.eq_ignore_ascii_case("tabular") {
+            Ok(Format::Tabular)
         } else {
             Err(format!("Invalid format string: {}", s))
         }

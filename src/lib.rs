@@ -3,6 +3,7 @@ pub mod config;
 mod file;
 pub mod opts;
 mod pass;
+mod sink;
 pub mod types;
 
 use clap::Clap;
