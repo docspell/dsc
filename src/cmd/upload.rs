@@ -46,8 +46,8 @@ impl Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = upload_files(self, args).and_then(|r| args.make_str(&r));
-        println!("{:}", result?);
+        let result = upload_files(self, args)?;
+        args.write_result(result)?;
 
         Ok(())
     }

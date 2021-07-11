@@ -52,6 +52,35 @@ pub struct GenInvite {
 pub struct SourceList {
     pub items: Vec<SourceAndTags>,
 }
+impl Sink for Vec<SourceAndTags> {
+    fn write_tabular(value: &Vec<SourceAndTags>) -> Result<(), SerError> {
+        let mut table = Table::new();
+        table.add_row(
+            row![b => "id", "name", "enabled", "prio", "folder", "file filter", "language"],
+        );
+        for item in value {
+            table.add_row(row![
+                item.source.id,
+                item.source.abbrev,
+                item.source.enabled,
+                item.source.priority,
+                Self::str_or_empty(&item.source.folder),
+                Self::str_or_empty(&item.source.file_filter),
+                Self::str_or_empty(&item.source.language)
+            ]);
+        }
+        table.printstd();
+        Ok(())
+    }
+    fn write_csv(value: &Vec<SourceAndTags>) -> Result<(), SerError> {
+        let mut wtr = csv::Writer::from_writer(std::io::stdout());
+        for item in value {
+            wtr.serialize(&item.source)?;
+        }
+        wtr.flush()?;
+        Ok(())
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SourceAndTags {
@@ -102,6 +131,24 @@ pub struct BasicResult {
     pub success: bool,
     pub message: String,
 }
+impl Sink for BasicResult {
+    fn write_tabular(value: &BasicResult) -> Result<(), SerError> {
+        let mut table = Table::new();
+        table.add_row(row![b =>
+            "success",
+            "message",
+        ]);
+        table.add_row(row![value.success, value.message,]);
+        table.printstd();
+        Ok(())
+    }
+    fn write_csv(value: &BasicResult) -> Result<(), SerError> {
+        let mut wtr = csv::Writer::from_writer(std::io::stdout());
+        wtr.serialize(value)?;
+        wtr.flush()?;
+        Ok(())
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VersionInfo {
@@ -131,6 +178,12 @@ impl Sink for VersionInfo {
             value.git_commit,
         ]);
         table.printstd();
+        Ok(())
+    }
+    fn write_csv(value: &VersionInfo) -> Result<(), SerError> {
+        let mut wtr = csv::Writer::from_writer(std::io::stdout());
+        wtr.serialize(value)?;
+        wtr.flush()?;
         Ok(())
     }
 }
@@ -164,10 +217,56 @@ pub struct CatCount {
 pub struct TagCloud {
     pub items: Vec<TagCount>,
 }
+impl Sink for Vec<TagCount> {
+    fn write_tabular(value: &Vec<TagCount>) -> Result<(), SerError> {
+        let mut table = Table::new();
+        table.add_row(row![b => "id", "name", "category", "count"]);
+        for item in value {
+            table.add_row(row![
+                item.tag.id,
+                item.tag.name,
+                Self::str_or_empty(&item.tag.category),
+                item.count,
+            ]);
+        }
+        table.printstd();
+        Ok(())
+    }
+    fn write_csv(value: &Vec<TagCount>) -> Result<(), SerError> {
+        let mut wtr = csv::WriterBuilder::new()
+            .has_headers(false)
+            .from_writer(std::io::stdout());
+        wtr.write_record(&["id", "name", "category", "created", "count"])?;
+        for item in value {
+            wtr.serialize(&item)?;
+        }
+        wtr.flush()?;
+        Ok(())
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CatCloud {
     pub items: Vec<CatCount>,
+}
+impl Sink for Vec<CatCount> {
+    fn write_tabular(value: &Vec<CatCount>) -> Result<(), SerError> {
+        let mut table = Table::new();
+        table.add_row(row![b => "name", "count"]);
+        for item in value {
+            table.add_row(row![item.name, item.count,]);
+        }
+        table.printstd();
+        Ok(())
+    }
+    fn write_csv(value: &Vec<CatCount>) -> Result<(), SerError> {
+        let mut wtr = csv::Writer::from_writer(std::io::stdout());
+        for item in value {
+            wtr.serialize(&item)?;
+        }
+        wtr.flush()?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -181,6 +280,35 @@ pub struct FieldStats {
     pub avg: f64,
     pub max: f64,
     pub min: f64,
+}
+impl Sink for Vec<FieldStats> {
+    fn write_tabular(value: &Self) -> Result<(), SerError> {
+        let mut table = Table::new();
+        table.add_row(row![b => "id", "name/label", "type", "count", "sum", "avg", "max", "min"]);
+        for item in value {
+            table.add_row(row![
+                item.id,
+                item.label.as_ref().unwrap_or(&item.name),
+                item.ftype,
+                item.count,
+                item.sum,
+                item.avg,
+                item.max,
+                item.min
+            ]);
+        }
+        table.printstd();
+        Ok(())
+    }
+
+    fn write_csv(value: &Self) -> Result<(), SerError> {
+        let mut wtr = csv::Writer::from_writer(std::io::stdout());
+        for item in value {
+            wtr.serialize(&item)?;
+        }
+        wtr.flush()?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -202,6 +330,38 @@ pub struct Summary {
     pub field_stats: Vec<FieldStats>,
     #[serde(alias = "folderStats")]
     pub folder_stats: Vec<FolderStats>,
+}
+impl Sink for Summary {
+    fn write_tabular(value: &Summary) -> Result<(), SerError> {
+        let mut table = Table::new();
+        table.add_row(row![b => "items"]);
+        table.add_row(row![value.count]);
+        table.printstd();
+
+        println!("\nTags");
+        Sink::write_tabular(&value.tag_cloud.as_ref().items)?;
+
+        println!("\nCategories");
+        Sink::write_tabular(&value.tag_category_cloud.as_ref().items)?;
+
+        println!("\nCustom Fields");
+        Sink::write_tabular(&value.field_stats)?;
+
+        Ok(())
+    }
+    fn write_csv(value: &Summary) -> Result<(), SerError> {
+        let mut wtr = csv::Writer::from_writer(std::io::stdout());
+        wtr.write_record(&["count"])?;
+        wtr.write_record(&[format!("{}", value.count)])?;
+        wtr.flush()?;
+        println!("");
+        Sink::write_csv(&value.tag_cloud.as_ref().items)?;
+        println!("");
+        Sink::write_csv(&value.tag_category_cloud.as_ref().items)?;
+        println!("");
+        Sink::write_csv(&value.field_stats)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

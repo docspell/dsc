@@ -30,7 +30,8 @@ impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
         let items = list_sources(args).map(|r| r.items)?;
         let result = filter_sources(self, items);
-        println!("{:}", args.make_str(&result)?);
+        args.write_result(result)?;
+
         Ok(())
     }
 }

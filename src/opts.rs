@@ -47,10 +47,12 @@ pub struct CommonOpts {
     #[clap(short, long, parse(from_occurrences))]
     pub verbose: i32,
 
-    /// The output format. Some commands may ignore this option. This
-    /// defines how to format the output. The default is JSON or given
-    /// via the config file. Another option is `Lisp` which produces
-    /// s-expressions. Use one of: json, lisp.
+    /// The output format. Options: json, lisp, csv, tabular. Some
+    /// commands may ignore this option. This defines how to format
+    /// the output. The default is JSON or it can be given via the
+    /// config file. While json and lisp are always presenting all
+    /// information, csv and tabular can omit some for better
+    /// readability.
     #[clap(short, long)]
     pub format: Option<Format>,
 
@@ -119,6 +121,7 @@ pub enum SubCommand {
 pub enum Format {
     Json,
     Lisp,
+    Csv,
     Tabular,
 }
 
@@ -132,6 +135,8 @@ impl std::str::FromStr for Format {
             Ok(Format::Lisp)
         } else if s.eq_ignore_ascii_case("tabular") {
             Ok(Format::Tabular)
+        } else if s.eq_ignore_ascii_case("csv") {
+            Ok(Format::Csv)
         } else {
             Err(format!("Invalid format string: {}", s))
         }

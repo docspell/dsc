@@ -38,6 +38,7 @@ impl CmdArgs<'_> {
         match fmt {
             Format::Json => serde_json::to_string(arg).map_err(CmdError::JsonSerError),
             Format::Lisp => serde_lexpr::to_string(arg).map_err(CmdError::SexprError),
+            Format::Csv => todo!(),
             Format::Tabular => todo!(),
         }
     }
