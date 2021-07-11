@@ -26,8 +26,8 @@ pub struct Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = gen_invite(self, args).and_then(|r| args.make_str(&r));
-        println!("{:}", result?);
+        let result = gen_invite(self, args)?;
+        args.write_result(result)?;
         Ok(())
     }
 }

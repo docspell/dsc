@@ -1,8 +1,8 @@
 use crate::cmd::admin::AdminCmd;
 use crate::cmd::{CmdArgs, CmdError};
 use crate::types::DOCSPELL_ADMIN;
+use crate::types::{Account, ResetPasswordResp};
 use clap::Clap;
-use serde::{Deserialize, Serialize};
 
 /// Submits a task to re-create the entire fulltext search index.
 #[derive(Clap, std::fmt::Debug)]
@@ -12,13 +12,17 @@ pub struct Input {
 
 impl AdminCmd for Input {
     fn exec(&self, secret: &str, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = reset_password(secret, self, args).and_then(|r| args.make_str(&r));
-        println!("{:}", result?);
+        let result = reset_password(secret, self, args)?;
+        args.write_result(result)?;
         Ok(())
     }
 }
 
-fn reset_password(secret: &str, input: &Input, args: &CmdArgs) -> Result<Response, CmdError> {
+fn reset_password(
+    secret: &str,
+    input: &Input,
+    args: &CmdArgs,
+) -> Result<ResetPasswordResp, CmdError> {
     let url = format!("{}/api/v1/admin/user/resetPassword", args.docspell_url());
     let account = Account {
         account: input.account.clone(),
@@ -31,19 +35,6 @@ fn reset_password(secret: &str, input: &Input, args: &CmdArgs) -> Result<Respons
         .send()
         .and_then(|r| r.error_for_status())
         .map_err(CmdError::HttpError)?
-        .json::<Response>()
+        .json::<ResetPasswordResp>()
         .map_err(CmdError::HttpError)
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Account {
-    account: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Response {
-    pub success: bool,
-    pub message: String,
-    #[serde(alias = "newPassword")]
-    pub new_password: String,
 }

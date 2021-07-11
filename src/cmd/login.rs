@@ -1,6 +1,6 @@
 use crate::cmd::{Cmd, CmdArgs, CmdError};
 use crate::pass;
-use crate::types::DOCSPELL_AUTH;
+use crate::types::{AuthResp, DOCSPELL_AUTH};
 use clap::{ArgGroup, Clap};
 use serde::{Deserialize, Serialize};
 
@@ -26,8 +26,8 @@ pub struct Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = login(self, args).and_then(|r| args.make_str(&r));
-        println!("{:}", result?);
+        let result = login(self, args)?;
+        args.write_result(result)?;
         Ok(())
     }
 }
@@ -40,17 +40,6 @@ struct AuthRequest {
     password: String,
     #[serde(alias = "rememberMe")]
     remember_me: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AuthResp {
-    pub collective: String,
-    pub user: String,
-    pub success: bool,
-    pub message: String,
-    pub token: Option<String>,
-    #[serde(alias = "validMs")]
-    pub valid_ms: u64,
 }
 
 fn login(opts: &Input, args: &CmdArgs) -> Result<AuthResp, CmdError> {

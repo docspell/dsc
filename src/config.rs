@@ -42,7 +42,7 @@ impl default::Default for DsConfig {
     fn default() -> Self {
         Self {
             docspell_url: "http://localhost:7880".into(),
-            default_format: Format::Json,
+            default_format: Format::Tabular,
             admin_secret: None,
             default_source_id: None,
             pass_entry: None,

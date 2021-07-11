@@ -47,12 +47,11 @@ pub struct CommonOpts {
     #[clap(short, long, parse(from_occurrences))]
     pub verbose: i32,
 
-    /// The output format. Options: json, lisp, csv, tabular. Some
-    /// commands may ignore this option. This defines how to format
-    /// the output. The default is JSON or it can be given via the
-    /// config file. While json and lisp are always presenting all
-    /// information, csv and tabular can omit some for better
-    /// readability.
+    /// The output format. Options: json, lisp, csv, tabular. This
+    /// defines how to format the output. The default is "Tabular" or
+    /// it can be given via the config file. While json and lisp are
+    /// always presenting all information, csv and tabular can omit or
+    /// consolidate some for better readability.
     #[clap(short, long)]
     pub format: Option<Format>,
 

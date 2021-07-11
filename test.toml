@@ -1,5 +1,5 @@
 docspell_url = "http://localhost:7880"
-default_format = "Json"
+default_format = "Tabular"
 admin_secret = "123"
 default_source_id = "BDw5yfNzpcq-XqnXhH12bCA-7PX55K5oRHL-EGPe2S69uCf"
 pass_entry = "lokaleMaschine/test"

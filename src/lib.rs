@@ -4,6 +4,7 @@ mod file;
 pub mod opts;
 mod pass;
 mod sink;
+mod table;
 pub mod types;
 
 use clap::Clap;

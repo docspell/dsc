@@ -10,8 +10,8 @@ pub struct Input {}
 
 impl AdminCmd for Input {
     fn exec(&self, secret: &str, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = recreate_index(secret, args).and_then(|r| args.make_str(&r));
-        println!("{:}", result?);
+        let result = recreate_index(secret, args)?;
+        args.write_result(result)?;
         Ok(())
     }
 }

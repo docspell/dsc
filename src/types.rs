@@ -1,10 +1,61 @@
+use crate::sink::{str_or_empty, AsTable, SerError, Sink};
+use crate::table;
+use chrono::{DateTime, TimeZone, Utc};
 use prettytable::{cell, row, Table};
 use serde::{Deserialize, Serialize};
-
-use crate::sink::{SerError, Sink};
-
 pub const DOCSPELL_AUTH: &'static str = "X-Docspell-Auth";
 pub const DOCSPELL_ADMIN: &'static str = "Docspell-Admin-Secret";
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Account {
+    pub account: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResetPasswordResp {
+    pub success: bool,
+    pub message: String,
+    #[serde(alias = "newPassword")]
+    pub new_password: String,
+}
+impl AsTable for ResetPasswordResp {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
+        table.add_row(row![bFg => "success", "new password", "message"]);
+        table.add_row(row![self.success, self.new_password, self.message,]);
+        table
+    }
+}
+impl Sink for ResetPasswordResp {}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AuthResp {
+    pub collective: String,
+    pub user: String,
+    pub success: bool,
+    pub message: String,
+    pub token: Option<String>,
+    #[serde(alias = "validMs")]
+    pub valid_ms: u64,
+}
+impl AsTable for AuthResp {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
+        table.add_row(
+            row![bFg => "success", "collective", "user", "message", "token", "valid (ms)"],
+        );
+        table.add_row(row![
+            self.success,
+            self.collective,
+            self.user,
+            self.message,
+            str_or_empty(&self.token),
+            self.valid_ms
+        ]);
+        table
+    }
+}
+impl Sink for AuthResp {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UploadMeta {
@@ -42,6 +93,15 @@ pub struct InviteResult {
     pub message: String,
     pub key: Option<String>,
 }
+impl AsTable for InviteResult {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
+        table.add_row(row![bFg => "success", "key", "message"]);
+        table.add_row(row![self.success, str_or_empty(&self.key), self.message]);
+        table
+    }
+}
+impl Sink for InviteResult {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenInvite {
@@ -52,35 +112,27 @@ pub struct GenInvite {
 pub struct SourceList {
     pub items: Vec<SourceAndTags>,
 }
-impl Sink for Vec<SourceAndTags> {
-    fn write_tabular(value: &Vec<SourceAndTags>) -> Result<(), SerError> {
-        let mut table = Table::new();
+impl AsTable for Vec<SourceAndTags> {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
         table.add_row(
-            row![b => "id", "name", "enabled", "prio", "folder", "file filter", "language"],
+            row![bFg => "id", "name", "enabled", "prio", "folder", "file filter", "language"],
         );
-        for item in value {
+        for item in self {
             table.add_row(row![
-                item.source.id,
+                item.source.id[0..8],
                 item.source.abbrev,
                 item.source.enabled,
                 item.source.priority,
-                Self::str_or_empty(&item.source.folder),
-                Self::str_or_empty(&item.source.file_filter),
-                Self::str_or_empty(&item.source.language)
+                str_or_empty(&item.source.folder),
+                str_or_empty(&item.source.file_filter),
+                str_or_empty(&item.source.language)
             ]);
         }
-        table.printstd();
-        Ok(())
-    }
-    fn write_csv(value: &Vec<SourceAndTags>) -> Result<(), SerError> {
-        let mut wtr = csv::Writer::from_writer(std::io::stdout());
-        for item in value {
-            wtr.serialize(&item.source)?;
-        }
-        wtr.flush()?;
-        Ok(())
+        table
     }
 }
+impl Sink for Vec<SourceAndTags> {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SourceAndTags {
@@ -105,7 +157,7 @@ pub struct Source {
     pub folder: Option<String>,
     pub file_filter: Option<String>,
     pub language: Option<String>,
-    pub created: u64,
+    pub created: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -114,6 +166,22 @@ pub struct CheckFileResult {
     pub items: Vec<ItemShort>,
     pub file: Option<String>,
 }
+impl AsTable for Vec<CheckFileResult> {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
+        table.add_row(row![bFg => "exists", "items", "file"]);
+        for el in self {
+            let item_list: Vec<String> = el.items.iter().map(|i| i.id[0..8].into()).collect();
+            table.add_row(row![
+                el.exists,
+                item_list.join(", "),
+                str_or_empty(&el.file)
+            ]);
+        }
+        table
+    }
+}
+impl Sink for Vec<CheckFileResult> {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ItemShort {
@@ -121,7 +189,7 @@ pub struct ItemShort {
     pub name: String,
     pub direction: String,
     pub state: String,
-    pub created: u64,
+    pub created: i64,
     #[serde(alias = "itemDate")]
     pub item_date: Option<u64>,
 }
@@ -131,24 +199,18 @@ pub struct BasicResult {
     pub success: bool,
     pub message: String,
 }
-impl Sink for BasicResult {
-    fn write_tabular(value: &BasicResult) -> Result<(), SerError> {
-        let mut table = Table::new();
-        table.add_row(row![b =>
+impl AsTable for BasicResult {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
+        table.add_row(row![bFg =>
             "success",
             "message",
         ]);
-        table.add_row(row![value.success, value.message,]);
-        table.printstd();
-        Ok(())
-    }
-    fn write_csv(value: &BasicResult) -> Result<(), SerError> {
-        let mut wtr = csv::Writer::from_writer(std::io::stdout());
-        wtr.serialize(value)?;
-        wtr.flush()?;
-        Ok(())
+        table.add_row(row![self.success, self.message,]);
+        table
     }
 }
+impl Sink for BasicResult {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VersionInfo {
@@ -162,38 +224,32 @@ pub struct VersionInfo {
     #[serde(alias = "gitVersion")]
     pub git_version: String,
 }
-impl Sink for VersionInfo {
-    fn write_tabular(value: &VersionInfo) -> Result<(), SerError> {
-        let mut table = Table::new();
-        table.add_row(row![b =>
+impl AsTable for VersionInfo {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
+        table.add_row(row![bFg =>
             "version",
             "built at millis",
             "built at",
             "commit",
         ]);
         table.add_row(row![
-            value.version,
-            value.built_at_millis,
-            value.built_at_string,
-            value.git_commit,
+            self.version,
+            self.built_at_millis,
+            self.built_at_string,
+            self.git_commit,
         ]);
-        table.printstd();
-        Ok(())
-    }
-    fn write_csv(value: &VersionInfo) -> Result<(), SerError> {
-        let mut wtr = csv::Writer::from_writer(std::io::stdout());
-        wtr.serialize(value)?;
-        wtr.flush()?;
-        Ok(())
+        table
     }
 }
+impl Sink for VersionInfo {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Tag {
     pub id: String,
     pub name: String,
     pub category: Option<String>,
-    pub created: u64,
+    pub created: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -217,57 +273,38 @@ pub struct CatCount {
 pub struct TagCloud {
     pub items: Vec<TagCount>,
 }
-impl Sink for Vec<TagCount> {
-    fn write_tabular(value: &Vec<TagCount>) -> Result<(), SerError> {
-        let mut table = Table::new();
-        table.add_row(row![b => "id", "name", "category", "count"]);
-        for item in value {
+impl AsTable for Vec<TagCount> {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
+        table.add_row(row![bFg => "id", "name", "category", "count"]);
+        for item in self {
             table.add_row(row![
-                item.tag.id,
+                item.tag.id[0..8],
                 item.tag.name,
-                Self::str_or_empty(&item.tag.category),
+                str_or_empty(&item.tag.category),
                 item.count,
             ]);
         }
-        table.printstd();
-        Ok(())
-    }
-    fn write_csv(value: &Vec<TagCount>) -> Result<(), SerError> {
-        let mut wtr = csv::WriterBuilder::new()
-            .has_headers(false)
-            .from_writer(std::io::stdout());
-        wtr.write_record(&["id", "name", "category", "created", "count"])?;
-        for item in value {
-            wtr.serialize(&item)?;
-        }
-        wtr.flush()?;
-        Ok(())
+        table
     }
 }
+impl Sink for Vec<TagCount> {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CatCloud {
     pub items: Vec<CatCount>,
 }
-impl Sink for Vec<CatCount> {
-    fn write_tabular(value: &Vec<CatCount>) -> Result<(), SerError> {
-        let mut table = Table::new();
-        table.add_row(row![b => "name", "count"]);
-        for item in value {
+impl AsTable for Vec<CatCount> {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
+        table.add_row(row![bFg => "name", "count"]);
+        for item in self {
             table.add_row(row![item.name, item.count,]);
         }
-        table.printstd();
-        Ok(())
-    }
-    fn write_csv(value: &Vec<CatCount>) -> Result<(), SerError> {
-        let mut wtr = csv::Writer::from_writer(std::io::stdout());
-        for item in value {
-            wtr.serialize(&item)?;
-        }
-        wtr.flush()?;
-        Ok(())
+        table
     }
 }
+impl Sink for Vec<CatCount> {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FieldStats {
@@ -281,13 +318,13 @@ pub struct FieldStats {
     pub max: f64,
     pub min: f64,
 }
-impl Sink for Vec<FieldStats> {
-    fn write_tabular(value: &Self) -> Result<(), SerError> {
-        let mut table = Table::new();
-        table.add_row(row![b => "id", "name/label", "type", "count", "sum", "avg", "max", "min"]);
-        for item in value {
+impl AsTable for Vec<FieldStats> {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
+        table.add_row(row![bFg => "id", "name/label", "type", "count", "sum", "avg", "max", "min"]);
+        for item in self {
             table.add_row(row![
-                item.id,
+                item.id[0..8],
                 item.label.as_ref().unwrap_or(&item.name),
                 item.ftype,
                 item.count,
@@ -297,19 +334,10 @@ impl Sink for Vec<FieldStats> {
                 item.min
             ]);
         }
-        table.printstd();
-        Ok(())
-    }
-
-    fn write_csv(value: &Self) -> Result<(), SerError> {
-        let mut wtr = csv::Writer::from_writer(std::io::stdout());
-        for item in value {
-            wtr.serialize(&item)?;
-        }
-        wtr.flush()?;
-        Ok(())
+        table
     }
 }
+impl Sink for Vec<FieldStats> {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FolderStats {
@@ -331,12 +359,18 @@ pub struct Summary {
     #[serde(alias = "folderStats")]
     pub folder_stats: Vec<FolderStats>,
 }
+impl AsTable for Summary {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
+        table.add_row(row![bFg => "items"]);
+        table.add_row(row![self.count]);
+        table
+    }
+}
 impl Sink for Summary {
-    fn write_tabular(value: &Summary) -> Result<(), SerError> {
-        let mut table = Table::new();
-        table.add_row(row![b => "items"]);
-        table.add_row(row![value.count]);
-        table.printstd();
+    fn write_tabular(value: &Self) -> Result<(), SerError> {
+        println!("All");
+        value.to_table().printstd();
 
         println!("\nTags");
         Sink::write_tabular(&value.tag_cloud.as_ref().items)?;
@@ -349,11 +383,9 @@ impl Sink for Summary {
 
         Ok(())
     }
-    fn write_csv(value: &Summary) -> Result<(), SerError> {
-        let mut wtr = csv::Writer::from_writer(std::io::stdout());
-        wtr.write_record(&["count"])?;
-        wtr.write_record(&[format!("{}", value.count)])?;
-        wtr.flush()?;
+
+    fn write_csv(value: &Self) -> Result<(), SerError> {
+        value.to_table().to_csv(std::io::stdout())?;
         println!("");
         Sink::write_csv(&value.tag_cloud.as_ref().items)?;
         println!("");
@@ -368,7 +400,7 @@ impl Sink for Summary {
 pub struct Attach {
     pub id: String,
     pub position: u32,
-    pub name: String,
+    pub name: Option<String>,
     #[serde(alias = "pageCount")]
     pub page_count: u32,
 }
@@ -393,7 +425,7 @@ pub struct Item {
     pub id: String,
     pub name: String,
     pub state: String,
-    pub date: u64,
+    pub date: i64,
     #[serde(alias = "dueDate")]
     pub due_date: Option<u64>,
     pub source: String,
@@ -423,4 +455,54 @@ pub struct Group {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchResult {
     pub groups: Vec<Group>,
+}
+
+impl AsTable for SearchResult {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
+        table.add_row(row![bFg =>
+            "id",
+            "name",
+            "state",
+            "date",
+            "correspondent",
+            "concerning",
+            "folder",
+            "tags"
+        ]);
+        for group in &self.groups {
+            for item in &group.items {
+                let tag_list: Vec<String> = item.tags.iter().map(|t| t.name.clone()).collect();
+                table.add_row(row![
+                    item.id[0..8],
+                    item.name,
+                    item.state,
+                    format_date(item.date),
+                    combine(&item.corr_org, &item.corr_person, "/"),
+                    combine(&item.conc_person, &item.conc_equip, "/"),
+                    item.folder.as_ref().map(|a| a.name.as_str()).unwrap_or(""),
+                    tag_list.join(", ")
+                ]);
+            }
+        }
+
+        table
+    }
+}
+impl Sink for SearchResult {}
+
+fn combine(opta: &Option<IdName>, optb: &Option<IdName>, sep: &str) -> String {
+    match (opta, optb) {
+        (Some(a), Some(b)) => format!("{}{}{}", a.name, sep, b.name),
+        (Some(a), None) => a.name.clone(),
+        (None, Some(b)) => b.name.clone(),
+        (None, None) => "".into(),
+    }
+}
+
+fn format_date(dt: i64) -> String {
+    let secs = dt / 1000;
+    let nsec: u32 = ((dt % 1000) * 1000) as u32;
+    let dt: DateTime<Utc> = Utc.timestamp(secs, nsec);
+    dt.format("%Y-%m-%d").to_string()
 }

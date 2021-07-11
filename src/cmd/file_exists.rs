@@ -39,11 +39,12 @@ impl Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
+        let mut results = Vec::with_capacity(self.files.capacity());
         for file in &self.files {
-            let result = check_file(&file, self, args).and_then(|r| args.make_str(&r));
-            println!("{:}", result?);
+            let result = check_file(&file, self, args)?;
+            results.push(result);
         }
-
+        args.write_result(results)?;
         Ok(())
     }
 }
