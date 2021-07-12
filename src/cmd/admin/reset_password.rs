@@ -1,19 +1,21 @@
-use crate::cmd::{admin, Cmd, CmdArgs, CmdError};
+use crate::cmd::{admin, CmdArgs, CmdError};
 use crate::types::DOCSPELL_ADMIN;
 use crate::types::{Account, ResetPasswordResp};
 use clap::Clap;
 use snafu::{ResultExt, Snafu};
 
-/// Submits a task to re-create the entire fulltext search index.
+use super::AdminCmd;
+
+/// Resets the password of the given account.
 #[derive(Clap, std::fmt::Debug)]
 pub struct Input {
     pub account: String,
 }
 
-impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result =
-            reset_password(self, args).map_err(|source| CmdError::AdminResetPassword { source })?;
+impl AdminCmd for Input {
+    fn exec(&self, admin_opts: &admin::Input, args: &CmdArgs) -> Result<(), CmdError> {
+        let result = reset_password(self, admin_opts, args)
+            .map_err(|source| CmdError::AdminResetPassword { source })?;
         args.write_result(result)?;
         Ok(())
     }
@@ -31,8 +33,12 @@ pub enum Error {
     NoAdminSecret,
 }
 
-pub fn reset_password(input: &Input, args: &CmdArgs) -> Result<ResetPasswordResp, Error> {
-    let secret = admin::get_secret(args).ok_or(Error::NoAdminSecret)?;
+pub fn reset_password(
+    input: &Input,
+    admin_opts: &admin::Input,
+    args: &CmdArgs,
+) -> Result<ResetPasswordResp, Error> {
+    let secret = admin::get_secret(admin_opts, args).ok_or(Error::NoAdminSecret)?;
     let url = &format!("{}/api/v1/admin/user/resetPassword", args.docspell_url());
     let account = Account {
         account: input.account.clone(),

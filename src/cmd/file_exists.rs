@@ -10,6 +10,10 @@ use snafu::{ResultExt, Snafu};
 use std::path::PathBuf;
 
 /// Checks if the given files exist in docspell.
+///
+/// To check a file, an authenticated user is required, a source id or
+/// the secret to the integration endpoint. The latter allows to check
+/// across collectives.
 #[derive(Clap, Debug)]
 pub struct Input {
     #[clap(flatten)]

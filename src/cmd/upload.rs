@@ -12,7 +12,9 @@ use std::path::PathBuf;
 
 /// Uploads files to docspell.
 ///
-///
+/// To upload a file, an authenticated user is required, a source id
+/// or the secret to the integration endpoint. The latter allows to
+/// upload files to different collectives.
 #[derive(Clap, Debug)]
 pub struct Input {
     #[clap(flatten)]

@@ -18,11 +18,8 @@ pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 /// This is a command line interface to the docspell server. Docspell
 /// is a free document management system, designed for home use.
 ///
-/// This program is meant to be used from other programs. As such, the
-/// main output format is either JSON or S-EXPR (lisp). Sub commands
-/// are usually mapped to a corresponding API endpoint on the server.
-///
-/// For more information, see https://docspell.org/docs/api.
+/// This CLI is mostly a wrapper around the docspell remote api. For
+/// more information, see https://docspell.org/docs/api.
 #[derive(Clap, Debug)]
 #[clap(name = "dsc", version)]
 #[clap(setting = AppSettings::ColoredHelp)]
@@ -43,7 +40,7 @@ pub struct MainOpts {
 
 #[derive(Clap, Debug)]
 pub struct CommonOpts {
-    /// Be more verbose when logging. Enable logging via env variable RUST_LOG=debug|info.
+    /// Be more verbose when logging.
     #[clap(short, long, parse(from_occurrences))]
     pub verbose: i32,
 
@@ -54,12 +51,6 @@ pub struct CommonOpts {
     /// consolidate some for better readability.
     #[clap(short, long)]
     pub format: Option<Format>,
-
-    /// For commands using the admin endpoint, this is the secret
-    /// required to access them. If not given here, it is taken from
-    /// the config file.
-    #[clap(short, long)]
-    pub admin_secret: Option<String>,
 
     /// The (base) URL to the Docspell server. If not given, it must
     /// be present in the config file.

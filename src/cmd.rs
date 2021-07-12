@@ -45,14 +45,6 @@ impl CmdArgs<'_> {
             .clone()
     }
 
-    fn admin_secret(&self) -> Option<String> {
-        self.opts
-            .admin_secret
-            .as_ref()
-            .or(self.cfg.admin_secret.as_ref())
-            .map(String::clone)
-    }
-
     fn pass_entry(&self, given: &Option<String>) -> Option<String> {
         given.clone().or(self.cfg.pass_entry.clone())
     }
