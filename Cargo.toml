@@ -1,6 +1,6 @@
 [package]
 name = "dsc"
-version = "0.1.0"
+version = "0.1.0-pre"
 authors = ["eikek <eikek@posteo.de>"]
 edition = "2018"
 description = "A command line interface to Docspell."
@@ -19,15 +19,22 @@ dirs = { version = "3.0" }
 env_logger = { version = "0.8" }
 hex = "0.4"
 log = { version = "0.4" }
+openssl = { version = "0.10", optional = true }
 prettytable-rs = { version = "0.8" }
-reqwest = { version = "0.11", features = ["json", "blocking", "multipart", "stream"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "blocking", "multipart"] }
 serde = { version = "1.0", features = ["derive"] }
 serde-lexpr = "0.1"
 serde_json = "1.0"
 sha2 = { version = "0.9" }
 snafu = { version = "0.6" }
-tokio = { version = "1", features = ["full"] }
 toml = { version = "0.5" }
+
+[features]
+default = ["reqwest/default-tls"]
+rustls = ["reqwest/rustls-tls"]
+vendored-openssl = ["openssl/vendored"]
+
+
 
 [dev-dependencies]
 assert_cmd = "0.10"
