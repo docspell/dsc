@@ -2,6 +2,7 @@ pub mod list;
 
 use crate::cmd::{Cmd, CmdArgs, CmdError};
 use clap::{AppSettings, Clap};
+use snafu::Snafu;
 
 /// Manage source urls for uploading files.
 #[derive(Clap, std::fmt::Debug)]
@@ -16,6 +17,9 @@ pub enum SourceCommand {
     #[clap(version)]
     List(list::Input),
 }
+
+#[derive(Debug, Snafu)]
+pub struct Error {}
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {

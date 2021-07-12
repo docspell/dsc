@@ -1,6 +1,7 @@
 use crate::cmd::{Cmd, CmdArgs, CmdError};
 use crate::types::{GenInvite, InviteResult};
 use clap::Clap;
+use snafu::{ResultExt, Snafu};
 
 /// Generates a new invitation key.
 #[derive(Clap, Debug)]
@@ -11,22 +12,31 @@ pub struct Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = gen_invite(self, args)?;
+        let result = gen_invite(self, args).map_err(|source| CmdError::GenInvite { source })?;
         args.write_result(result)?;
         Ok(())
     }
 }
 
-fn gen_invite(opts: &Input, args: &CmdArgs) -> Result<InviteResult, CmdError> {
-    let url = format!("{}/api/v1/open/signup/newinvite", args.docspell_url());
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Error received from server at {}: {}", url, source))]
+    Http { source: reqwest::Error, url: String },
+
+    #[snafu(display("Error received from server: {}", source))]
+    ReadResponse { source: reqwest::Error },
+}
+
+pub fn gen_invite(opts: &Input, args: &CmdArgs) -> Result<InviteResult, Error> {
+    let url = &format!("{}/api/v1/open/signup/newinvite", args.docspell_url());
     let client = reqwest::blocking::Client::new();
-    return client
+    client
         .post(url)
         .json(&GenInvite {
             password: opts.password.clone(),
         })
         .send()
-        .map_err(CmdError::HttpError)?
+        .context(Http { url })?
         .json::<InviteResult>()
-        .map_err(CmdError::HttpError);
+        .context(ReadResponse)
 }

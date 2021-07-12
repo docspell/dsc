@@ -2,6 +2,7 @@ use crate::cmd::login;
 use crate::cmd::{Cmd, CmdArgs, CmdError};
 use crate::types::{SearchResult, DOCSPELL_AUTH};
 use clap::Clap;
+use snafu::{ResultExt, Snafu};
 
 /// Searches for documents and prints the results. Documents are
 /// searched via a query. The query syntax is described here:
@@ -26,16 +27,31 @@ pub struct Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = search(&self, args)?;
+        let result = search(&self, args).map_err(|source| CmdError::Search { source })?;
         args.write_result(result)?;
         Ok(())
     }
 }
 
-fn search(opts: &Input, args: &CmdArgs) -> Result<SearchResult, CmdError> {
-    let url = format!("{}/api/v1/sec/item/search", args.docspell_url());
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Error received from server at {}: {}", url, source))]
+    Http { source: reqwest::Error, url: String },
+
+    #[snafu(display("Error received from server: {}", source))]
+    ReadResponse { source: reqwest::Error },
+
+    #[snafu(display(
+        "Error logging in via session. Consider the `login` command. {}",
+        source
+    ))]
+    Login { source: login::Error },
+}
+
+pub fn search(opts: &Input, args: &CmdArgs) -> Result<SearchResult, Error> {
+    let url = &format!("{}/api/v1/sec/item/search", args.docspell_url());
     let client = reqwest::blocking::Client::new();
-    let token = login::session_token(args)?;
+    let token = login::session_token(args).context(Login)?;
     client
         .get(url)
         .header(DOCSPELL_AUTH, token)
@@ -47,7 +63,7 @@ fn search(opts: &Input, args: &CmdArgs) -> Result<SearchResult, CmdError> {
         ])
         .send()
         .and_then(|r| r.error_for_status())
-        .map_err(CmdError::HttpError)?
+        .context(Http { url })?
         .json::<SearchResult>()
-        .map_err(CmdError::HttpError)
+        .context(ReadResponse)
 }

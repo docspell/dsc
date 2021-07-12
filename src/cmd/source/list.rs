@@ -2,6 +2,7 @@ use crate::cmd::login;
 use crate::cmd::{Cmd, CmdArgs, CmdError};
 use crate::types::{SourceAndTags, SourceList, DOCSPELL_AUTH};
 use clap::Clap;
+use snafu::{ResultExt, Snafu};
 
 /// List all sources for your collective
 #[derive(Clap, std::fmt::Debug)]
@@ -26,9 +27,26 @@ impl Input {
     }
 }
 
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Error received from server at {}: {}", url, source))]
+    Http { source: reqwest::Error, url: String },
+
+    #[snafu(display("Error received from server: {}", source))]
+    ReadResponse { source: reqwest::Error },
+
+    #[snafu(display(
+        "Error logging in via session. Consider the `login` command. {}",
+        source
+    ))]
+    Login { source: login::Error },
+}
+
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let items = list_sources(args).map(|r| r.items)?;
+        let items = list_sources(args)
+            .map(|r| r.items)
+            .map_err(|source| CmdError::SourceList { source })?;
         let result = filter_sources(self, items);
         args.write_result(result)?;
 
@@ -44,16 +62,16 @@ fn filter_sources(args: &Input, sources: Vec<SourceAndTags>) -> Vec<SourceAndTag
     }
 }
 
-fn list_sources(args: &CmdArgs) -> Result<SourceList, CmdError> {
-    let url = format!("{}/api/v1/sec/source", args.docspell_url());
+pub fn list_sources(args: &CmdArgs) -> Result<SourceList, Error> {
+    let url = &format!("{}/api/v1/sec/source", args.docspell_url());
     let client = reqwest::blocking::Client::new();
-    let token = login::session_token(args)?;
+    let token = login::session_token(args).context(Login)?;
     client
         .get(url)
         .header(DOCSPELL_AUTH, token)
         .send()
         .and_then(|r| r.error_for_status())
-        .map_err(CmdError::HttpError)?
+        .context(Http { url })?
         .json::<SourceList>()
-        .map_err(CmdError::HttpError)
+        .context(ReadResponse)
 }

@@ -1,5 +1,6 @@
 pub mod cmd;
 pub mod config;
+pub mod error;
 mod file;
 pub mod opts;
 mod pass;
@@ -10,26 +11,10 @@ pub mod types;
 use clap::Clap;
 use cmd::{Cmd, CmdArgs};
 use config::DsConfig;
+use error::Result;
 use log;
 use opts::{MainOpts, SubCommand};
-use std::convert::From;
 use std::path::PathBuf;
-
-#[derive(Debug)]
-pub enum DscError {
-    Cmd(cmd::CmdError),
-    Config(config::ConfigError),
-}
-impl From<cmd::CmdError> for DscError {
-    fn from(e: cmd::CmdError) -> DscError {
-        DscError::Cmd(e)
-    }
-}
-impl From<config::ConfigError> for DscError {
-    fn from(e: config::ConfigError) -> DscError {
-        DscError::Config(e)
-    }
-}
 
 pub fn read_args() -> MainOpts {
     let m = MainOpts::parse();
@@ -37,20 +22,20 @@ pub fn read_args() -> MainOpts {
     m
 }
 
-pub fn read_config(file: &Option<PathBuf>) -> Result<DsConfig, DscError> {
-    let f = DsConfig::read(file.as_ref());
+pub fn read_config(file: &Option<PathBuf>) -> Result<DsConfig> {
+    let f = DsConfig::read(file.as_ref())?;
     log::debug!("Config: {:?}", f);
-    f.map_err(DscError::Config)
+    Ok(f)
 }
 
-pub fn execute() -> Result<(), DscError> {
+pub fn execute() -> Result<()> {
     let opts = read_args();
     let cfg = read_config(&opts.config)?;
     eprintln!("Docspell at: {:}", cfg.docspell_url);
     execute_cmd(cfg, opts)
 }
 
-pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), DscError> {
+pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<()> {
     let args = CmdArgs {
         opts: &opts.common_opts,
         cfg: &cfg,

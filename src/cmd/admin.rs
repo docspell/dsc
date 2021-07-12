@@ -30,20 +30,20 @@ pub enum AdminCommand {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let secret = args
-            .admin_secret()
-            .ok_or(CmdError::AuthError("No admin secret provided".into()))?;
-        if args.opts.verbose >= 2 {
-            log::debug!("Using secret: {:}", secret);
-        }
         match &self.subcmd {
-            AdminCommand::GeneratePreviews(input) => input.exec(&secret, args),
-            AdminCommand::RecreateIndex(input) => input.exec(&secret, args),
-            AdminCommand::ResetPassword(input) => input.exec(&secret, args),
+            AdminCommand::GeneratePreviews(input) => input.exec(args),
+            AdminCommand::RecreateIndex(input) => input.exec(args),
+            AdminCommand::ResetPassword(input) => input.exec(args),
         }
     }
 }
 
-pub trait AdminCmd {
-    fn exec<'a>(&self, secret: &str, args: &'a CmdArgs) -> Result<(), CmdError>;
+fn get_secret(args: &CmdArgs) -> Option<String> {
+    let secret = args.admin_secret();
+
+    if secret.is_some() && args.opts.verbose > 2 {
+        log::debug!("Using secret: {:?}", secret);
+    }
+
+    secret
 }

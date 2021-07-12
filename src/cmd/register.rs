@@ -1,6 +1,7 @@
 use crate::cmd::{Cmd, CmdArgs, CmdError};
 use crate::types::{BasicResult, Registration};
 use clap::Clap;
+use snafu::{ResultExt, Snafu};
 
 /// Register a new account at Docspell.
 #[derive(Clap, Debug)]
@@ -26,14 +27,23 @@ pub struct Input {
 
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = gen_invite(self, args)?;
+        let result = register(self, args).map_err(|source| CmdError::Register { source })?;
         args.write_result(result)?;
         Ok(())
     }
 }
 
-fn gen_invite(opts: &Input, args: &CmdArgs) -> Result<BasicResult, CmdError> {
-    let url = format!("{}/api/v1/open/signup/register", args.docspell_url());
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Error received from server at {}: {}", url, source))]
+    Http { source: reqwest::Error, url: String },
+
+    #[snafu(display("Error received from server: {}", source))]
+    ReadResponse { source: reqwest::Error },
+}
+
+fn register(opts: &Input, args: &CmdArgs) -> Result<BasicResult, Error> {
+    let url = &format!("{}/api/v1/open/signup/register", args.docspell_url());
     let body = &Registration {
         collective_name: opts.collective_name.clone(),
         login: opts.login.clone(),
@@ -42,12 +52,12 @@ fn gen_invite(opts: &Input, args: &CmdArgs) -> Result<BasicResult, CmdError> {
     };
     log::debug!("Register new account: {:?}", body);
     let client = reqwest::blocking::Client::new();
-    return client
+    client
         .post(url)
         .json(body)
         .send()
         .and_then(|r| r.error_for_status())
-        .map_err(CmdError::HttpError)?
+        .context(Http { url })?
         .json::<BasicResult>()
-        .map_err(CmdError::HttpError);
+        .context(ReadResponse)
 }

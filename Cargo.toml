@@ -3,13 +3,17 @@ name = "dsc"
 version = "0.1.0"
 authors = ["eikek <eikek@posteo.de>"]
 edition = "2018"
-description = "A command line interface to Docspell, a free DMS."
+description = "A command line interface to Docspell."
+homepage = "https://docspell.org"
+license = "GPLv3"
+repository = "https://github.com/docspell/dsc"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 chrono = "0.4"
 clap = "3.0.0-beta.2"
+console = {version = "0.14"}
 csv = "1.1"
 dirs = { version = "3.0" }
 env_logger = { version = "0.8" }

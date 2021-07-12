@@ -1,18 +1,20 @@
-use dsc::DscError;
+use dsc::error::Error;
 use std::process;
 
 fn main() {
+    let error_style = console::Style::new().red().bright();
+
     env_logger::init();
     let result = dsc::execute();
     if let Err(err) = result {
-        eprintln!("Error: {:#?}", err);
+        eprintln!("{}", error_style.apply_to(&err));
         process::exit(exit_code(&err));
     }
 }
 
-fn exit_code(err: &DscError) -> i32 {
+fn exit_code(err: &Error) -> i32 {
     match err {
-        DscError::Config(_) => 1,
-        DscError::Cmd(_) => 2,
+        Error::Config { source: _ } => 1,
+        Error::Cmd { source: _ } => 2,
     }
 }

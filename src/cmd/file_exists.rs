@@ -6,6 +6,7 @@ use crate::types::{CheckFileResult, DOCSPELL_AUTH};
 use crate::DsConfig;
 use clap::Clap;
 use reqwest::blocking::RequestBuilder;
+use snafu::{ResultExt, Snafu};
 use std::path::PathBuf;
 
 /// Checks if the given files exist in docspell.
@@ -23,13 +24,8 @@ pub struct Input {
     pub files: Vec<PathBuf>,
 }
 impl Input {
-    fn collective_id(&self) -> Result<&String, CmdError> {
-        self.endpoint
-            .collective
-            .as_ref()
-            .ok_or(CmdError::InvalidInput(
-                "Collective must be present when using integration endpoint.".into(),
-            ))
+    fn collective_id(&self) -> Result<&String, Error> {
+        self.endpoint.collective.as_ref().ok_or(Error::NoCollective)
     }
 
     fn source_id(&self, cfg: &DsConfig) -> Option<String> {
@@ -37,11 +33,36 @@ impl Input {
     }
 }
 
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Collective must be present when using integration endpoint."))]
+    NoCollective,
+
+    #[snafu(display("Calculating digest of file {} failed: {}", path.display(), source))]
+    DigestFail {
+        source: std::io::Error,
+        path: PathBuf,
+    },
+
+    #[snafu(display("Error received from server at {}: {}", url, source))]
+    Http { source: reqwest::Error, url: String },
+
+    #[snafu(display("Error received from server: {}", source))]
+    ReadResponse { source: reqwest::Error },
+
+    #[snafu(display(
+        "Error logging in via session. Consider the `login` command. {}",
+        source
+    ))]
+    Login { source: login::Error },
+}
+
 impl Cmd for Input {
     fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
         let mut results = Vec::with_capacity(self.files.capacity());
         for file in &self.files {
-            let result = check_file(&file, self, args)?;
+            let result =
+                check_file(&file, self, args).map_err(|source| CmdError::FileExists { source })?;
             results.push(result);
         }
         args.write_result(results)?;
@@ -49,15 +70,15 @@ impl Cmd for Input {
     }
 }
 
-fn check_file(file: &PathBuf, args: &Input, opts: &CmdArgs) -> Result<CheckFileResult, CmdError> {
-    let hash = file::digest_file_sha256(file).map_err(CmdError::IOError)?;
+pub fn check_file(file: &PathBuf, args: &Input, opts: &CmdArgs) -> Result<CheckFileResult, Error> {
+    let hash = file::digest_file_sha256(file).context(DigestFail { path: file })?;
     let mut result = check_hash(&hash, args, opts)?;
     result.file = file.canonicalize().ok().map(|p| p.display().to_string());
     Ok(result)
 }
 
-fn check_hash(hash: &str, opts: &Input, args: &CmdArgs) -> Result<CheckFileResult, CmdError> {
-    let url = if opts.endpoint.integration {
+pub fn check_hash(hash: &str, opts: &Input, args: &CmdArgs) -> Result<CheckFileResult, Error> {
+    let url = &if opts.endpoint.integration {
         let coll_id = opts.collective_id()?;
         format!(
             "{}/api/v1/open/integration/checkfile/{}/{}",
@@ -81,14 +102,14 @@ fn check_hash(hash: &str, opts: &Input, args: &CmdArgs) -> Result<CheckFileResul
     client
         .send()
         .and_then(|r| r.error_for_status())
-        .map_err(CmdError::HttpError)?
+        .context(Http { url })?
         .json::<CheckFileResult>()
-        .map_err(CmdError::HttpError)
+        .context(ReadResponse)
 }
 
-fn create_client(url: &str, opts: &Input, args: &CmdArgs) -> Result<RequestBuilder, CmdError> {
+fn create_client(url: &str, opts: &Input, args: &CmdArgs) -> Result<RequestBuilder, Error> {
     if opts.source_id(args.cfg).is_none() && !opts.endpoint.integration {
-        let token = login::session_token(args)?;
+        let token = login::session_token(args).context(Login)?;
         Ok(reqwest::blocking::Client::new()
             .get(url)
             .header(DOCSPELL_AUTH, token))

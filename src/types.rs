@@ -1,6 +1,5 @@
-use crate::sink::{str_or_empty, AsTable, SerError, Sink};
+use crate::sink::{str_or_empty, AsTable, Error as SinkError, Sink};
 use crate::table;
-use chrono::{DateTime, TimeZone, Utc};
 use prettytable::{cell, row, Table};
 use serde::{Deserialize, Serialize};
 pub const DOCSPELL_AUTH: &'static str = "X-Docspell-Auth";
@@ -229,16 +228,10 @@ impl AsTable for VersionInfo {
         let mut table = table::mk_table();
         table.add_row(row![bFg =>
             "version",
-            "built at millis",
             "built at",
             "commit",
         ]);
-        table.add_row(row![
-            self.version,
-            self.built_at_millis,
-            self.built_at_string,
-            self.git_commit,
-        ]);
+        table.add_row(row![self.version, self.built_at_string, self.git_commit,]);
         table
     }
 }
@@ -368,7 +361,7 @@ impl AsTable for Summary {
     }
 }
 impl Sink for Summary {
-    fn write_tabular(value: &Self) -> Result<(), SerError> {
+    fn write_tabular(value: &Self) -> Result<(), SinkError> {
         println!("All");
         value.to_table().printstd();
 
@@ -384,7 +377,7 @@ impl Sink for Summary {
         Ok(())
     }
 
-    fn write_csv(value: &Self) -> Result<(), SerError> {
+    fn write_csv(value: &Self) -> Result<(), SinkError> {
         value.to_table().to_csv(std::io::stdout())?;
         println!("");
         Sink::write_csv(&value.tag_cloud.as_ref().items)?;
@@ -477,7 +470,7 @@ impl AsTable for SearchResult {
                     item.id[0..8],
                     item.name,
                     item.state,
-                    format_date(item.date),
+                    table::format_date(item.date),
                     combine(&item.corr_org, &item.corr_person, "/"),
                     combine(&item.conc_person, &item.conc_equip, "/"),
                     item.folder.as_ref().map(|a| a.name.as_str()).unwrap_or(""),
@@ -498,11 +491,4 @@ fn combine(opta: &Option<IdName>, optb: &Option<IdName>, sep: &str) -> String {
         (None, Some(b)) => b.name.clone(),
         (None, None) => "".into(),
     }
-}
-
-fn format_date(dt: i64) -> String {
-    let secs = dt / 1000;
-    let nsec: u32 = ((dt % 1000) * 1000) as u32;
-    let dt: DateTime<Utc> = Utc.timestamp(secs, nsec);
-    dt.format("%Y-%m-%d").to_string()
 }

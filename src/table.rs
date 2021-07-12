@@ -1,3 +1,4 @@
+use chrono::{DateTime, TimeZone, Utc};
 use prettytable::format::{FormatBuilder, LinePosition, LineSeparator};
 use prettytable::Table;
 
@@ -21,4 +22,11 @@ pub fn mk_table() -> Table {
             .build(),
     );
     table
+}
+
+pub fn format_date(dt: i64) -> String {
+    let secs = dt / 1000;
+    let nsec: u32 = ((dt % 1000) * 1000) as u32;
+    let dt: DateTime<Utc> = Utc.timestamp(secs, nsec);
+    dt.format("%Y-%m-%d").to_string()
 }

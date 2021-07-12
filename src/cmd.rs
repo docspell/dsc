@@ -12,9 +12,10 @@ pub mod version;
 use crate::{
     config::DsConfig,
     opts::{CommonOpts, Format},
-    sink::{SerError, Sink},
+    sink::Sink,
 };
 use serde::Serialize;
+use snafu::{ResultExt, Snafu};
 
 pub trait Cmd {
     fn exec<'a>(&self, args: &'a CmdArgs) -> Result<(), CmdError>;
@@ -28,7 +29,7 @@ pub struct CmdArgs<'a> {
 impl CmdArgs<'_> {
     fn write_result<A: Sink + Serialize>(&self, value: A) -> Result<(), CmdError> {
         let fmt = self.format();
-        Sink::write_value(fmt, &value)?;
+        Sink::write_value(fmt, &value).context(SinkError)?;
         Ok(())
     }
 
@@ -57,40 +58,57 @@ impl CmdArgs<'_> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Snafu)]
 pub enum CmdError {
-    HttpError(reqwest::Error),
-    SerializeError(SerError),
-    JsonSerError(serde_json::Error),
-    SexprError(serde_lexpr::Error),
-    AuthError(String),
-    IOError(std::io::Error),
-    InvalidInput(String),
-    IntEndpointNotAvail,
-}
+    Version {
+        source: version::Error,
+    },
 
-impl std::convert::From<serde_json::Error> for CmdError {
-    fn from(e: serde_json::Error) -> CmdError {
-        CmdError::JsonSerError(e)
-    }
-}
-impl std::convert::From<serde_lexpr::Error> for CmdError {
-    fn from(e: serde_lexpr::Error) -> CmdError {
-        CmdError::SexprError(e)
-    }
-}
-impl std::convert::From<reqwest::Error> for CmdError {
-    fn from(e: reqwest::Error) -> CmdError {
-        CmdError::HttpError(e)
-    }
-}
-impl std::convert::From<std::io::Error> for CmdError {
-    fn from(e: std::io::Error) -> CmdError {
-        CmdError::IOError(e)
-    }
-}
-impl std::convert::From<SerError> for CmdError {
-    fn from(e: SerError) -> CmdError {
-        CmdError::SerializeError(e)
-    }
+    Upload {
+        source: upload::Error,
+    },
+
+    Login {
+        source: login::Error,
+    },
+
+    SourceList {
+        source: source::list::Error,
+    },
+
+    SearchSummary {
+        source: search_summary::Error,
+    },
+
+    Search {
+        source: search::Error,
+    },
+
+    Register {
+        source: register::Error,
+    },
+
+    GenInvite {
+        source: geninvite::Error,
+    },
+
+    FileExists {
+        source: file_exists::Error,
+    },
+
+    AdminGeneratePreview {
+        source: admin::generate_previews::Error,
+    },
+
+    AdminRecreateIndex {
+        source: admin::recreate_index::Error,
+    },
+
+    AdminResetPassword {
+        source: admin::reset_password::Error,
+    },
+
+    SinkError {
+        source: crate::sink::Error,
+    },
 }
