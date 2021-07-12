@@ -266,7 +266,12 @@ pub struct CatCount {
 pub struct TagCloud {
     pub items: Vec<TagCount>,
 }
-impl AsTable for Vec<TagCount> {
+impl TagCloud {
+    fn without_empty(&self) -> Vec<&TagCount> {
+        self.items.iter().filter(|tc| tc.count > 0).collect()
+    }
+}
+impl AsTable for Vec<&TagCount> {
     fn to_table(&self) -> Table {
         let mut table = table::mk_table();
         table.add_row(row![bFg => "id", "name", "category", "count"]);
@@ -281,13 +286,18 @@ impl AsTable for Vec<TagCount> {
         table
     }
 }
-impl Sink for Vec<TagCount> {}
+impl Sink for Vec<&TagCount> {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CatCloud {
     pub items: Vec<CatCount>,
 }
-impl AsTable for Vec<CatCount> {
+impl CatCloud {
+    fn without_empty(&self) -> Vec<&CatCount> {
+        self.items.iter().filter(|tc| tc.count > 0).collect()
+    }
+}
+impl AsTable for Vec<&CatCount> {
     fn to_table(&self) -> Table {
         let mut table = table::mk_table();
         table.add_row(row![bFg => "name", "count"]);
@@ -297,7 +307,7 @@ impl AsTable for Vec<CatCount> {
         table
     }
 }
-impl Sink for Vec<CatCount> {}
+impl Sink for Vec<&CatCount> {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FieldStats {
@@ -366,10 +376,10 @@ impl Sink for Summary {
         value.to_table().printstd();
 
         println!("\nTags");
-        Sink::write_tabular(&value.tag_cloud.as_ref().items)?;
+        Sink::write_tabular(&value.tag_cloud.without_empty())?;
 
         println!("\nCategories");
-        Sink::write_tabular(&value.tag_category_cloud.as_ref().items)?;
+        Sink::write_tabular(&value.tag_category_cloud.without_empty())?;
 
         println!("\nCustom Fields");
         Sink::write_tabular(&value.field_stats)?;
@@ -380,9 +390,9 @@ impl Sink for Summary {
     fn write_csv(value: &Self) -> Result<(), SinkError> {
         value.to_table().to_csv(std::io::stdout())?;
         println!("");
-        Sink::write_csv(&value.tag_cloud.as_ref().items)?;
+        Sink::write_csv(&value.tag_cloud.without_empty())?;
         println!("");
-        Sink::write_csv(&value.tag_category_cloud.as_ref().items)?;
+        Sink::write_csv(&value.tag_category_cloud.without_empty())?;
         println!("");
         Sink::write_csv(&value.field_stats)?;
         Ok(())
@@ -405,6 +415,11 @@ pub struct CustomField {
     pub label: Option<String>,
     pub ftype: String,
     pub value: String,
+}
+impl CustomField {
+    fn name_or_label(&self) -> &String {
+        self.label.as_ref().unwrap_or(&self.name)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -462,11 +477,17 @@ impl AsTable for SearchResult {
             "correspondent",
             "concerning",
             "folder",
-            "tags"
+            "tags",
+            "fields"
         ]);
         for group in &self.groups {
             for item in &group.items {
                 let tag_list: Vec<String> = item.tags.iter().map(|t| t.name.clone()).collect();
+                let field_list: Vec<String> = item
+                    .customfields
+                    .iter()
+                    .map(|f| format!("{} {}", f.name_or_label(), f.value))
+                    .collect();
                 table.add_row(row![
                     item.id[0..8],
                     item.name,
@@ -476,7 +497,8 @@ impl AsTable for SearchResult {
                     combine(&item.corr_org, &item.corr_person, "/"),
                     combine(&item.conc_person, &item.conc_equip, "/"),
                     item.folder.as_ref().map(|a| a.name.as_str()).unwrap_or(""),
-                    tag_list.join(", ")
+                    tag_list.join(", "),
+                    field_list.join(", ")
                 ]);
             }
         }
