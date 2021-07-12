@@ -10,6 +10,7 @@ pub struct DsConfig {
     pub admin_secret: Option<String>,
     pub default_source_id: Option<String>,
     pub pass_entry: Option<String>,
+    pub default_account: Option<String>,
 }
 
 #[derive(Debug, snafu::Snafu)]
@@ -46,6 +47,7 @@ impl default::Default for DsConfig {
             admin_secret: None,
             default_source_id: None,
             pass_entry: None,
+            default_account: None,
         }
     }
 }

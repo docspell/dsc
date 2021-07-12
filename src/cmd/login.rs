@@ -13,9 +13,10 @@ use snafu::{ResultExt, Snafu};
 #[derive(Clap, std::fmt::Debug)]
 #[clap(group = ArgGroup::new("pass"))]
 pub struct Input {
-    /// The account name.
+    /// The account name. If not given here, it is looked up in the
+    /// config file.
     #[clap(long, short)]
-    user: String,
+    user: Option<String>,
 
     /// The password used for authentication in plain text.
     #[clap(long, group = "pass")]
@@ -40,6 +41,9 @@ pub enum Error {
 
     #[snafu(display("No password provided!"))]
     NoPassword,
+
+    #[snafu(display("No account name provided!"))]
+    NoAccount,
 
     #[snafu(display("Error serializing auth response: {}", source))]
     SerializeSession { source: serde_json::Error },
@@ -86,7 +90,7 @@ struct AuthRequest {
 pub fn login(opts: &Input, args: &CmdArgs) -> Result<AuthResp, Error> {
     let url = &format!("{}/api/v1/open/auth/login", args.docspell_url());
     let body = AuthRequest {
-        account: opts.user.clone(),
+        account: get_account(opts, args)?,
         password: get_password(opts, args)?,
         remember_me: false,
     };
@@ -110,6 +114,13 @@ fn get_password(opts: &Input, args: &CmdArgs) -> Result<String, Error> {
     match args.pass_entry(&opts.pass_entry) {
         Some(pe) => pass::pass_password(&pe).context(PassEntry),
         None => opts.password.clone().ok_or(Error::NoPassword),
+    }
+}
+
+fn get_account(opts: &Input, args: &CmdArgs) -> Result<String, Error> {
+    match &opts.user {
+        Some(u) => Ok(u.clone()),
+        None => args.cfg.default_account.clone().ok_or(Error::NoAccount),
     }
 }
 
