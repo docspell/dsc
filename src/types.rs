@@ -420,7 +420,7 @@ pub struct Item {
     pub state: String,
     pub date: i64,
     #[serde(alias = "dueDate")]
-    pub due_date: Option<u64>,
+    pub due_date: Option<i64>,
     pub source: String,
     pub direction: Option<String>,
     #[serde(alias = "corrOrg")]
@@ -458,6 +458,7 @@ impl AsTable for SearchResult {
             "name",
             "state",
             "date",
+            "due",
             "correspondent",
             "concerning",
             "folder",
@@ -471,6 +472,7 @@ impl AsTable for SearchResult {
                     item.name,
                     item.state,
                     table::format_date(item.date),
+                    item.due_date.map(table::format_date).unwrap_or("".into()),
                     combine(&item.corr_org, &item.corr_person, "/"),
                     combine(&item.conc_person, &item.conc_equip, "/"),
                     item.folder.as_ref().map(|a| a.name.as_str()).unwrap_or(""),
