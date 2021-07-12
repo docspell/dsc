@@ -37,5 +37,5 @@ vendored-openssl = ["openssl/vendored"]
 
 
 [dev-dependencies]
-assert_cmd = "0.10"
+assert_cmd = "0.11"
 predicates = "1"

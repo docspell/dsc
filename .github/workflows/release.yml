@@ -1,0 +1,136 @@
+name: Release
+on:
+  push:
+  # push:
+  #   tags:
+  #     - 'v*'
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+        - aarch64
+        - armv7
+        - i686
+        - amd64-musl
+        # - macos
+        # - win-msvc
+        include:
+        - build: aarch64
+          os: ubuntu-latest
+          target: aarch64-unknown-linux-gnu
+          use-cross: true
+          features: "--no-default-features --features rustls"
+        - build: armv7
+          os: ubuntu-latest
+          target: armv7-unknown-linux-gnueabihf
+          use-cross: true
+          features: "--no-default-features --features rustls"
+        - build: i686
+          os: ubuntu-latest
+          target: i686-unknown-linux-gnu
+          use-cross: true
+          features: "--no-default-features --features rustls"
+        - build: amd64-musl
+          os: ubuntu-latest
+          target: x86_64-unknown-linux-musl
+          use-cross: true
+          features: "--no-default-features --features rustls"
+        # - build: macos
+        #   os: macos-latest
+        #   target: x86_64-apple-darwin
+        #   use-cross: false
+        #   features:
+        # - build: win-msvc
+        #   os: windows-latest
+        #   target: x86_64-pc-windows-msvc
+        #   use-cross: false
+        #   features:
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install prerequisites
+        shell: bash
+        run: |
+          case ${{ matrix.target }} in
+            arm-unknown-linux-gnueabihf) sudo apt-get -y update ; sudo apt-get -y install gcc-arm-linux-gnueabihf ;;
+            armv7-unknown-linux-gnueabihf) sudo apt-get -y update ; sudo apt-get -y install gcc-arm-linux-gnueabihf ;;
+            aarch64-unknown-linux-gnu) sudo apt-get -y update ; sudo apt-get -y install gcc-aarch64-linux-gnu ;;
+          esac
+
+      - name: Extract crate information
+        shell: bash
+        run: |
+          echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "PROJECT_MAINTAINER=$(sed -n 's/^authors = \["\(.*\)"\]/\1/p' Cargo.toml)" >> $GITHUB_ENV
+          echo "PROJECT_HOMEPAGE=$(sed -n 's/^homepage = "\(.*\)"/\1/p' Cargo.toml)" >> $GITHUB_ENV
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+          default: true
+
+      - name: Show version information (Rust, cargo, GCC)
+        shell: bash
+        run: |
+          gcc --version || true
+          rustup -V
+          rustup toolchain list
+          rustup default
+          cargo -V
+          rustc -V
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: ${{ matrix.use-cross }}
+          command: build
+          args: ${{ matrix.features }} --release --target=${{ matrix.target }}
+
+      - name: Strip debug information from executable
+        id: strip
+        shell: bash
+        run: |
+          # Figure out suffix of binary
+          EXE_suffix=""
+          case ${{ matrix.target }} in
+            *-pc-windows-*) EXE_suffix=".exe" ;;
+          esac;
+          # Figure out what strip tool to use if any
+          STRIP="strip"
+          case ${{ matrix.target }} in
+            arm-unknown-linux-gnueabihf) STRIP="arm-linux-gnueabihf-strip" ;;
+            armv7-unknown-linux-gnueabihf) STRIP="arm-linux-gnueabihf-strip" ;;
+            aarch64-unknown-linux-gnu) STRIP="aarch64-linux-gnu-strip" ;;
+            *-pc-windows-msvc) STRIP="" ;;
+          esac;
+          # Setup paths
+          BIN_DIR="_cicd/stripped-release-bin/"
+          mkdir -p "${BIN_DIR}"
+          BIN_NAME="${{ env.PROJECT_NAME }}${EXE_suffix}"
+          BIN_PATH="${BIN_DIR}/${BIN_NAME}_${{ matrix.build }}"
+          # Copy the release build binary to the result location
+          cp "target/${{ matrix.target }}/release/${BIN_NAME}" "${BIN_PATH}"
+          # Also strip if possible
+          if [ -n "${STRIP}" ]; then
+            "${STRIP}" "${BIN_PATH}"
+          fi
+          # Let subsequent steps know where to find the (stripped) bin
+          echo ::set-output name=BIN_PATH::${BIN_PATH}
+          echo ::set-output name=BIN_NAME::${BIN_NAME}
+
+      - name: Publish
+        id: publish
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            ${{ steps.strip.outputs.BIN_PATH }}
