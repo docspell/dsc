@@ -58,6 +58,34 @@ For commands `file-exists` and `upload` it is possible to use a source
 id or the integration endpoint instead of being authenticated.
 
 
+## Building
+
+Install [nix](https://nixos.org/download.html#nix-quick-install) and
+run `nix-shell` in the source root. This installs required rust tools.
+Alternatively, the rust tool chain can be setup with
+[rustup](https://rustup.rs/).
+
+Building the binary for your platform (The second line strips the
+binary of debug symbols):
+
+``` bash
+> cargo build --release
+> strip target/release/dsc
+```
+
+This requires the openssl libraries installed on your system.
+
+To build against a statically linked rustls library instead, use:
+``` bash
+> cargo build --release --no-default-features --features rustls
+```
+
+To include a statically linked openssl, build it via:
+``` bash
+> cargo build --release --no-default-features --features vendored-openssl
+```
+
+
 ## Examples
 
 Reset the password of an account:
