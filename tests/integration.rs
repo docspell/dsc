@@ -1,7 +1,7 @@
 mod common;
 use crate::common::{mk_cmd, Result};
 use assert_cmd::prelude::*;
-use dsc::types::{BasicResult, SearchResult, SourceAndTags};
+use dsc::types::{BasicResult, SearchResult, SourceAndTags, Summary};
 use std::process::Command;
 
 #[test]
@@ -158,9 +158,9 @@ fn remote_search_2() -> Result<()> {
     let mut cmd = mk_cmd()?;
     let out = cmd.arg("search").arg("corr:pancake*").output()?;
 
-    let out: SearchResult = serde_json::from_slice(out.stdout.as_slice())?;
-    assert_eq!(out.groups.len(), 1);
-    assert_eq!(out.groups[0].name, "2019-09");
+    let res: SearchResult = serde_json::from_slice(out.stdout.as_slice())?;
+    assert_eq!(res.groups.len(), 1);
+    assert_eq!(res.groups[0].name, "2019-09");
     Ok(())
 }
 
@@ -174,5 +174,19 @@ fn remote_upload_source() -> Result<()> {
         .arg("README.md")
         .assert();
     assert.success().stderr("");
+    Ok(())
+}
+
+#[test]
+fn remote_search_summary() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let out = cmd.arg("search-summary").arg("name:*").output()?;
+
+    let res: Summary = serde_json::from_slice(out.stdout.as_slice())?;
+
+    assert_eq!(res.count, 2);
+    assert_eq!(res.tag_cloud.items.len(), 5);
+    assert_eq!(res.tag_category_cloud.items.len(), 2);
+    assert_eq!(res.field_stats.len(), 2);
     Ok(())
 }
