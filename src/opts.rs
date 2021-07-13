@@ -152,7 +152,7 @@ pub struct EndpointOpts {
     pub integration: bool,
 
     /// When using the integration endpoint, the collective is required.
-    #[clap(long)]
+    #[clap(long, short)]
     pub collective: Option<String>,
 }
 
