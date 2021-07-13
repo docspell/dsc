@@ -147,11 +147,21 @@ jobs:
           override: true
           default: true
 
+      - name: Extract crate information
+        shell: bash
+        run: |
+          echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+
       - name: Build
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: ${{ matrix.features }} --release
+
+      - name: Rename binary
+        run: |
+          mv target/release/${{ env.PROJECT_NAME }}.exe target/release/${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}.exe
 
       - name: Publish
         id: publish
@@ -161,4 +171,48 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
-            target/release/${{ env.PROJECT_NAME }}_win64-${{ env.PROJECT_VERSION }}.exe
+            target/release/${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}.exe
+
+  release-mac:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-apple-darwin
+          override: true
+          default: true
+
+      - name: Extract crate information
+        shell: bash
+        run: |
+          echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: ${{ matrix.features }} --release
+
+      - name: Rename and strip binary
+        run: |
+          strip target/release/${{ env.PROJECT_NAME }}
+          mv target/release/${{ env.PROJECT_NAME }} target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.PROJECT_VERSION }}
+
+      - name: Publish
+        id: publish
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.PROJECT_VERSION }}
