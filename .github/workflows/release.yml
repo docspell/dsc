@@ -93,6 +93,13 @@ jobs:
           command: build
           args: ${{ matrix.features }} --release --target=${{ matrix.target }}
 
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: ${{ matrix.use-cross }}
+          command: test
+          args: ${{ matrix.features }} --target=${{ matrix.target }}
+
       - name: Strip debug information from executable
         id: strip
         shell: bash
@@ -114,7 +121,7 @@ jobs:
           BIN_DIR="_cicd/stripped-release-bin/"
           mkdir -p "${BIN_DIR}"
           BIN_NAME="${{ env.PROJECT_NAME }}${EXE_suffix}"
-          BIN_PATH="${BIN_DIR}/${BIN_NAME}_${{ matrix.build }}"
+          BIN_PATH="${BIN_DIR}/${BIN_NAME}_${{ matrix.build }}-${{ env.PROJECT_VERSION }}"
           # Copy the release build binary to the result location
           cp "target/${{ matrix.target }}/release/${BIN_NAME}" "${BIN_PATH}"
           # Also strip if possible
@@ -123,7 +130,6 @@ jobs:
           fi
           # Let subsequent steps know where to find the (stripped) bin
           echo ::set-output name=BIN_PATH::${BIN_PATH}
-          echo ::set-output name=BIN_NAME::${BIN_NAME}
 
       - name: Publish
         id: publish
