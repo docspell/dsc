@@ -20,6 +20,10 @@ recommended. They contain every detail in a well structured form.
 
 ## Usage
 
+There are binaries provided at the [release
+page](https://github.com/docspell/dsc/releases/latest) that you can
+download. Or you can build it as described below.
+
 Run `dsc --help` to see a command overview. There are common options
 that apply to (almost) all commands and each command has its own set
 of options and arguments.
@@ -37,10 +41,10 @@ The config file looks like this:
 ``` toml
 docspell_url = "http://localhost:7880"
 default_format = "Tabular"
-admin_secret = "test123"
-default_source_id = "<some sorce id>"
-pass_entry = "my/pass/entry"
-default_account = "demo"
+# admin_secret = "test123"
+# default_source_id = "<some sorce id>"
+# pass_entry = "my/pass/entry"
+# default_account = "demo"
 ```
 
 
@@ -94,7 +98,6 @@ To include a statically linked openssl, build it via:
 Reset the password of an account:
 ``` bash
 > dsc admin reset-password user32
-Docspell at: http://localhost:7880
 ┌─────────┬──────────────┬──────────────────┐
 │ success │ new password │ message          │
 │ true    │ 9rRVrhq19jz  │ Password updated │
@@ -105,7 +108,6 @@ Docspell at: http://localhost:7880
 Recreate the full text index:
 ``` bash
 > dsc admin recreate-index
-Docspell at: http://localhost:7880
 ┌─────────┬─────────────────────────────────────┐
 │ success │ message                             │
 │ true    │ Full-text index will be re-created. │
@@ -115,7 +117,6 @@ Docspell at: http://localhost:7880
 Search some documents:
 ``` bash
 > dsc search --with-details 'date>2020-08-01 corr:acme*'
-Docspell at: http://localhost:7880
 ┌──────────┬─────────────────────────┬───────────┬────────────┬─────┬───────────────┬─────────────┬────────┬──────────────────────────────┬────────┐
 │ id       │ name                    │ state     │ date       │ due │ correspondent │ concerning  │ folder │ tags                         │ fields │
 │ 7xoiE4Xd │ DOC-20191223-155729.jpg │ created   │ 2020-09-08 │     │ Acme          │             │        │ Invoice                      │        │
@@ -129,7 +130,6 @@ Docspell at: http://localhost:7880
 Use JSON:
 ``` bash
 > dsc -f json search --with-details 'date>2020-08-01 corr:acme*' | jq | head -n20
-Docspell at: https://docs.daheim.site
 {
   "groups": [
     {
