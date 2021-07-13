@@ -1,0 +1,55 @@
+name: Integration-Tests
+on:
+  push:
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Extract crate information
+        shell: bash
+        run: |
+          echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+
+      - name: Start Docspell
+        shell: bash
+        run: |
+          cd .github
+          docker-compose -f docker-compose.yml up -d
+
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          default: true
+
+      - name: Show version information (Rust, cargo, GCC)
+        shell: bash
+        run: |
+          gcc --version || true
+          rustup -V
+          rustup toolchain list
+          rustup default
+          cargo -V
+          rustc -V
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --no-default-features --features rustls --release
+
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args:
