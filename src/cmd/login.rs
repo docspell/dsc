@@ -147,6 +147,10 @@ fn store_session(resp: &AuthResp) -> Result<(), Error> {
         Some(mut dir) => {
             dir.push("dsc");
             dir.push(TOKEN_FILENAME);
+            if !dir.exists() {
+                std::fs::create_dir_all(dir.parent().unwrap())
+                    .context(StoreSessionFile { path: dir.clone() })?;
+            }
             let cnt = serde_json::to_string(resp).context(SerializeSession)?;
             std::fs::write(&dir, &cnt).context(StoreSessionFile { path: dir })
         }
