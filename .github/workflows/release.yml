@@ -8,15 +8,15 @@ jobs:
   release:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         build:
         - aarch64
         - armv7
         - i686
         - amd64-musl
-        # - macos
-        # - win-msvc
+        #- macos
+        - win-gnu
         include:
         - build: aarch64
           os: ubuntu-latest
@@ -43,11 +43,11 @@ jobs:
         #   target: x86_64-apple-darwin
         #   use-cross: false
         #   features:
-        # - build: win-msvc
-        #   os: windows-latest
-        #   target: x86_64-pc-windows-msvc
-        #   use-cross: false
-        #   features:
+        - build: win-gnu
+          os: windows-latest
+          target: x86_64-pc-windows-gnu
+          use-cross: false
+          features:
     steps:
       - uses: actions/checkout@v2
         with:
@@ -69,6 +69,7 @@ jobs:
           echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
           echo "PROJECT_MAINTAINER=$(sed -n 's/^authors = \["\(.*\)"\]/\1/p' Cargo.toml)" >> $GITHUB_ENV
           echo "PROJECT_HOMEPAGE=$(sed -n 's/^homepage = "\(.*\)"/\1/p' Cargo.toml)" >> $GITHUB_ENV
+
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
