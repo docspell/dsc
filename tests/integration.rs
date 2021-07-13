@@ -142,7 +142,7 @@ fn remote_source_list_filter_name_neg() -> Result<()> {
 }
 
 #[test]
-fn remote_search() -> Result<()> {
+fn remote_search_1() -> Result<()> {
     let mut cmd = mk_cmd()?;
     let out = cmd.arg("search").arg("name:*").output()?;
 
@@ -150,6 +150,17 @@ fn remote_search() -> Result<()> {
     assert_eq!(out.groups.len(), 2);
     assert_eq!(out.groups[0].name, "2019-09");
     assert_eq!(out.groups[1].name, "2016-01");
+    Ok(())
+}
+
+#[test]
+fn remote_search_2() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let out = cmd.arg("search").arg("corr:pancake*").output()?;
+
+    let out: SearchResult = serde_json::from_slice(out.stdout.as_slice())?;
+    assert_eq!(out.groups.len(), 1);
+    assert_eq!(out.groups[0].name, "2019-09");
     Ok(())
 }
 

@@ -82,14 +82,6 @@ jobs:
           command: build
           args: ${{ matrix.features }} --release --target=${{ matrix.target }}
 
-      - name: Test
-        uses: actions-rs/cargo@v1
-        if: startsWith(matrix.target, 'x86_64')
-        with:
-          use-cross: ${{ matrix.use-cross }}
-          command: test
-          args: ${{ matrix.features }} --target=${{ matrix.target }}
-
       - name: Strip debug information from executable
         id: strip
         shell: bash
