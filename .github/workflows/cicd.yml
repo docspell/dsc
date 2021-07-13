@@ -1,11 +1,11 @@
-name: Release
+name: CICD
 on:
+  pull_request:
   push:
-  # push:
-  #   tags:
-  #     - 'v*'
+    tags:
+      - 'v*'
 jobs:
-  release:
+  cicd:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -131,7 +131,7 @@ jobs:
           files: |
             ${{ steps.strip.outputs.BIN_PATH }}
 
-  release-win:
+  cicd-win:
     runs-on: windows-latest
 
     steps:
@@ -173,7 +173,7 @@ jobs:
           files: |
             target/release/${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}.exe
 
-  release-mac:
+  cicd-mac:
     runs-on: macos-latest
 
     steps:
