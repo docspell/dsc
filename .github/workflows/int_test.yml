@@ -21,9 +21,8 @@ jobs:
       - name: Start Docspell
         shell: bash
         run: |
-          cd .github
+          cd ci
           docker-compose -f docker-compose.yml up -d
-
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -42,8 +41,14 @@ jobs:
           cargo -V
           rustc -V
 
-      - name: Test
+      - name: Test (1)
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args:
+          args: --test setup
+
+      - name: Test (1)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --test integration

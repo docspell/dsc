@@ -1,21 +1,11 @@
-use assert_cmd::{cargo::CargoError, prelude::*};
-use std::process::Command;
-
-type Result<A> = std::result::Result<A, CargoError>;
-
-#[test]
-fn test_help() -> Result<()> {
-    let mut cmd = Command::cargo_bin("dsc")?;
-    let assert = cmd.arg("--help").assert();
-    assert.success().stderr("");
-    Ok(())
-}
-
+mod common;
+use crate::common::{mk_cmd, Result};
+use assert_cmd::prelude::*;
 
 #[test]
-fn test_version() -> Result<()> {
-    let mut cmd = Command::cargo_bin("dsc")?;
-    let assert = cmd.arg("-d").arg("http://localhost:7880").arg("version").assert();
+fn remote_login() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let assert = cmd.arg("login").args(&["--password", "test"]).assert();
     assert.success().stderr("");
     Ok(())
 }

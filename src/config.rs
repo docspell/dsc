@@ -1,9 +1,10 @@
 use crate::opts::Format;
 use serde::{Deserialize, Serialize};
+use snafu::{ResultExt, Snafu};
 use std::default;
 use std::path::{Path, PathBuf};
 
-#[derive(Serialize, Deserialize, std::fmt::Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DsConfig {
     pub docspell_url: String,
     pub default_format: Format,
@@ -13,7 +14,7 @@ pub struct DsConfig {
     pub default_account: Option<String>,
 }
 
-#[derive(Debug, snafu::Snafu)]
+#[derive(Debug, Snafu)]
 pub enum ConfigError {
     #[snafu(display("Unable to read config file {}: {}", path.display(), source))]
     ReadFile {
@@ -55,15 +56,18 @@ impl default::Default for DsConfig {
 impl DsConfig {
     pub fn read(file: Option<&PathBuf>) -> Result<DsConfig, ConfigError> {
         if let Some(cfg_file) = &file {
-            let given_path = cfg_file.as_path();
-            let cfg = given_path
-                .canonicalize()
-                .map_err(|e| ConfigError::ReadFile {
-                    source: e,
-                    path: given_path.to_path_buf(),
-                })?;
-            log::debug!("Load config from: {:}", cfg.display());
-            load_from(&cfg)
+            log::debug!(
+                "Looking for {} in {}",
+                cfg_file.to_path_buf().display(),
+                std::env::current_dir()
+                    .map(|p| p.display().to_string())
+                    .unwrap_or("unknown directory".into())
+            );
+            let given_path = cfg_file.as_path().canonicalize().context(ReadFile {
+                path: cfg_file.as_path().to_path_buf(),
+            })?;
+            log::debug!("Load config from: {:}", given_path.display());
+            load_from(&given_path)
         } else {
             let mut dir = config_dir()?;
             dir.push("dsc");
