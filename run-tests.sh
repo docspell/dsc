@@ -6,7 +6,7 @@ base=$(dirname "$(readlink -f "$0")")
 start_docker() {
     cd $base/ci
     docker-compose -f docker-compose.yml up -d
-    sleep 3
+    sleep 5
 }
 
 stop_docker() {
