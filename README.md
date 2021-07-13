@@ -1,3 +1,6 @@
+[![Integration-Tests](https://github.com/docspell/dsc/actions/workflows/int_test.yml/badge.svg)](https://github.com/docspell/dsc/actions/workflows/int_test.yml)
+
+
 # docspell cli
 
 This is a command line interface to Docspell, a personal document
