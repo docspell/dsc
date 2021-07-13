@@ -10,3 +10,12 @@ fn test_help() -> Result<()> {
     assert.success().stderr("");
     Ok(())
 }
+
+
+#[test]
+fn test_version() -> Result<()> {
+    let mut cmd = Command::cargo_bin("dsc")?;
+    let assert = cmd.arg("-d").arg("http://localhost:7880").arg("version").assert();
+    assert.success().stderr("");
+    Ok(())
+}

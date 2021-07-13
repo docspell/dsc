@@ -42,12 +42,6 @@ jobs:
           cargo -V
           rustc -V
 
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --no-default-features --features rustls --release
-
       - name: Test
         uses: actions-rs/cargo@v1
         with:

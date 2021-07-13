@@ -31,7 +31,6 @@ pub fn read_config(file: &Option<PathBuf>) -> Result<DsConfig> {
 pub fn execute() -> Result<()> {
     let opts = read_args();
     let cfg = read_config(&opts.config)?;
-    eprintln!("Docspell at: {:}", cfg.docspell_url);
     execute_cmd(cfg, opts)
 }
 

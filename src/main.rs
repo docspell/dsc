@@ -28,7 +28,6 @@ fn execute() -> Result<()> {
     env_logger::init();
 
     let cfg = dsc::read_config(&opts.config)?;
-    eprintln!("Docspell at: {:}", cfg.docspell_url);
     let result = dsc::execute_cmd(cfg, opts);
     if remove_env {
         env::remove_var(LOG_LEVEL);
