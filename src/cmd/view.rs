@@ -26,6 +26,10 @@ pub struct Input {
     /// Skip the first n results.
     #[clap(short, long, default_value = "0")]
     offset: u32,
+
+    /// Don't ask whether to stop viewing.
+    #[clap(long, short)]
+    no_stop: bool,
 }
 
 impl Cmd for Input {
@@ -89,7 +93,7 @@ pub fn view_all(opts: &Input, args: &CmdArgs, parent: &PathBuf) -> Result<(), Er
         for item in g.items {
             for a in item.attachments {
                 if confirm {
-                    if is_stop_viewing()? {
+                    if is_stop_viewing(opts)? {
                         return Ok(());
                     }
                 } else {
@@ -113,8 +117,10 @@ pub fn view_all(opts: &Input, args: &CmdArgs, parent: &PathBuf) -> Result<(), Er
     Ok(())
 }
 
-fn is_stop_viewing() -> Result<bool, Error> {
-    if let Some(answer) = Confirm::new()
+fn is_stop_viewing(opts: &Input) -> Result<bool, Error> {
+    if opts.no_stop {
+        return Ok(false);
+    } else if let Some(answer) = Confirm::new()
         .with_prompt("Stop viewing?")
         .interact_opt()
         .context(Interact)?
