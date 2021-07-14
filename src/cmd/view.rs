@@ -2,6 +2,7 @@ use crate::cmd::{Cmd, CmdArgs, CmdError};
 use crate::{cmd::login, types::DOCSPELL_AUTH};
 use crate::{cmd::search, types::Attach};
 use clap::{ArgGroup, Clap};
+use dialoguer::Confirm;
 use reqwest::blocking::Response;
 use snafu::{ResultExt, Snafu};
 use std::{path::PathBuf, process::Command};
@@ -11,7 +12,7 @@ use std::{path::PathBuf, process::Command};
 /// config file.
 ///
 /// Use the `search-summary` command with the same query to get an
-/// idea how much is being downloaded.
+/// idea how much is being downloaded. This is an interactive command.
 #[derive(Clap, std::fmt::Debug)]
 #[clap(group = ArgGroup::new("kind"))]
 pub struct Input {
@@ -59,6 +60,9 @@ pub enum Error {
 
     #[snafu(display("No pdf viewer defined in the config file!"))]
     NoPdfViewer,
+
+    #[snafu(display("Interaction with terminal failed: {}", source))]
+    Interact { source: std::io::Error },
 }
 
 pub fn view(opts: &Input, args: &CmdArgs) -> Result<(), Error> {
@@ -80,9 +84,18 @@ pub fn view_all(opts: &Input, args: &CmdArgs, parent: &PathBuf) -> Result<(), Er
     };
     let result = search::search(&search_params, args).context(Search)?;
 
+    let mut confirm = false;
     for g in result.groups {
         for item in g.items {
             for a in item.attachments {
+                if confirm {
+                    if is_stop_viewing()? {
+                        return Ok(());
+                    }
+                } else {
+                    confirm = true;
+                }
+
                 let file = download(a, args, parent)?;
                 let tool = &args.cfg.pdf_viewer.get(0).ok_or(Error::NoPdfViewer)?;
                 let tool_args: Vec<String> = args
@@ -98,6 +111,19 @@ pub fn view_all(opts: &Input, args: &CmdArgs, parent: &PathBuf) -> Result<(), Er
     }
 
     Ok(())
+}
+
+fn is_stop_viewing() -> Result<bool, Error> {
+    if let Some(answer) = Confirm::new()
+        .with_prompt("Stop viewing?")
+        .interact_opt()
+        .context(Interact)?
+    {
+        if answer {
+            return Ok(true);
+        }
+    }
+    return Ok(false);
 }
 
 fn download(attach: Attach, args: &CmdArgs, parent: &PathBuf) -> Result<PathBuf, Error> {
