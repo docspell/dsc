@@ -12,6 +12,7 @@ pub struct DsConfig {
     pub default_source_id: Option<String>,
     pub pass_entry: Option<String>,
     pub default_account: Option<String>,
+    pub pdf_viewer: Vec<String>,
 }
 
 #[derive(Debug, Snafu)]
@@ -49,6 +50,7 @@ impl default::Default for DsConfig {
             default_source_id: None,
             pass_entry: None,
             default_account: None,
+            pdf_viewer: vec!["zathura".into(), "{}".into()],
         }
     }
 }

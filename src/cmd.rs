@@ -9,6 +9,7 @@ pub mod search_summary;
 pub mod source;
 pub mod upload;
 pub mod version;
+pub mod view;
 
 use crate::{
     config::DsConfig,
@@ -75,6 +76,10 @@ pub enum CmdError {
 
     Search {
         source: search::Error,
+    },
+
+    View {
+        source: view::Error,
     },
 
     Download {

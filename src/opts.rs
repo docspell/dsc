@@ -9,6 +9,7 @@ use crate::cmd::search_summary;
 use crate::cmd::source;
 use crate::cmd::upload;
 use crate::cmd::version;
+use crate::cmd::view;
 use clap::{AppSettings, ArgGroup, Clap, ValueHint};
 use reqwest::blocking::RequestBuilder;
 use serde::{Deserialize, Serialize};
@@ -106,6 +107,10 @@ pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Download(download::Input),
+
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    View(view::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]

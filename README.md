@@ -45,8 +45,13 @@ default_format = "Tabular"
 # default_source_id = "<some sorce id>"
 # pass_entry = "my/pass/entry"
 # default_account = "demo"
+pdf_viewer = ["zathura", "{}"]
 ```
 
+The `pdf_viewer` is used with the `view` command to display the PDF
+file. It must be a list where the first element is the program to run
+and subsequent elements are its arguments. Each argument containing a
+`{}` is replaced by a filename.
 
 ## Authentication
 

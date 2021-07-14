@@ -56,6 +56,7 @@ pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<()> {
         SubCommand::Register(input) => input.exec(&args)?,
         SubCommand::Upload(input) => input.exec(&args)?,
         SubCommand::Download(input) => input.exec(&args)?,
+        SubCommand::View(input) => input.exec(&args)?,
     };
     Ok(())
 }
