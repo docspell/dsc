@@ -10,19 +10,19 @@ use snafu::{ResultExt, Snafu};
 #[derive(Clap, std::fmt::Debug)]
 pub struct Input {
     /// The query string. See https://docspell.org/docs/query/
-    query: String,
+    pub query: String,
 
     /// Also fetch details to each item in the result
     #[clap(long)]
-    with_details: bool,
+    pub with_details: bool,
 
     /// Limit the number of results.
     #[clap(short, long, default_value = "20")]
-    limit: u32,
+    pub limit: u32,
 
     /// Skip the first n results.
     #[clap(short, long, default_value = "0")]
-    offset: u32,
+    pub offset: u32,
 }
 
 impl Cmd for Input {

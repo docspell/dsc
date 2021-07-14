@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod download;
 pub mod file_exists;
 pub mod geninvite;
 pub mod login;
@@ -74,6 +75,10 @@ pub enum CmdError {
 
     Search {
         source: search::Error,
+    },
+
+    Download {
+        source: download::Error,
     },
 
     Register {

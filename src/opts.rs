@@ -1,4 +1,5 @@
 use crate::cmd::admin;
+use crate::cmd::download;
 use crate::cmd::file_exists;
 use crate::cmd::geninvite;
 use crate::cmd::login;
@@ -101,6 +102,10 @@ pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Upload(upload::Input),
+
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    Download(download::Input),
 
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
