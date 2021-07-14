@@ -190,3 +190,21 @@ fn remote_search_summary() -> Result<()> {
     assert_eq!(res.field_stats.len(), 2);
     Ok(())
 }
+
+#[test]
+fn remote_download() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let out = cmd
+        .arg("download")
+        .arg("--target")
+        .arg("files")
+        .arg("date<today")
+        .assert();
+
+    out.success().stderr("");
+    let files = std::fs::read_dir("files/").unwrap().count();
+    assert_eq!(files, 2);
+
+    std::fs::remove_dir_all("files/").unwrap();
+    Ok(())
+}
