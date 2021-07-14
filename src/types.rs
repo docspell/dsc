@@ -258,7 +258,7 @@ pub struct TagCount {
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CatCount {
-    pub name: String,
+    pub name: Option<String>,
     pub count: u32,
 }
 
@@ -302,7 +302,10 @@ impl AsTable for Vec<&CatCount> {
         let mut table = table::mk_table();
         table.add_row(row![bFg => "name", "count"]);
         for item in self {
-            table.add_row(row![item.name, item.count,]);
+            table.add_row(row![
+                item.name.clone().unwrap_or("(no category)".into()),
+                item.count,
+            ]);
         }
         table
     }
@@ -478,7 +481,8 @@ impl AsTable for SearchResult {
             "concerning",
             "folder",
             "tags",
-            "fields"
+            "fields",
+            "files"
         ]);
         for group in &self.groups {
             for item in &group.items {
@@ -498,7 +502,8 @@ impl AsTable for SearchResult {
                     combine(&item.conc_person, &item.conc_equip, "/"),
                     item.folder.as_ref().map(|a| a.name.as_str()).unwrap_or(""),
                     tag_list.join(", "),
-                    field_list.join(", ")
+                    field_list.join(", "),
+                    item.attachments.len(),
                 ]);
             }
         }
