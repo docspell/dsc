@@ -28,3 +28,45 @@ pub fn digest<D: Digest + Default, R: io::Read>(reader: &mut R) -> Result<String
     }
     Ok(hex::encode(&sh.finalize()))
 }
+
+/// Puts `suffix` in the filename before the extension.
+pub fn splice_name(fname: &str, suffix: &i32) -> String {
+    let p = PathBuf::from(fname);
+
+    match p.extension() {
+        Some(ext) => {
+            let mut base = fname.trim_end_matches(ext.to_str().unwrap()).chars();
+            base.next_back();
+            format!("{}_{}.{}", base.as_str(), suffix, ext.to_str().unwrap())
+        }
+        None => format!("{}_{}", fname, suffix),
+    }
+}
+
+/// Extracts the filename from a Content-Disposition header
+pub fn filename_from_header<'a>(header_value: &'a str) -> Option<&'a str> {
+    header_value
+        .find("filename=")
+        .map(|index| &header_value[9 + index..])
+        .map(|rest| rest.trim_matches('"'))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_filename_from_header() {
+        assert_eq!(
+            filename_from_header("inline; filename=\"test.jpg\""),
+            Some("test.jpg")
+        );
+    }
+
+    #[test]
+    fn unit_splice_name() {
+        assert_eq!(splice_name("abc.pdf", &1), "abc_1.pdf");
+        assert_eq!(splice_name("abc", &1), "abc_1");
+        assert_eq!(splice_name("stuff.tar.gz", &2), "stuff.tar_2.gz");
+    }
+}

@@ -197,14 +197,33 @@ fn remote_download() -> Result<()> {
     let out = cmd
         .arg("download")
         .arg("--target")
-        .arg("files")
+        .arg("files_test")
         .arg("date<today")
         .assert();
 
     out.success().stderr("");
-    let files = std::fs::read_dir("files/").unwrap().count();
+    let files = std::fs::read_dir("files_test/").unwrap().count();
     assert_eq!(files, 2);
 
-    std::fs::remove_dir_all("files/").unwrap();
+    std::fs::remove_dir_all("files_test/").unwrap();
+    Ok(())
+}
+
+#[test]
+fn remote_download_zip() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let out = cmd
+        .arg("download")
+        .arg("--target")
+        .arg("zip_test/test.zip")
+        .arg("--zip")
+        .arg("date<today")
+        .assert();
+
+    out.success().stderr("");
+    let zip = std::path::PathBuf::from("zip_test/test.zip");
+    assert!(zip.exists());
+
+    std::fs::remove_dir_all("zip_test/").unwrap();
     Ok(())
 }
