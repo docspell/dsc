@@ -12,8 +12,8 @@ pub struct Input {
     /// The query string. See https://docspell.org/docs/query/
     pub query: String,
 
-    /// Also fetch details to each item in the result
-    #[clap(long)]
+    /// Do not fetch details to each item in the result
+    #[clap(long = "no-details", parse(from_flag = std::ops::Not::not))]
     pub with_details: bool,
 
     /// Limit the number of results.
