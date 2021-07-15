@@ -164,9 +164,7 @@ fn store_session(resp: &AuthResp) -> Result<(), Error> {
                 std::fs::create_dir_all(dir.parent().unwrap())
                     .context(StoreSessionFile { path: dir.clone() })?;
             }
-            log::debug!("Storing session to {}", dir.display());
-            let cnt = serde_json::to_string(resp).context(SerializeSession)?;
-            std::fs::write(&dir, &cnt).context(StoreSessionFile { path: dir })
+            write_token_file(resp, &dir)
         }
         None => Err(Error::NoSessionFile),
     }
@@ -194,8 +192,7 @@ pub fn session_token(args: &CmdArgs) -> Result<String, Error> {
             Some(mut dir) => {
                 dir.push("dsc");
                 dir.push(TOKEN_FILENAME);
-                let cnt = std::fs::read_to_string(&dir).context(ReadSessionFile { path: dir })?;
-                let resp: AuthResp = serde_json::from_str(&cnt).context(SerializeSession)?;
+                let resp = read_token_file(&dir)?;
                 let token = get_token(&resp)?;
                 Ok((token, Some(resp.valid_ms)))
             }
@@ -271,9 +268,59 @@ fn check_auth_result(result: AuthResp) -> Result<AuthResp, Error> {
     }
 }
 
+fn read_token_file(path: &PathBuf) -> Result<AuthResp, Error> {
+    let _flock = acquire_lock(path, false)?;
+
+    let cnt = std::fs::read_to_string(&path).context(ReadSessionFile { path })?;
+    let resp: AuthResp = serde_json::from_str(&cnt).context(SerializeSession)?;
+    Ok(resp)
+}
+
+fn write_token_file(resp: &AuthResp, path: &PathBuf) -> Result<(), Error> {
+    let flock = acquire_lock(path, true);
+    match flock {
+        Ok(_fl) => {
+            log::debug!("Storing session to {}", path.display());
+            let cnt = serde_json::to_string(resp).context(SerializeSession)?;
+            std::fs::write(path, &cnt).context(StoreSessionFile { path })
+        }
+        Err(err) => {
+            log::debug!(
+                "Could not obtain write lock to store session in file: {}",
+                err
+            );
+            Ok(())
+        }
+    }
+}
+
 const TOKEN_FILENAME: &'static str = "dsc-token.json";
 const DSC_SESSION: &'static str = "DSC_SESSION";
 const DSC_PASSWORD: &'static str = "DSC_PASSWORD";
+
+#[cfg(windows)]
+fn acquire_lock(path: &PathBuf, write: bool) -> Result<(), Error> {
+    Ok(())
+}
+
+#[cfg(unix)]
+fn acquire_lock(path: &PathBuf, write: bool) -> Result<(), Error> {
+    if write {
+        file_locker::FileLock::new(path)
+            .blocking(false)
+            .writeable(true)
+            .lock()
+            .map(|_fl| ())
+            .context(StoreSessionFile { path })
+    } else {
+        file_locker::FileLock::new(path)
+            .blocking(true)
+            .writeable(false)
+            .lock()
+            .map(|_fl| ())
+            .context(ReadSessionFile { path })
+    }
+}
 
 #[cfg(test)]
 mod tests {
