@@ -15,8 +15,6 @@ use reqwest::blocking::RequestBuilder;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-
 /// This is a command line interface to the docspell server. Docspell
 /// is a free document management system, designed for home use.
 ///

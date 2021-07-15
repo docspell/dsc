@@ -226,16 +226,80 @@ pub struct VersionInfo {
 impl AsTable for VersionInfo {
     fn to_table(&self) -> Table {
         let mut table = table::mk_table();
-        table.add_row(row![bFg =>
-            "version",
-            "built at",
-            "commit",
-        ]);
-        table.add_row(row![self.version, self.built_at_string, self.git_commit,]);
+        table.add_row(row!["version", self.version]);
+        table.add_row(row!["built at", self.built_at_string]);
+        table.add_row(row!["commit", self.git_commit]);
         table
     }
 }
 impl Sink for VersionInfo {}
+
+#[derive(Debug, Serialize)]
+pub struct BuildInfo {
+    pub build_date: &'static str,
+    pub build_version: &'static str,
+    pub git_commit: &'static str,
+    pub rustc_host_triple: &'static str,
+    pub rustc_llvm_version: &'static str,
+    pub rustc_version: &'static str,
+    pub cargo_target_triple: &'static str,
+}
+
+impl Default for BuildInfo {
+    fn default() -> Self {
+        BuildInfo {
+            build_date: env!("VERGEN_BUILD_TIMESTAMP"),
+            build_version: env!("VERGEN_BUILD_SEMVER"),
+            git_commit: env!("VERGEN_GIT_SHA"),
+            rustc_host_triple: env!("VERGEN_RUSTC_HOST_TRIPLE"),
+            rustc_llvm_version: env!("VERGEN_RUSTC_LLVM_VERSION"),
+            rustc_version: env!("VERGEN_RUSTC_SEMVER"),
+            cargo_target_triple: env!("VERGEN_CARGO_TARGET_TRIPLE"),
+        }
+    }
+}
+
+impl AsTable for BuildInfo {
+    fn to_table(&self) -> Table {
+        let mut table = table::mk_table();
+        table.add_row(row!["build date", self.build_date]);
+        table.add_row(row!["version", self.build_version]);
+        table.add_row(row!["commit", self.git_commit]);
+        table.add_row(row!["rustc host", self.rustc_host_triple]);
+        table.add_row(row!["llvm", self.rustc_llvm_version]);
+        table.add_row(row!["rust version", self.rustc_version]);
+        table
+    }
+}
+impl Sink for BuildInfo {}
+
+#[derive(Debug, Serialize)]
+pub struct AllVersion {
+    pub client: BuildInfo,
+    pub server: VersionInfo,
+}
+impl AllVersion {
+    pub fn default(server: VersionInfo) -> AllVersion {
+        AllVersion {
+            client: BuildInfo::default(),
+            server,
+        }
+    }
+}
+impl AsTable for AllVersion {
+    fn to_table(&self) -> Table {
+        let mut table = Table::new();
+        table.set_format(*prettytable::format::consts::FORMAT_CLEAN);
+        let mut ct = self.client.to_table();
+        ct.set_titles(row!["Client (dsc)", ""]);
+        let mut st = self.server.to_table();
+        st.set_titles(row!["Docspell Server"]);
+        table.add_row(row![st]);
+        table.add_row(row![ct]);
+        table
+    }
+}
+impl Sink for AllVersion {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Tag {

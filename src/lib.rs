@@ -17,6 +17,7 @@ use opts::{MainOpts, SubCommand};
 use std::path::PathBuf;
 
 pub fn read_args() -> MainOpts {
+    log::debug!("Parsing command line options…");
     let m = MainOpts::parse();
     log::debug!("Parsed options: {:?}", m);
     m
