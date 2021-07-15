@@ -7,7 +7,6 @@ use reqwest::blocking::multipart::{Form, Part};
 use reqwest::blocking::{Client, RequestBuilder};
 use snafu::{ResultExt, Snafu};
 use std::fs::File;
-use std::io::Read;
 use std::path::PathBuf;
 
 /// Uploads files to docspell.
@@ -122,12 +121,10 @@ pub fn upload_files(args: &Input, cfg: &CmdArgs) -> Result<BasicResult, Error> {
     log::debug!("Send file metadata: {:?}", serde_json::to_string(&meta));
     let mut form = Form::new().part("meta", meta_part);
     for path in &args.files {
-        //TODO seems that async is the only way to use a byte stream??
-        let mut fopen = File::open(path).context(OpenFile { path })?;
+        let fopen = File::open(path).context(OpenFile { path })?;
         let len = fopen.metadata().context(OpenFile { path })?.len();
-        let mut buffer: Vec<u8> = Vec::with_capacity(len as usize);
-        fopen.read_to_end(&mut buffer).context(ReadFile { path })?;
-        let mut fpart = Part::bytes(buffer);
+        let bufr = std::io::BufReader::new(fopen);
+        let mut fpart = Part::reader_with_length(bufr, len);
         if let Some(fname) = path.as_path().file_name() {
             let f: String = fname.to_string_lossy().into();
             fpart = fpart.file_name(f);
