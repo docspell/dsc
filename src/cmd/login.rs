@@ -18,7 +18,8 @@ pub struct Input {
     #[clap(long, short)]
     user: Option<String>,
 
-    /// The password used for authentication in plain text.
+    /// The password used for authentication in plain text. An
+    /// environment variable DSC_PASSWORD can also be used.
     #[clap(long, group = "pass")]
     password: Option<String>,
 
@@ -70,6 +71,9 @@ pub enum Error {
 
     #[snafu(display("Invalid authentication token: {}", token))]
     InvalidAuthToken { token: String },
+
+    #[snafu(display("Invalid password (non-unicode) in environment variable"))]
+    InvalidPasswordEnv,
 }
 
 impl Cmd for Input {
@@ -116,15 +120,23 @@ pub fn login(opts: &Input, args: &CmdArgs) -> Result<AuthResp, Error> {
 fn get_password(opts: &Input, args: &CmdArgs) -> Result<String, Error> {
     match args.pass_entry(&opts.pass_entry) {
         Some(pe) => pass::pass_password(&pe).context(PassEntry),
-        None => opts.password.clone().ok_or(Error::NoPassword),
+        None => match std::env::var_os(DSC_PASSWORD) {
+            Some(pw) => {
+                log::debug!("Using password from environment variable");
+                pw.into_string().map_err(|_os| Error::InvalidPasswordEnv)
+            }
+            None => opts.password.clone().ok_or(Error::NoPassword),
+        },
     }
 }
 
 fn get_account(opts: &Input, args: &CmdArgs) -> Result<String, Error> {
-    match &opts.user {
+    let acc = match &opts.user {
         Some(u) => Ok(u.clone()),
         None => args.cfg.default_account.clone().ok_or(Error::NoAccount),
-    }
+    };
+    log::debug!("Using account: {:?}", &acc);
+    acc
 }
 
 pub fn session_login(token: &str, args: &CmdArgs) -> Result<AuthResp, Error> {
@@ -254,12 +266,14 @@ fn check_auth_result(result: AuthResp) -> Result<AuthResp, Error> {
     if result.success {
         Ok(result)
     } else {
+        log::debug!("Login result: {:?}", result);
         Err(Error::LoginFailed)
     }
 }
 
 const TOKEN_FILENAME: &'static str = "dsc-token.json";
 const DSC_SESSION: &'static str = "DSC_SESSION";
+const DSC_PASSWORD: &'static str = "DSC_PASSWORD";
 
 #[cfg(test)]
 mod tests {
