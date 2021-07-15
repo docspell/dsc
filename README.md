@@ -20,7 +20,7 @@ recommended. They contain every detail in a well structured form.
 
 ## TODOs before first release
 
-- [ ] make sure concurrent runs are fine regarding the session file
+- [x] make sure concurrent runs are fine regarding the session file
 - [ ] upload directories: if a directory is given it is traversed and
       each file is uploaded
 - [ ] upload directories: specify a glob/matcher for files

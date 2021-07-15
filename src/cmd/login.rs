@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use crate::cmd::{Cmd, CmdArgs, CmdError};
 use crate::pass;
@@ -18,7 +18,8 @@ pub struct Input {
     #[clap(long, short)]
     user: Option<String>,
 
-    /// The password used for authentication in plain text.
+    /// The password used for authentication in plain text. An
+    /// environment variable DSC_PASSWORD can also be used.
     #[clap(long, group = "pass")]
     password: Option<String>,
 
@@ -67,6 +68,12 @@ pub enum Error {
 
     #[snafu(display("Login failed!"))]
     LoginFailed,
+
+    #[snafu(display("Invalid authentication token: {}", token))]
+    InvalidAuthToken { token: String },
+
+    #[snafu(display("Invalid password (non-unicode) in environment variable"))]
+    InvalidPasswordEnv,
 }
 
 impl Cmd for Input {
@@ -113,18 +120,26 @@ pub fn login(opts: &Input, args: &CmdArgs) -> Result<AuthResp, Error> {
 fn get_password(opts: &Input, args: &CmdArgs) -> Result<String, Error> {
     match args.pass_entry(&opts.pass_entry) {
         Some(pe) => pass::pass_password(&pe).context(PassEntry),
-        None => opts.password.clone().ok_or(Error::NoPassword),
+        None => match std::env::var_os(DSC_PASSWORD) {
+            Some(pw) => {
+                log::debug!("Using password from environment variable");
+                pw.into_string().map_err(|_os| Error::InvalidPasswordEnv)
+            }
+            None => opts.password.clone().ok_or(Error::NoPassword),
+        },
     }
 }
 
 fn get_account(opts: &Input, args: &CmdArgs) -> Result<String, Error> {
-    match &opts.user {
+    let acc = match &opts.user {
         Some(u) => Ok(u.clone()),
         None => args.cfg.default_account.clone().ok_or(Error::NoAccount),
-    }
+    };
+    log::debug!("Using account: {:?}", &acc);
+    acc
 }
 
-pub fn session(token: &str, args: &CmdArgs) -> Result<AuthResp, Error> {
+pub fn session_login(token: &str, args: &CmdArgs) -> Result<AuthResp, Error> {
     let url = &format!("{}/api/v1/sec/auth/session", args.docspell_url());
     let client = reqwest::blocking::Client::new();
     let result = client
@@ -136,10 +151,7 @@ pub fn session(token: &str, args: &CmdArgs) -> Result<AuthResp, Error> {
         .json::<AuthResp>()
         .context(ReadResponse)?;
 
-    check_auth_result(result).and_then(|r| {
-        store_session(&r)?;
-        Ok(r)
-    })
+    check_auth_result(result)
 }
 
 fn store_session(resp: &AuthResp) -> Result<(), Error> {
@@ -148,34 +160,101 @@ fn store_session(resp: &AuthResp) -> Result<(), Error> {
             dir.push("dsc");
             dir.push(TOKEN_FILENAME);
             if !dir.exists() {
+                log::debug!("Creating directory to store config at {:?}", dir.parent());
                 std::fs::create_dir_all(dir.parent().unwrap())
                     .context(StoreSessionFile { path: dir.clone() })?;
             }
-            let cnt = serde_json::to_string(resp).context(SerializeSession)?;
-            std::fs::write(&dir, &cnt).context(StoreSessionFile { path: dir })
+            write_token_file(resp, &dir)
         }
         None => Err(Error::NoSessionFile),
     }
 }
 
+/// Loads the session token from defined places. Uses in this order:
+/// the option `--session`, the env variable `DSC_SESSION` or the
+/// sesion file created by the `login` command.
+///
+/// If a session token can be loaded, it is checked for expiry and
+/// refreshed if deemed necessary.
 pub fn session_token(args: &CmdArgs) -> Result<String, Error> {
-    match dirs::config_dir() {
-        Some(mut dir) => {
-            dir.push("dsc");
-            dir.push(TOKEN_FILENAME);
-            let cnt = std::fs::read_to_string(&dir).context(ReadSessionFile { path: dir })?;
-            let resp: AuthResp = serde_json::from_str(&cnt).context(SerializeSession)?;
-            get_token(resp)
-                .and_then(|t| session(&t, args))
-                .and_then(|r| get_token(r))
+    let given_token = args
+        .opts
+        .session
+        .clone()
+        .or_else(|| get_token_from_env().clone());
+    let no_token = given_token.is_none();
+    let (token, valid) = match given_token {
+        Some(token) => {
+            log::debug!("Using auth token as given via option or env variable");
+            Ok((token, None))
         }
-        None => Err(Error::NotLoggedIn),
+        None => match dirs::config_dir() {
+            Some(mut dir) => {
+                dir.push("dsc");
+                dir.push(TOKEN_FILENAME);
+                let resp = read_token_file(&dir)?;
+                let token = get_token(&resp)?;
+                Ok((token, Some(resp.valid_ms)))
+            }
+            None => Err(Error::NotLoggedIn),
+        },
+    }?;
+
+    let created = extract_creation_time(&token)?;
+    if near_expiry(created, valid) {
+        log::info!("Token is nearly expired. Trying to refresh");
+        let resp = session_login(&token, args)?;
+        if no_token {
+            store_session(&resp)?;
+        } else {
+            log::debug!("Not storing new session, since it was given as argument");
+        }
+        get_token(&resp)
+    } else {
+        Ok(token)
     }
 }
 
-fn get_token(resp: AuthResp) -> Result<String, Error> {
-    match resp.token {
-        Some(t) => Ok(t),
+fn near_expiry(created: u64, valid: Option<u64>) -> bool {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+        .unwrap();
+    let created_ms = Duration::from_millis(created);
+    let diff = now - created_ms;
+
+    match valid {
+        Some(valid_ms) => {
+            let threshold = Duration::from_millis(((valid_ms as f64) * 0.8) as u64);
+            log::debug!("Token age: {:?}  Threshold: {:?}", diff, threshold);
+            diff.gt(&threshold)
+        }
+        None => {
+            log::debug!("Token age: {:?}", diff);
+            diff.gt(&Duration::from_secs(180))
+        }
+    }
+}
+
+fn get_token_from_env() -> Option<String> {
+    std::env::var_os(DSC_SESSION)
+        .filter(|s| !s.is_empty())
+        .and_then(|s| s.into_string().ok())
+}
+
+fn extract_creation_time(token: &str) -> Result<u64, Error> {
+    match token.split('-').next() {
+        Some(ms) => ms.parse().map_err(|_e| Error::InvalidAuthToken {
+            token: token.to_string(),
+        }),
+        None => Err(Error::InvalidAuthToken {
+            token: token.to_string(),
+        }),
+    }
+}
+
+fn get_token(resp: &AuthResp) -> Result<String, Error> {
+    match &resp.token {
+        Some(t) => Ok(t.clone()),
         None => Err(Error::NotLoggedIn),
     }
 }
@@ -184,8 +263,73 @@ fn check_auth_result(result: AuthResp) -> Result<AuthResp, Error> {
     if result.success {
         Ok(result)
     } else {
+        log::debug!("Login result: {:?}", result);
         Err(Error::LoginFailed)
     }
 }
 
+fn read_token_file(path: &PathBuf) -> Result<AuthResp, Error> {
+    let _flock = acquire_lock(path, false)?;
+
+    let cnt = std::fs::read_to_string(&path).context(ReadSessionFile { path })?;
+    let resp: AuthResp = serde_json::from_str(&cnt).context(SerializeSession)?;
+    Ok(resp)
+}
+
+fn write_token_file(resp: &AuthResp, path: &PathBuf) -> Result<(), Error> {
+    let flock = acquire_lock(path, true);
+    match flock {
+        Ok(_fl) => {
+            log::debug!("Storing session to {}", path.display());
+            let cnt = serde_json::to_string(resp).context(SerializeSession)?;
+            std::fs::write(path, &cnt).context(StoreSessionFile { path })
+        }
+        Err(err) => {
+            log::debug!(
+                "Could not obtain write lock to store session in file: {}",
+                err
+            );
+            Ok(())
+        }
+    }
+}
+
 const TOKEN_FILENAME: &'static str = "dsc-token.json";
+const DSC_SESSION: &'static str = "DSC_SESSION";
+const DSC_PASSWORD: &'static str = "DSC_PASSWORD";
+
+#[cfg(windows)]
+fn acquire_lock(path: &PathBuf, write: bool) -> Result<(), Error> {
+    Ok(())
+}
+
+#[cfg(unix)]
+fn acquire_lock(path: &PathBuf, write: bool) -> Result<(), Error> {
+    if write {
+        file_locker::FileLock::new(path)
+            .blocking(false)
+            .writeable(true)
+            .lock()
+            .map(|_fl| ())
+            .context(StoreSessionFile { path })
+    } else {
+        file_locker::FileLock::new(path)
+            .blocking(true)
+            .writeable(false)
+            .lock()
+            .map(|_fl| ())
+            .context(ReadSessionFile { path })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_extract_creation_time() {
+        let token =
+            "1626345633653-ZGVtby9kZW1v-$2a$10$63d9R5xyDMYusXNdPdfKYO-e0jDd0o2KgBdrHv3PN+qTM+cFPM=";
+        assert_eq!(extract_creation_time(token).unwrap(), 1626345633653);
+    }
+}

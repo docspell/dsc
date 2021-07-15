@@ -58,6 +58,13 @@ pub struct CommonOpts {
     /// be present in the config file.
     #[clap(short, long)]
     pub docspell_url: Option<String>,
+
+    /// Overrides the session token which is by default created by the
+    /// `login` command and stored in the file system. It can be
+    /// overriden by either the env variable `DSC_SESSION` or using
+    /// this option. In these cases, no file system access happens.
+    #[clap(long)]
+    pub session: Option<String>,
 }
 
 #[derive(Clap, std::fmt::Debug)]

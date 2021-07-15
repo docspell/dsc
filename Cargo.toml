@@ -31,6 +31,13 @@ snafu = { version = "0.6" }
 toml = { version = "0.5" }
 zip = { version = "0.5" }
 
+[target.'cfg(unix)'.dependencies]
+file-locker = { version = "1.0" }
+
+[target.'cfg(macos)'.dependencies]
+file-locker = { version = "1.0" }
+
+
 [features]
 default = ["reqwest/default-tls"]
 rustls = ["reqwest/rustls-tls"]
