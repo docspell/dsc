@@ -1,0 +1,56 @@
+[package]
+name = "dsc"
+version = "0.1.0-pre"
+authors = ["eikek <eikek@posteo.de>"]
+edition = "2018"
+description = "A command line interface to Docspell."
+homepage = "https://docspell.org"
+license = "GPLv3"
+repository = "https://github.com/docspell/dsc"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = "0.4"
+clap = "3.0.0-beta.2"
+clap_generate = "3.0.0-beta.2"
+console = {version = "0.14"}
+csv = "1.1"
+dialoguer = { version = "0.8" }
+dirs = { version = "3.0" }
+env_logger = { version = "0.8" }
+glob = "0.3"
+hex = "0.4"
+log = { version = "0.4" }
+notify = "4.0"
+openssl = { version = "0.10", optional = true }
+prettytable-rs = { version = "0.8" }
+reqwest = { version = "0.11", default-features = false, features = ["json", "blocking", "multipart"] }
+serde = { version = "1.0", features = ["derive"] }
+serde-lexpr = "0.1"
+serde_json = "1.0"
+sha2 = { version = "0.9" }
+snafu = { version = "0.6" }
+toml = { version = "0.5" }
+zip = { version = "0.5" }
+
+[target.'cfg(unix)'.dependencies]
+file-locker = { version = "1.0" }
+
+[target.'cfg(macos)'.dependencies]
+file-locker = { version = "1.0" }
+
+
+[features]
+default = ["reqwest/default-tls"]
+rustls = ["reqwest/rustls-tls"]
+vendored-openssl = ["openssl/vendored"]
+
+[dev-dependencies]
+assert_cmd = "0.11"
+predicates = "1"
+
+[build-dependencies]
+vergen = "5"
+anyhow = "1"

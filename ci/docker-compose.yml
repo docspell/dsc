@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+
+  restserver:
+    container_name: docspell-restserver
+    image: ci_restserver:latest
+    command:
+      - /opt/docspell.conf
+    restart: unless-stopped
+    ports:
+      - "7779:7779"
+    volumes:
+      - ./docspell.conf:/opt/docspell.conf
+    build:
+      context: docspell-server
+      dockerfile: Dockerfile

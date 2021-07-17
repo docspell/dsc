@@ -1,0 +1,5 @@
+docspell_url = "http://localhost:7779"
+default_format = "Json"
+admin_secret = "admin123"
+default_account = "demo"
+pdf_viewer = ["zathura", "{}"]
