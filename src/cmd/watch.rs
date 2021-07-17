@@ -130,6 +130,7 @@ fn upload_and_report(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<(), 
 fn upload_file(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<BasicResult, Error> {
     let data = &upload::Input {
         endpoint: opts.endpoint.clone(),
+        multiple: true,
         upload: opts.upload.clone(),
         matches: opts.matches.clone(),
         not_matches: opts.not_matches.clone(),

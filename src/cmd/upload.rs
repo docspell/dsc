@@ -36,6 +36,11 @@ pub struct Input {
     #[clap(flatten)]
     pub upload: UploadMeta,
 
+    /// If set, all files are uploaded as one single item. Default is
+    /// to create one item per file. This does not work with `--traverse`!
+    #[clap(long = "single-item", parse(from_flag = std::ops::Not::not), group="g_multiple")]
+    pub multiple: bool,
+
     /// A glob pattern for matching against each file. Note that
     /// usually you can just use the shells expansion mechanism.
     #[clap(long, short, default_value = "**/*")]
@@ -148,7 +153,7 @@ pub fn upload_files(args: &Input, cfg: &CmdArgs) -> Result<BasicResult, Error> {
     };
 
     let meta = &MetaRequest {
-        multiple: args.upload.multiple,
+        multiple: args.multiple,
         direction: args
             .upload
             .direction
@@ -325,7 +330,7 @@ fn send_file_form(
 
 // TODO use clap to solve this!
 fn check_flags(args: &Input) -> Result<(), Error> {
-    if args.traverse && !args.upload.multiple {
+    if args.traverse && !args.multiple {
         Err(Error::MultipleWithTraverse)
     } else {
         Ok(())

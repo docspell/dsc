@@ -260,11 +260,6 @@ impl Direction {
 
 #[derive(Clap, Debug, Clone)]
 pub struct UploadMeta {
-    /// If set, all files are uploaded as one single item. Default is
-    /// to create one item per file. This does not work with `--traverse`!
-    #[clap(long = "single-item", parse(from_flag = std::ops::Not::not), group="g_multiple")]
-    pub multiple: bool,
-
     /// Specify the direction of the item.
     #[clap(long, arg_enum)]
     pub direction: Option<Direction>,
