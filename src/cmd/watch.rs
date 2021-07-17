@@ -50,11 +50,8 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("An error was received from: {}!", url))]
-    Http { source: reqwest::Error, url: String },
-
-    #[snafu(display("An error occured serializing the response!"))]
-    SerializeResp { source: reqwest::Error },
+    #[snafu(display("Not a directory: {}!", path.display()))]
+    NotADirectory { path: PathBuf },
 
     #[snafu(display("Error uploading: {}", source))]
     Upload { source: upload::Error },
@@ -74,6 +71,7 @@ impl Cmd for Input {
 }
 
 pub fn watch_directories(opts: &Input, args: &CmdArgs) -> Result<(), Error> {
+    check_is_dir(&opts.dirs)?;
     let mode = if opts.recursive {
         RecursiveMode::Recursive
     } else {
@@ -93,6 +91,15 @@ pub fn watch_directories(opts: &Input, args: &CmdArgs) -> Result<(), Error> {
             Err(e) => return Err(Error::Event { source: e }),
         }
     }
+}
+
+fn check_is_dir(dirs: &Vec<PathBuf>) -> Result<(), Error> {
+    for path in dirs {
+        if !path.is_dir() {
+            return Err(Error::NotADirectory { path: path.clone() });
+        }
+    }
+    Ok(())
 }
 
 fn event_act(event: DebouncedEvent, opts: &Input, args: &CmdArgs) -> Result<(), Error> {
