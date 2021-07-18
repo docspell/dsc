@@ -218,9 +218,10 @@ Sending request …
 ## Making a release
 
 1. Set version in `Cargo.toml`
-2. Run `nix-build nix/ -A dsc` and fix hashes
-3. Commit + Tag
-4. push tag to github
+2. Run `cargo update` to update `Cargo.lock`
+3. Run `nix-build nix/ -A dsc` and fix hashes
+4. Commit + Tag
+5. push tag to github
 
 The release is being built by github actions as well as the docker
 images.
