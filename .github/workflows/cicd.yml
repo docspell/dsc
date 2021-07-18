@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - master
 jobs:
   cicd:
     runs-on: ubuntu-latest
@@ -113,7 +115,7 @@ jobs:
           # Let subsequent steps know where to find the (stripped) bin
           echo ::set-output name=BIN_PATH::${BIN_PATH}
 
-      - name: Publish
+      - name: Publish Release
         id: publish
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -122,6 +124,22 @@ jobs:
         with:
           files: |
             ${{ steps.strip.outputs.BIN_PATH }}
+
+      - name: Publish Pre-Release
+        id: publish-pre
+        if: ${{ github.ref }} == 'refs/heads/master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: "ncipollo/release-action@v1"
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: true
+          allowUpdates: true
+          tag: "nightly"
+          commit: "master"
+          name: "dsc nightly"
+          replacesArtifacts: true
+          artifacts: ${{ steps.strip.outputs.BIN_PATH }}
 
   cicd-win:
     runs-on: windows-latest
@@ -155,7 +173,7 @@ jobs:
         run: |
           mv target/release/${{ env.PROJECT_NAME }}.exe target/release/${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}.exe
 
-      - name: Publish
+      - name: Publish Release
         id: publish
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -164,6 +182,22 @@ jobs:
         with:
           files: |
             target/release/${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}.exe
+
+      - name: Publish Pre-Release
+        id: publish-pre
+        if: ${{ github.ref }} == 'refs/heads/master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: "ncipollo/release-action@v1"
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: true
+          allowUpdates: true
+          tag: "nightly"
+          commit: "master"
+          name: "dsc nightly"
+          replacesArtifacts: true
+          artifacts: target/release/${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}.exe
 
   cicd-mac:
     runs-on: macos-latest
@@ -199,38 +233,55 @@ jobs:
           strip target/release/${{ env.PROJECT_NAME }}
           mv target/release/${{ env.PROJECT_NAME }} target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.PROJECT_VERSION }}
 
-      - name: Publish
+      - name: Publish Release
         id: publish
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          prerelease: ${{ github.ref }} == "refs/heads/master"
           files: |
             target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.PROJECT_VERSION }}
 
-  docker:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [ cicd ]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.3.4
+      - name: Publish Pre-Release
+        id: publish-pre
+        if: ${{ github.ref }} == 'refs/heads/master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: "ncipollo/release-action@v1"
         with:
-          fetch-depth: 0
-      - name: Extract crate information
-        shell: bash
-        run: |
-          echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
-          echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Build and push Docker Images (${{ env.PROJECT_VERSION }})
-        run: ./docker/build.sh ${{ env.PROJECT_VERSION }} --push
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: true
+          allowUpdates: true
+          tag: "nightly"
+          commit: "master"
+          name: "dsc nightly"
+          replacesArtifacts: true
+          artifacts: target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.PROJECT_VERSION }}
+
+  # docker:
+  #   if: startsWith(github.ref, 'refs/tags/') || ${{ github.ref }} == 'refs/heads/master'
+  #   needs: [ cicd ]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2.3.4
+  #       with:
+  #         fetch-depth: 0
+  #     - name: Extract crate information
+  #       shell: bash
+  #       run: |
+  #         echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+  #         echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@v1
+  #     - name: Set up Docker Buildx
+  #       id: buildx
+  #       uses: docker/setup-buildx-action@v1
+  #     - name: Log in to Docker Hub
+  #       uses: docker/login-action@v1
+  #       with:
+  #         username: ${{ secrets.DOCKER_USERNAME }}
+  #         password: ${{ secrets.DOCKER_PASSWORD }}
+  #     - name: Build and push Docker Images (${{ env.PROJECT_VERSION }})
+  #       run: ./docker/build.sh ${{ env.PROJECT_VERSION }} --push
