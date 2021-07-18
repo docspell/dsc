@@ -111,6 +111,15 @@ pub fn view_all(opts: &Input, args: &CmdArgs, parent: &PathBuf) -> Result<(), Er
                     .skip(1)
                     .map(|s| s.replace("{}", file.display().to_string().as_str()))
                     .collect();
+                log::info!(
+                    "Run: {} {}",
+                    tool,
+                    tool_args
+                        .iter()
+                        .map(|s| format!("'{}'", s))
+                        .collect::<Vec<String>>()
+                        .join(" ")
+                );
                 Command::new(tool).args(tool_args).output().context(Exec)?;
             }
         }

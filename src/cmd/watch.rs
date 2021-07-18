@@ -1,4 +1,7 @@
-use std::{path::PathBuf, time::Duration};
+use std::{
+    path::{PathBuf, StripPrefixError},
+    time::Duration,
+};
 
 use crate::{
     cmd::{Cmd, CmdArgs, CmdError},
@@ -13,6 +16,13 @@ use std::sync::mpsc;
 use super::upload;
 
 /// Watches a directory and uploads files to docspell.
+///
+/// It accepts the same authentication options as the `upload`
+/// command. If the integration endpoint is not used, each detected
+/// file is uploaded. When the integration endpoint is used (the `-i`
+/// option is supplied), the collective must be determined first to
+/// know where to upload the file. This is done by using the first
+/// subdirectory of the detected file.
 #[derive(Clap, Debug)]
 pub struct Input {
     /// Wether to watch directories recursively or not.
@@ -61,6 +71,12 @@ pub enum Error {
 
     #[snafu(display("Error consuming event: {}", source))]
     Event { source: mpsc::RecvError },
+
+    #[snafu(display("Error finding collective: {}", source))]
+    FindCollective { source: StripPrefixError },
+
+    #[snafu(display("Could not find a collective for {}", path.display()))]
+    NoCollective { path: PathBuf },
 }
 
 impl Cmd for Input {
@@ -135,8 +151,13 @@ fn upload_and_report(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<(), 
 }
 
 fn upload_file(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<BasicResult, Error> {
+    let mut ep = opts.endpoint.clone();
+    if let Some(cid) = find_collective(&path, opts)? {
+        ep.collective = Some(cid);
+    }
+
     let data = &upload::Input {
-        endpoint: opts.endpoint.clone(),
+        endpoint: ep,
         multiple: true,
         upload: opts.upload.clone(),
         matches: opts.matches.clone(),
@@ -146,4 +167,22 @@ fn upload_file(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<BasicResul
         files: vec![path],
     };
     upload::upload_files(data, args).context(Upload)
+}
+
+fn find_collective(path: &PathBuf, opts: &Input) -> Result<Option<String>, Error> {
+    if opts.endpoint.integration {
+        for dir in &opts.dirs {
+            let can_dir = dir.canonicalize().unwrap();
+            log::debug!("Check prefix {} -> {}", can_dir.display(), path.display());
+            if path.starts_with(&can_dir) {
+                let rest = path.strip_prefix(&can_dir).context(FindCollective)?;
+                let coll = rest.iter().next();
+                log::debug!("Found collective: {:?}", &coll);
+                return Ok(coll.and_then(|s| s.to_str()).map(|s| s.to_string()));
+            }
+        }
+        Err(Error::NoCollective { path: path.clone() })
+    } else {
+        Ok(None)
+    }
 }
