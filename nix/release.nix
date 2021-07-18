@@ -1,6 +1,5 @@
 let
   fromCargo = (builtins.fromTOML (builtins.readFile ../Cargo.toml)).package.version;
-  fixed = "0.1.0";
 in
 
 { lib
@@ -18,18 +17,28 @@ rustPlatform.buildRustPackage rec {
   pname = "dsc";
   inherit version;
 
-  src = fetchgit {
-    url = https://github.com/docspell/dsc.git;
-    rev =
-      if lib.hasSuffix "-pre" version then
-        "master"
-      else
-        "v${version}";
-    leaveDotGit = true;
-    sha256 = "0z0bwgrh6xq2avmbzzl0sp5c35isssbcn0xn3iky50nyf53dn6wh";
-  };
+  # src = fetchgit {
+  #   url = https://github.com/docspell/dsc.git;
+  #   rev =
+  #     if lib.hasSuffix "-pre" version then
+  #       "master"
+  #     else
+  #       "v${version}";
+  #   leaveDotGit = true;
+  #   sha256 = "0z0bwgrh6xq2avmbzzl0sp5c35isssbcn0xn3iky50nyf53dn6wh";
+  # };
+  src =
+    let
+      cleanSrcFilter = name: type:
+        let basename = baseNameOf (toString name); in
+        type != "directory" || basename != "target";
+      cleanSrc = src: lib.cleanSourceWith {
+        filter = cleanSrcFilter;
+        inherit src;
+      };
+    in cleanSrc ../.;
 
-  cargoSha256 = "09c9nx4qc9zv0lj0v906nl3551iw5nap0aqm93j2p8y8kqvs0vsz";
+  cargoSha256 = "0j5nprcszgk75rrzjiymwcrww705x7fsq2kwsp5iy4xi7k449r5p";
 
   # only unit tests can be run
   checkPhase = ''
