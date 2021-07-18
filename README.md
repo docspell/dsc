@@ -135,11 +135,17 @@ The `nix/release.nix` contains a nix expression to build this package.
 It can be build using:
 
 ``` bash
-nix-build nix/ -A dsc
+nix-build
 ```
 
 The build is updated on each release only; it is not working for the
 master branch in general!
+
+You can install it into your profile using `nix-env`:
+``` bashn
+nix-env -if https://github.com/docspell/dsc/archive/refs/tags/v$version.tar.gz
+```
+where `$version` is the current version, like 0.2.0.
 
 
 ## Examples
@@ -219,7 +225,7 @@ Sending request …
 
 1. Set version in `Cargo.toml`
 2. Run `cargo update` to update `Cargo.lock`
-3. Run `nix-build nix/ -A dsc` and fix hashes
+3. Run `nix-build` and fix hashes
 4. Commit + Tag
 5. push tag to github
 
