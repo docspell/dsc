@@ -129,6 +129,19 @@ Run `dsc generate-completions --help` to see what other shells are
 supported.
 
 
+## Nix Package
+
+The `nix/release.nix` contains a nix expression to build this package.
+It can be build using:
+
+``` bash
+nix-build nix/ -A dsc
+```
+
+The build is updated on each release only; it is not working for the
+master branch in general!
+
+
 ## Examples
 
 Reset the password of an account:
@@ -200,3 +213,14 @@ Sending request …
 │ true    │ Files submitted. │
 └─────────┴──────────────────┘
 ```
+
+
+## Making a release
+
+1. Set version in `Cargo.toml`
+2. Run `nix-build nix/ -A dsc` and fix hashes
+3. Commit + Tag
+4. push tag to github
+
+The release is being built by github actions as well as the docker
+images.
