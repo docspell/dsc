@@ -19,7 +19,7 @@ console = {version = "0.14"}
 csv = "1.1"
 dialoguer = { version = "0.8" }
 dirs = { version = "3.0" }
-env_logger = { version = "0.8" }
+env_logger = { version = "0.9" }
 glob = "0.3"
 hex = "0.4"
 log = { version = "0.4" }
