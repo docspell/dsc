@@ -233,4 +233,4 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Build and push Docker Images (${{ env.PROJECT_VERSION }})
-        run: ./docker/dockerfiles/build.sh ${{ env.PROJECT_VERSION }} --push
+        run: ./docker/build.sh ${{ env.PROJECT_VERSION }} --push

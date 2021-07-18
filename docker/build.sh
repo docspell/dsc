@@ -32,18 +32,16 @@ cd "$(dirname "$0")"
 
 trap "{ docker buildx rm dsc-builder; }" EXIT
 
-platforms="linux/amd64"
+platforms="linux/amd64,linux/aarch64,linux/arm/v7"
 docker buildx create --name dsc-builder --use
 
 if [[ $version == *SNAPSHOT* ]]; then
     echo ">>>> Building nightly images for $version <<<<<"
-    url_base="https://github.com/eikek/docspell/releases/download/nightly"
-
     echo "============ Building dsc.dockerfile ============"
     docker buildx build \
            --platform="$platforms" $push \
            --build-arg version=$version \
-           --tag dsc:nightly \
+           --tag docspell/dsc:nightly \
            -f dsc.dockerfile .
 else
     echo ">>>> Building release images for $version <<<<<"
@@ -51,8 +49,8 @@ else
     docker buildx build \
            --platform="$platforms" $push \
            --build-arg version=$version \
-           --tag dsc:v$version \
-           --tag dsc:latest \
+           --tag docspell/dsc:v$version \
+           --tag docspell/dsc:latest \
            -f dsc.dockerfile .
 
 fi
