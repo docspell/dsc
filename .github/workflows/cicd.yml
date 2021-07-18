@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - master
 jobs:
   cicd:
     runs-on: ubuntu-latest
@@ -123,6 +125,20 @@ jobs:
           files: |
             ${{ steps.strip.outputs.BIN_PATH }}
 
+      - name: Publish Pre-Release
+        id: publish-pre
+        if: ${{ github.ref }} == 'refs/heads/master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "nightly"
+          prerelease: true
+          title: "dsc nightly"
+          files: |
+            ${{ steps.strip.outputs.BIN_PATH }}
+
   cicd-win:
     runs-on: windows-latest
 
@@ -165,6 +181,20 @@ jobs:
           files: |
             target/release/${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}.exe
 
+      - name: Publish Pre-Release
+        id: publish-pre
+        if: ${{ github.ref }} == 'refs/heads/master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "nightly"
+          prerelease: true
+          title: "dsc nightly"
+          files: |
+            target/release/${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}.exe
+
   cicd-mac:
     runs-on: macos-latest
 
@@ -199,13 +229,28 @@ jobs:
           strip target/release/${{ env.PROJECT_NAME }}
           mv target/release/${{ env.PROJECT_NAME }} target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.PROJECT_VERSION }}
 
-      - name: Publish
+      - name: Publish Release
         id: publish
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          prerelease: ${{ github.ref }} == "refs/heads/master"
+          files: |
+            target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.PROJECT_VERSION }}
+
+      - name: Publish Pre-Release
+        id: publish-pre
+        if: ${{ github.ref }} == 'refs/heads/master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "nightly"
+          prerelease: true
+          title: "dsc nightly"
           files: |
             target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.PROJECT_VERSION }}
 

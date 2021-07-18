@@ -35,7 +35,7 @@ trap "{ docker buildx rm dsc-builder; }" EXIT
 platforms="linux/amd64,linux/aarch64,linux/arm/v7"
 docker buildx create --name dsc-builder --use
 
-if [[ $version == *SNAPSHOT* ]]; then
+if [[ $version == *pre* ]]; then
     echo ">>>> Building nightly images for $version <<<<<"
     echo "============ Building dsc.dockerfile ============"
     docker buildx build \
