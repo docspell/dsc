@@ -10,7 +10,7 @@ in
 , fetchgit
 , openssl
 , installShellFiles
-, version ? fixed
+, version ? fromCargo
 }:
 
 rustPlatform.buildRustPackage rec {
@@ -30,11 +30,6 @@ rustPlatform.buildRustPackage rec {
   };
 
   cargoSha256 = "09c9nx4qc9zv0lj0v906nl3551iw5nap0aqm93j2p8y8kqvs0vsz";
-
-  #forgot to commit the lock file :(
-  patchPhase = ''
-    sed -i 's/0.1.0-pre/0.1.0/g' Cargo.lock
-  '';
 
   # only unit tests can be run
   checkPhase = ''
