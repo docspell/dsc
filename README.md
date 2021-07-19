@@ -2,6 +2,7 @@
 [![License](https://img.shields.io/github/license/docspell/dsc.svg?style=flat&color=steelblue)](https://github.com/docspell/dsc/blob/master/LICENSE.txt)
 [![Chat](https://img.shields.io/gitter/room/eikek/docspell?style=flat&color=steelblue&logo=gitter)](https://gitter.im/eikek/docspell)
 
+
 # docspell cli
 
 This is a command line interface to Docspell, a personal document
@@ -147,11 +148,15 @@ nix-env -if https://github.com/docspell/dsc/archive/refs/tags/v$version.tar.gz
 ```
 where `$version` is the current version, like 0.2.0.
 
-NOTE: due to a bug, currently you need to use the master branch in
+----
+
+NOTE: due to a bug, currently you need to use a specific commit in
 order to build the latest release. :/ So it is:
+
 ```
-nix-env -if https://github.com/docspell/dsc/archive/refs/heads/master.tar.gz
+nix-env -if https://github.com/docspell/dsc/archive/95551754e02ac6d9e029720ac08566cb9ca71304.tar.gz
 ```
+
 This is fixed for the next release….
 
 

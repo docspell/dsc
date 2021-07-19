@@ -11,7 +11,7 @@ in
 , installShellFiles
 , git
 , binutils-unwrapped
-, version ? "0.2.0"
+, version ? fromCargo
 }:
 
 rustPlatform.buildRustPackage rec {
@@ -19,39 +19,28 @@ rustPlatform.buildRustPackage rec {
   pname = "dsc";
   inherit version;
 
-  src = fetchgit {
-    url = https://github.com/docspell/dsc.git;
-    rev =
-      if lib.hasSuffix "-pre" version then
-        "master"
-      else
-        "v${version}";
-    # leaveDotGit = true;
-    sha256 = "0wnl72bcn3mpy1n4rbzrffsibjjm28smzs7bszsvyb97rdj93yzw";
-  };
-  # src =
-  #   let
-  #     cleanSrcFilter = name: type:
-  #       let basename = baseNameOf (toString name); in
-  #       type != "directory" || basename != "target";
-  #     cleanSrc = src: lib.cleanSourceWith {
-  #       filter = cleanSrcFilter;
-  #       inherit src;
-  #     };
-  #   in cleanSrc ../.;
+  # src = fetchgit {
+  #   url = https://github.com/docspell/dsc.git;
+  #   rev =
+  #     if lib.hasSuffix "-pre" version then
+  #       "master"
+  #     else
+  #       "v${version}";
+  #   # leaveDotGit = true;
+  #   sha256 = "0wnl72bcn3mpy1n4rbzrffsibjjm28smzs7bszsvyb97rdj93yzw";
+  # };
+  src =
+    let
+      cleanSrcFilter = name: type:
+        let basename = baseNameOf (toString name); in
+        type != "directory" || basename != "target";
+      cleanSrc = src: lib.cleanSourceWith {
+        filter = cleanSrcFilter;
+        inherit src;
+      };
+    in cleanSrc ../.;
 
-  /* Create a .git directory with fake info */
-  patchPhase = ''
-    if [ ! -d .git/ ]; then
-      echo "Creating a fake git repo …"
-      ${git}/bin/git init
-      ${git}/bin/git add .
-      ${git}/bin/git config user.email nix@localhost
-      ${git}/bin/git commit -am 'nix build'
-    fi
-  '';
-
-  cargoSha256 = "091hkcrprymjbqa0g4p2ysq2br6blx8rzzcca3p56vn8gmx5yigp";
+  cargoSha256 = "17as74042ilc0a9vlx7pw1nm21lp5bgxh670a1rvylg0xlaxgd0w";
 
   # only unit tests can be run
   checkPhase = ''
@@ -73,6 +62,7 @@ rustPlatform.buildRustPackage rec {
 
   strip = true;
 
+  ## the strip=true above seems not to strip the binary
   postInstall = ''
     echo "Stripping $out/bin/dsc …"
     ${binutils-unwrapped}/bin/strip $out/bin/dsc
