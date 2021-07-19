@@ -37,10 +37,10 @@ docker buildx create --name dsc-builder --use
 
 if [[ $version == *pre* ]]; then
     echo ">>>> Building nightly images for $version <<<<<"
-    echo "============ Building dsc.dockerfile ============"
+    echo "============ Building dsc ============"
     docker buildx build \
            --platform="$platforms" $push \
-           --build-arg version=$version \
+           --build-arg version=nightly \
            --tag docspell/dsc:nightly \
            -f dsc.dockerfile .
 else

@@ -11,7 +11,7 @@ RUN binary=""; release=""; \
     if [ "$TARGETPLATFORM" = "linux/arm/v7" ]; then binary="dsc_armv7-$version"; fi; \
     if [ "$TARGETPLATFORM" = "linux/aarch64" ]; then binary="dsc_aarch64-$version"; fi; \
     if [ "$TARGETPLATFORM" = "linux/arm64" ]; then binary="dsc_aarch64-$version"; fi; \
-    if [[ $version == *-pre ]]; then release="nightly"; else release="v$version"; fi; \
+    if [[ $version == "nightly" ]]; then release="nightly"; else release="v$version"; fi; \
     echo "Downloading ${dsc_url:-https://github.com/docspell/dsc/releases/download/$release/$binary} ..." && \
     curl --fail -o dsc -L ${dsc_url:-https://github.com/docspell/dsc/releases/download/$release/$binary} && \
     mv dsc /usr/local/bin/ && \

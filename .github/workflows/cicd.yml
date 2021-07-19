@@ -56,9 +56,15 @@ jobs:
         shell: bash
         run: |
           echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
-          echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
           echo "PROJECT_MAINTAINER=$(sed -n 's/^authors = \["\(.*\)"\]/\1/p' Cargo.toml)" >> $GITHUB_ENV
           echo "PROJECT_HOMEPAGE=$(sed -n 's/^homepage = "\(.*\)"/\1/p' Cargo.toml)" >> $GITHUB_ENV
+          PROJECT_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)"
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
+          if [[ $PROJECT_VERSION == *-pre ]]; then
+            echo "VERSION_SUFFIX=nightly" >> $GITHUB_ENV
+          else
+            echo "VERSION_SUFFIX=$PROJECT_VERSION" >> $GITHUB_ENV
+          fi
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -105,7 +111,7 @@ jobs:
           BIN_DIR="_cicd/stripped-release-bin/"
           mkdir -p "${BIN_DIR}"
           BIN_NAME="${{ env.PROJECT_NAME }}${EXE_suffix}"
-          BIN_PATH="${BIN_DIR}/${BIN_NAME}_${{ matrix.build }}-${{ env.PROJECT_VERSION }}"
+          BIN_PATH="${BIN_DIR}/${BIN_NAME}_${{ matrix.build }}-${{ env.VERSION_SUFFIX }}"
           # Copy the release build binary to the result location
           cp "target/${{ matrix.target }}/release/${BIN_NAME}" "${BIN_PATH}"
           # Also strip if possible
@@ -161,7 +167,13 @@ jobs:
         shell: bash
         run: |
           echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
-          echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          PROJECT_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)"
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
+          if [[ $PROJECT_VERSION == *-pre ]]; then
+            echo "VERSION_SUFFIX=nightly" >> $GITHUB_ENV
+          else
+            echo "VERSION_SUFFIX=$PROJECT_VERSION" >> $GITHUB_ENV
+          fi
 
       - name: Build
         uses: actions-rs/cargo@v1
@@ -171,7 +183,7 @@ jobs:
 
       - name: Rename binary
         run: |
-          mv target/release/${{ env.PROJECT_NAME }}.exe target/release/${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}.exe
+          mv target/release/${{ env.PROJECT_NAME }}.exe target/release/${{ env.PROJECT_NAME }}-${{ env.VERSION_SUFFIX }}.exe
 
       - name: Publish Release
         id: publish
@@ -181,7 +193,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
-            target/release/${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}.exe
+            target/release/${{ env.PROJECT_NAME }}-${{ env.VERSION_SUFFIX }}.exe
 
       - name: Publish Pre-Release
         id: publish-pre
@@ -197,7 +209,7 @@ jobs:
           commit: "master"
           name: "dsc nightly"
           replacesArtifacts: true
-          artifacts: target/release/${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}.exe
+          artifacts: target/release/${{ env.PROJECT_NAME }}-${{ env.VERSION_SUFFIX }}.exe
 
   cicd-mac:
     runs-on: macos-latest
@@ -220,7 +232,13 @@ jobs:
         shell: bash
         run: |
           echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
-          echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          PROJECT_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)"
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
+          if [[ $PROJECT_VERSION == *-pre ]]; then
+            echo "VERSION_SUFFIX=nightly" >> $GITHUB_ENV
+          else
+            echo "VERSION_SUFFIX=$PROJECT_VERSION" >> $GITHUB_ENV
+          fi
 
       - name: Build
         uses: actions-rs/cargo@v1
@@ -231,7 +249,7 @@ jobs:
       - name: Rename and strip binary
         run: |
           strip target/release/${{ env.PROJECT_NAME }}
-          mv target/release/${{ env.PROJECT_NAME }} target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.PROJECT_VERSION }}
+          mv target/release/${{ env.PROJECT_NAME }} target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.VERSION_SUFFIX }}
 
       - name: Publish Release
         id: publish
@@ -242,7 +260,7 @@ jobs:
         with:
           prerelease: ${{ github.ref }} == "refs/heads/master"
           files: |
-            target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.PROJECT_VERSION }}
+            target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.VERSION_SUFFIX }}
 
       - name: Publish Pre-Release
         id: publish-pre
@@ -258,7 +276,7 @@ jobs:
           commit: "master"
           name: "dsc nightly"
           replacesArtifacts: true
-          artifacts: target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.PROJECT_VERSION }}
+          artifacts: target/release/${{ env.PROJECT_NAME }}_darwin-${{ env.VERSION_SUFFIX }}
 
   docker:
     if: startsWith(github.ref, 'refs/tags/') || ${{ github.ref }} == 'refs/heads/master'
