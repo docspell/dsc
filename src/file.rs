@@ -2,6 +2,8 @@ use sha2::{Digest, Sha256};
 use std::io;
 use std::path::PathBuf;
 
+use crate::opts::FileAction;
+
 const BUFFER_SIZE: usize = 1024;
 
 pub fn digest_file_sha256(file: &PathBuf) -> Result<String, io::Error> {
@@ -50,6 +52,68 @@ pub fn filename_from_header<'a>(header_value: &'a str) -> Option<&'a str> {
         .find("filename=")
         .map(|index| &header_value[9 + index..])
         .map(|rest| rest.trim_matches('"'))
+}
+
+#[derive(Debug, Clone)]
+pub enum FileActionResult {
+    Deleted(PathBuf),
+    Moved(PathBuf),
+    Nothing,
+}
+
+impl FileAction {
+    pub fn execute(
+        &self,
+        file: &PathBuf,
+        root: Option<&PathBuf>,
+    ) -> Result<FileActionResult, std::io::Error> {
+        match &self.move_to {
+            Some(target) => Self::move_file(file, root, target).map(|p| FileActionResult::Moved(p)),
+            None => {
+                if self.delete {
+                    Self::delete_file(&file).map(|_r| FileActionResult::Deleted(file.clone()))
+                } else {
+                    Ok(FileActionResult::Nothing)
+                }
+            }
+        }
+    }
+
+    fn move_file(
+        file: &PathBuf,
+        root: Option<&PathBuf>,
+        target: &PathBuf,
+    ) -> Result<PathBuf, std::io::Error> {
+        let target_file = match root {
+            Some(r) => {
+                let part = file.strip_prefix(r).unwrap();
+                target.join(part)
+            }
+            None => target.join(file.file_name().unwrap()),
+        };
+        log::debug!(
+            "Move file '{}' -> '{}'",
+            file.display(),
+            &target_file.display()
+        );
+        if let Some(parent) = &target_file.parent() {
+            if !parent.exists() {
+                std::fs::create_dir_all(parent)?;
+            }
+        }
+        std::fs::rename(file, &target_file)?;
+        if let Some(parent) = file.parent() {
+            if std::fs::read_dir(parent)?.next().is_none() {
+                std::fs::remove_dir(parent)?;
+            }
+        }
+        Ok(target_file)
+    }
+
+    fn delete_file(file: &PathBuf) -> Result<(), std::io::Error> {
+        log::debug!("Deleting file: {}", file.display());
+        std::fs::remove_file(file)
+    }
 }
 
 #[cfg(test)]

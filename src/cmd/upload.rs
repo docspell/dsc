@@ -1,6 +1,12 @@
-use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::opts::{EndpointOpts, UploadMeta};
 use crate::types::{BasicResult, StringList, UploadMeta as MetaRequest, DOCSPELL_AUTH};
+use crate::{
+    cmd::{Cmd, CmdArgs, CmdError},
+    opts::FileAction,
+};
+use crate::{
+    file::FileActionResult,
+    opts::{EndpointOpts, UploadMeta},
+};
 use clap::{ArgGroup, Clap, ValueHint};
 use reqwest::blocking::multipart::{Form, Part};
 use reqwest::blocking::RequestBuilder;
@@ -26,6 +32,11 @@ use super::login;
 /// patters for inclusion/exclusion which apply to both modes. These
 /// patterns are matched against the complete filename (with path).
 ///
+/// Successfully uploaded files can be deleted or moved to another
+/// directory. If a file already exists it is also deleted or moved.
+/// So using `upload --traverse --delete` will upload all files that
+/// are not yet in Docspell and then deletes them.
+///
 /// For glob patterns, see https://docs.rs/glob/0.3.0/glob/struct.Pattern.html
 #[derive(Clap, Debug)]
 #[clap(group = ArgGroup::new("g_multiple"))]
@@ -45,6 +56,9 @@ pub struct Input {
     /// usually you can just use the shells expansion mechanism.
     #[clap(long, short, default_value = "**/*")]
     pub matches: String,
+
+    #[clap(flatten)]
+    pub action: FileAction,
 
     /// A glob pattern that excludes files to upload. If `--matches`
     /// is also specified, both must evaluate to true.
@@ -93,6 +107,11 @@ pub enum Error {
     OpenFile {
         path: PathBuf,
         source: std::io::Error,
+    },
+    #[snafu(display("Cannot delete or move {}: {}", path.display(), source))]
+    FileActionError {
+        source: std::io::Error,
+        path: PathBuf,
     },
 
     #[snafu(display("Unable to read file at {}: {}", path.display(), source))]
@@ -180,6 +199,24 @@ pub fn upload_files(args: &Input, cfg: &CmdArgs) -> Result<BasicResult, Error> {
     }
 }
 
+fn apply_file_action(path: &PathBuf, root: Option<&PathBuf>, args: &Input) -> Result<(), Error> {
+    let res = args
+        .action
+        .execute(path, root)
+        .context(FileActionError { path })?;
+    match res {
+        FileActionResult::Deleted(_p) => {
+            eprintln!("Deleted file");
+            Ok(())
+        }
+        FileActionResult::Moved(p) => {
+            eprintln!("Moved file to: {}", p.display());
+            Ok(())
+        }
+        FileActionResult::Nothing => Ok(()),
+    }
+}
+
 fn upload_traverse(
     url: &str,
     meta_json: Vec<u8>,
@@ -197,9 +234,11 @@ fn upload_traverse(
                     counter = counter + 1;
                     if !args.dry_run {
                         send_file(url, &child, meta_json.clone(), args, cfg)?;
+                        apply_file_action(&child, Some(&path), args)?;
                     }
                 } else {
                     file_exists_message(&child);
+                    apply_file_action(&child, Some(&path), args)?;
                 }
             }
         } else {
@@ -210,9 +249,11 @@ fn upload_traverse(
                     counter = counter + 1;
                     if !args.dry_run {
                         send_file(url, path, meta_json.clone(), args, cfg)?;
+                        apply_file_action(&path, None, args)?;
                     }
                 } else {
                     file_exists_message(path);
+                    apply_file_action(&path, None, args)?;
                 }
             }
         }

@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     cmd::{Cmd, CmdArgs, CmdError},
-    opts::{EndpointOpts, UploadMeta},
+    opts::{EndpointOpts, FileAction, UploadMeta},
     types::BasicResult,
 };
 use clap::{Clap, ValueHint};
@@ -27,14 +27,17 @@ use super::upload;
 pub struct Input {
     /// Wether to watch directories recursively or not.
     #[clap(long, short)]
-    recursive: bool,
+    pub recursive: bool,
 
     /// A delay in seconds after which the event is acted upon.
     #[clap(long = "delay", default_value = "6")]
-    delay_secs: u64,
+    pub delay_secs: u64,
 
     #[clap(flatten)]
-    upload: UploadMeta,
+    pub upload: UploadMeta,
+
+    #[clap(flatten)]
+    pub action: FileAction,
 
     /// A glob pattern for matching against each file. Note that
     /// usually you can just use the shells expansion mechanism.
@@ -48,14 +51,14 @@ pub struct Input {
 
     /// Don't upload anything, but print what would be uploaded.
     #[clap(long)]
-    dry_run: bool,
+    pub dry_run: bool,
 
     #[clap(flatten)]
     pub endpoint: EndpointOpts,
 
     /// The directories to watch for changes.
     #[clap(value_hint = ValueHint::DirPath)]
-    dirs: Vec<PathBuf>,
+    pub dirs: Vec<PathBuf>,
 }
 
 #[derive(Debug, Snafu)]
@@ -159,6 +162,7 @@ fn upload_file(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<BasicResul
     let data = &upload::Input {
         endpoint: ep,
         multiple: true,
+        action: opts.action.clone(),
         upload: opts.upload.clone(),
         matches: opts.matches.clone(),
         not_matches: opts.not_matches.clone(),

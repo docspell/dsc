@@ -1,7 +1,10 @@
-use crate::opts::{EndpointOpts, FileAction};
 use crate::{
     cmd::{Cmd, CmdArgs, CmdError},
     types::BasicResult,
+};
+use crate::{
+    file::FileActionResult,
+    opts::{EndpointOpts, FileAction},
 };
 use clap::Clap;
 use snafu::{ResultExt, Snafu};
@@ -14,6 +17,9 @@ use super::file_exists;
 /// Traverses one or more directories and check each file whether it
 /// exists in Docspell. If so, it can be deleted or moved to another
 /// place.
+///
+/// If you want to upload all files that don't exists in some
+/// directory, use the `upload` command.
 #[derive(Clap, Debug)]
 pub struct Input {
     #[clap(flatten)]
@@ -43,11 +49,8 @@ pub enum Error {
     #[snafu(display("Glob error: {}", source))]
     Glob { source: glob::GlobError },
 
-    #[snafu(display("Cannot delete: {}", source))]
-    Delete { source: std::io::Error },
-
-    #[snafu(display("Cannot move: {}", source))]
-    Move { source: std::io::Error },
+    #[snafu(display("Cannot delete or move: {}", source))]
+    FileActionError { source: std::io::Error },
 
     #[snafu(display("No action given! Use --move or --delete."))]
     NoAction,
@@ -96,17 +99,17 @@ pub fn cleanup(args: &Input, cfg: &CmdArgs) -> Result<u32, Error> {
             for child in glob::glob(&pattern).context(Pattern)? {
                 let cf = child.context(Glob)?;
                 if cf.is_file() {
-                    counter = counter + cleanup_file(&cf, Some(&file), args, cfg)?;
+                    counter = counter + cleanup_and_report(&cf, Some(&file), args, cfg)?;
                 }
             }
         } else {
-            counter = counter + cleanup_file(&file, None, args, cfg)?;
+            counter = counter + cleanup_and_report(&file, None, args, cfg)?;
         }
     }
     Ok(counter)
 }
 
-fn cleanup_file(
+fn cleanup_and_report(
     file: &PathBuf,
     root: Option<&PathBuf>,
     args: &Input,
@@ -118,18 +121,20 @@ fn cleanup_file(
     if exists {
         eprint!(" - exists: ");
         if !args.dry_run {
-            match &args.action.move_to {
-                Some(target) => {
-                    move_file(file, root, target)?;
+            let res = args.action.execute(file, root).context(FileActionError)?;
+            log::debug!("Action executed: {:?}", res);
+            match res {
+                FileActionResult::Deleted(_p) => {
+                    eprintln!("deleted.");
+                    return Ok(1);
+                }
+                FileActionResult::Moved(_p) => {
                     eprintln!("moved.");
                     return Ok(1);
                 }
-                None => {
-                    if args.action.delete {
-                        delete_file(&file)?;
-                        eprintln!("deleted.");
-                        return Ok(1);
-                    }
+                FileActionResult::Nothing => {
+                    log::error!("No file action defined. This should not happen, because user was able to not define it");
+                    return Ok(0);
                 }
             }
         } else {
@@ -138,21 +143,6 @@ fn cleanup_file(
         }
     }
     Ok(0)
-}
-
-fn move_file(file: &PathBuf, root: Option<&PathBuf>, target: &PathBuf) -> Result<(), Error> {
-    let target_file = match root {
-        Some(r) => {
-            let part = file.strip_prefix(r).unwrap();
-            target.join(part)
-        }
-        None => target.join(file.file_name().unwrap()),
-    };
-    std::fs::rename(file, target_file).context(Move)
-}
-
-fn delete_file(file: &PathBuf) -> Result<(), Error> {
-    std::fs::remove_file(file).context(Delete)
 }
 
 fn check_file_exists(path: &PathBuf, opts: &EndpointOpts, args: &CmdArgs) -> Result<bool, Error> {
