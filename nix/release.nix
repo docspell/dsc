@@ -10,6 +10,7 @@ in
 , openssl
 , installShellFiles
 , git
+, binutils-unwrapped
 , version ? "0.2.0"
 }:
 
@@ -68,6 +69,13 @@ rustPlatform.buildRustPackage rec {
       $out/bin/dsc generate-completions --shell $shell > dsc.$shell
       installShellCompletion --$shell dsc.$shell
     done
+  '';
+
+  strip = true;
+
+  postInstall = ''
+    echo "Stripping $out/bin/dsc …"
+    ${binutils-unwrapped}/bin/strip $out/bin/dsc
   '';
 
   meta = with lib; {
