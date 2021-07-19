@@ -73,6 +73,13 @@ pub struct Input {
     #[clap(long, short, group = "g_multiple")]
     pub traverse: bool,
 
+    /// Can be used with `--traverse` to periodically run an upload.
+    /// This option allows to set a delay in seconds that is waited in
+    /// between runs. Please see the `watch` subcommand for a more
+    /// efficient way to achieve the same.
+    #[clap(long)]
+    pub poll: Option<u64>,
+
     /// Doesn't submit the request, but prints which files would be
     /// uploaded instead. This might be useful when using `--traverse`
     /// and glob patterns.
@@ -135,6 +142,9 @@ pub enum Error {
     #[snafu(display("The `--single-item` option cannot be used with `--traverse`"))]
     MultipleWithTraverse,
 
+    #[snafu(display("The `--poll` option requires `--traverse`"))]
+    PollWithoutTraverse,
+
     #[snafu(display("The glob pattern '{}' is invalid: {}", pattern, source))]
     BadGlobPattern {
         source: glob::PatternError,
@@ -189,7 +199,25 @@ pub fn upload_files(args: &Input, cfg: &CmdArgs) -> Result<BasicResult, Error> {
     let meta_json = serde_json::to_vec(&meta).context(MetaSerialize)?;
     log::debug!("Send file metadata: {:?}", serde_json::to_string(&meta));
     if args.traverse {
-        upload_traverse(url, meta_json, args, cfg, matcher)
+        if let Some(delay) = args.poll {
+            let delay_dur = std::time::Duration::from_secs(delay);
+            let dir_list = args
+                .files
+                .iter()
+                .map(|p| p.display().to_string())
+                .collect::<Vec<String>>()
+                .join(", ");
+            loop {
+                eprintln!(
+                    "Traversing to upload '{}' (every {:?}) …",
+                    dir_list, delay_dur
+                );
+                upload_traverse(url, &meta_json, args, cfg, &matcher)?;
+                std::thread::sleep(delay_dur);
+            }
+        } else {
+            upload_traverse(url, &meta_json, args, cfg, &matcher)
+        }
     } else {
         let meta_part = Part::bytes(meta_json)
             .mime_str(APP_JSON)
@@ -219,10 +247,10 @@ fn apply_file_action(path: &PathBuf, root: Option<&PathBuf>, args: &Input) -> Re
 
 fn upload_traverse(
     url: &str,
-    meta_json: Vec<u8>,
+    meta_json: &Vec<u8>,
     args: &Input,
     cfg: &CmdArgs,
-    matcher: matching::Matcher,
+    matcher: &matching::Matcher,
 ) -> Result<BasicResult, Error> {
     let mut counter = 0;
     for path in &args.files {
@@ -372,10 +400,13 @@ fn send_file_form(
 // TODO use clap to solve this!
 fn check_flags(args: &Input) -> Result<(), Error> {
     if args.traverse && !args.multiple {
-        Err(Error::MultipleWithTraverse)
-    } else {
-        Ok(())
+        return Err(Error::MultipleWithTraverse);
     }
+    if args.poll.is_some() && !args.traverse {
+        return Err(Error::PollWithoutTraverse);
+    }
+
+    Ok(())
 }
 
 fn create_client(url: &str, opts: &EndpointOpts, args: &CmdArgs) -> Result<RequestBuilder, Error> {

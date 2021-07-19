@@ -54,6 +54,19 @@ pub fn filename_from_header<'a>(header_value: &'a str) -> Option<&'a str> {
         .map(|rest| rest.trim_matches('"'))
 }
 
+fn delete_parent_if_empty(file: &PathBuf, root: Option<&PathBuf>) -> Result<(), std::io::Error> {
+    match (root, file.parent()) {
+        (Some(r), Some(p)) => {
+            if p != r && std::fs::read_dir(p)?.next().is_none() {
+                std::fs::remove_dir(p)
+            } else {
+                Ok(())
+            }
+        }
+        _ => Ok(()),
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum FileActionResult {
     Deleted(PathBuf),
@@ -71,7 +84,7 @@ impl FileAction {
             Some(target) => Self::move_file(file, root, target).map(|p| FileActionResult::Moved(p)),
             None => {
                 if self.delete {
-                    Self::delete_file(&file).map(|_r| FileActionResult::Deleted(file.clone()))
+                    Self::delete_file(&file, root).map(|_r| FileActionResult::Deleted(file.clone()))
                 } else {
                     Ok(FileActionResult::Nothing)
                 }
@@ -102,17 +115,16 @@ impl FileAction {
             }
         }
         std::fs::rename(file, &target_file)?;
-        if let Some(parent) = file.parent() {
-            if std::fs::read_dir(parent)?.next().is_none() {
-                std::fs::remove_dir(parent)?;
-            }
-        }
+        // delete the parent when below root. if no root given, don't delete parent
+        delete_parent_if_empty(file, root)?;
         Ok(target_file)
     }
 
-    fn delete_file(file: &PathBuf) -> Result<(), std::io::Error> {
+    fn delete_file(file: &PathBuf, root: Option<&PathBuf>) -> Result<(), std::io::Error> {
         log::debug!("Deleting file: {}", file.display());
-        std::fs::remove_file(file)
+        std::fs::remove_file(file)?;
+        delete_parent_if_empty(file, root)?;
+        Ok(())
     }
 }
 

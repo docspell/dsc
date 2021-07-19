@@ -23,6 +23,10 @@ use super::upload;
 /// option is supplied), the collective must be determined first to
 /// know where to upload the file. This is done by using the first
 /// subdirectory of the detected file.
+///
+/// On some filesystems, this command may not work (e.g. networking
+/// file systems like NFS or SAMBA). You may use the `upload` command
+/// then in combination with the `--poll` option.
 #[derive(Clap, Debug)]
 pub struct Input {
     /// Wether to watch directories recursively or not.
@@ -167,6 +171,7 @@ fn upload_file(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<BasicResul
         matches: opts.matches.clone(),
         not_matches: opts.not_matches.clone(),
         traverse: false,
+        poll: None,
         dry_run: opts.dry_run,
         files: vec![path],
     };
