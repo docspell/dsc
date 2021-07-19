@@ -1,9 +1,9 @@
-use crate::opts::EndpointOpts;
+use crate::opts::{EndpointOpts, FileAction};
 use crate::{
     cmd::{Cmd, CmdArgs, CmdError},
     types::BasicResult,
 };
-use clap::{ArgGroup, Clap, ValueHint};
+use clap::Clap;
 use snafu::{ResultExt, Snafu};
 use std::path::PathBuf;
 
@@ -15,20 +15,12 @@ use super::file_exists;
 /// exists in Docspell. If so, it can be deleted or moved to another
 /// place.
 #[derive(Clap, Debug)]
-#[clap(group = ArgGroup::new("action"))]
 pub struct Input {
     #[clap(flatten)]
     pub endpoint: EndpointOpts,
 
-    /// Each file is moved into the given directory. The directory
-    /// structure below the traversed directory is retained in the
-    /// target.
-    #[clap(long = "move", group = "action", value_hint = ValueHint::DirPath)]
-    pub move_file: Option<PathBuf>,
-
-    /// Each file is deleted.
-    #[clap(short, long = "delete", group = "action")]
-    pub delete_file: bool,
+    #[clap(flatten)]
+    pub action: FileAction,
 
     /// Each file is printed.
     #[clap(long)]
@@ -78,7 +70,7 @@ impl Cmd for Input {
 }
 
 fn check_args(args: &Input) -> Result<(), Error> {
-    match &args.move_file {
+    match &args.action.move_to {
         Some(path) => {
             if path.is_dir() {
                 Ok(())
@@ -87,7 +79,7 @@ fn check_args(args: &Input) -> Result<(), Error> {
             }
         }
         None => {
-            if args.delete_file {
+            if args.action.delete {
                 Ok(())
             } else {
                 Err(Error::NoAction)
@@ -126,14 +118,14 @@ fn cleanup_file(
     if exists {
         eprint!(" - exists: ");
         if !args.dry_run {
-            match &args.move_file {
+            match &args.action.move_to {
                 Some(target) => {
                     move_file(file, root, target)?;
                     eprintln!("moved.");
                     return Ok(1);
                 }
                 None => {
-                    if args.delete_file {
+                    if args.action.delete {
                         delete_file(&file)?;
                         eprintln!("deleted.");
                         return Ok(1);

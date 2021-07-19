@@ -286,3 +286,16 @@ pub struct UploadMeta {
     #[clap(long, short)]
     pub language: Option<String>,
 }
+
+#[derive(Clap, Debug, Clone)]
+#[clap(group = ArgGroup::new("file-action"))]
+pub struct FileAction {
+    /// Deletes the file.
+    #[clap(long, group = "file-action")]
+    pub delete: bool,
+
+    /// Moves the file into the given directory. The directory
+    /// structure is retained in the target folder.
+    #[clap(long = "move", group = "file-action", value_hint = ValueHint::DirPath)]
+    pub move_to: Option<PathBuf>,
+}
