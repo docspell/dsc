@@ -11,6 +11,9 @@ pub enum Error {
     #[snafu(display("An error was received from: {}!", url))]
     Http { source: reqwest::Error, url: String },
 
+    #[snafu(display("Session error: {}", source))]
+    Session { source: self::session::Error },
+
     #[snafu(display("An error occured serializing the response!"))]
     SerializeResp { source: reqwest::Error },
 
@@ -55,6 +58,7 @@ impl Client {
             .context(SerializeResp)?;
 
         if result.success {
+            session::store_session(&result).context(Session)?;
             Ok(result)
         } else {
             log::debug!("Login result: {:?}", result);
