@@ -1,19 +1,18 @@
-use crate::cmd::download;
-use crate::cmd::file_exists;
-use crate::cmd::geninvite;
-use crate::cmd::item;
-use crate::cmd::login;
-use crate::cmd::logout;
-use crate::cmd::register;
-use crate::cmd::search;
-use crate::cmd::search_summary;
-use crate::cmd::source;
-use crate::cmd::upload;
-use crate::cmd::version;
-use crate::cmd::view;
-use crate::cmd::watch;
-use crate::cmd::{cleanup, generate_completions};
-use crate::{cmd::admin, config::DsConfig};
+// use crate::cmd::download;
+// use crate::cmd::file_exists;
+// use crate::cmd::geninvite;
+// use crate::cmd::item;
+use super::cmd::login;
+// use crate::cmd::logout;
+// use crate::cmd::register;
+// use crate::cmd::search;
+// use crate::cmd::search_summary;
+// use crate::cmd::source;
+// use crate::cmd::upload;
+use super::cmd::{generate_completions, version};
+// use crate::cmd::view;
+// use crate::cmd::watch;
+use crate::config::DsConfig;
 use clap::{AppSettings, ArgEnum, ArgGroup, Clap, ValueHint};
 use reqwest::blocking::RequestBuilder;
 use serde::{Deserialize, Serialize};
@@ -85,10 +84,9 @@ pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     GenerateCompletions(generate_completions::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version)]
-    Watch(watch::Input),
-
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version)]
+    // Watch(watch::Input),
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Version(version::Input),
@@ -96,58 +94,57 @@ pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Login(login::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version)]
+    // Logout(logout::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version)]
-    Logout(logout::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version)]
+    // Search(search::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version)]
-    Search(search::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version, alias = "summary")]
+    // SearchSummary(search_summary::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version, alias = "summary")]
-    SearchSummary(search_summary::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version)]
+    // FileExists(file_exists::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version)]
-    FileExists(file_exists::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version)]
+    // GenInvite(geninvite::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version)]
-    GenInvite(geninvite::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version)]
+    // Register(register::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version)]
-    Register(register::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version)]
+    // Source(source::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version)]
-    Source(source::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version)]
+    // Item(item::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version)]
-    Item(item::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version, alias = "up")]
+    // Upload(upload::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version, alias = "up")]
-    Upload(upload::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version)]
+    // Download(download::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version)]
-    Download(download::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version)]
+    // View(view::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version)]
-    View(view::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version)]
+    // Cleanup(cleanup::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version)]
-    Cleanup(cleanup::Input),
-
-    #[clap(setting = AppSettings::ColoredHelp)]
-    #[clap(version)]
-    Admin(admin::Input),
+    // #[clap(setting = AppSettings::ColoredHelp)]
+    // #[clap(version)]
+    // Admin(admin::Input),
 }
 
 #[derive(ArgEnum, Debug, Copy, Clone, Serialize, Deserialize)]

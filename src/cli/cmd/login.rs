@@ -1,10 +1,13 @@
 use std::{path::PathBuf, time::Duration};
 
-use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::pass;
-use crate::types::{AuthResp, DOCSPELL_AUTH};
+use super::{Cmd, Context};
+use crate::cli::sink::Error as SinkError;
+use crate::http::payload::{AuthRequest, AuthResp};
+use crate::http::Error as HttpError;
+
+use crate::util::pass;
+
 use clap::{ArgGroup, Clap, ValueHint};
-use serde::{Deserialize, Serialize};
 use snafu::{ResultExt, Snafu};
 
 /// Performs a login given user credentials.
@@ -37,8 +40,8 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Error received from server at {}: {}", url, source))]
-    Http { source: reqwest::Error, url: String },
+    #[snafu(display("An http error occurred: {}!", source))]
+    HttpClient { source: HttpError },
 
     #[snafu(display("Error received from server: {}", source))]
     ReadResponse { source: reqwest::Error },
@@ -80,50 +83,33 @@ pub enum Error {
 
     #[snafu(display("Invalid password (non-unicode) in environment variable"))]
     InvalidPasswordEnv,
+
+    #[snafu(display("Error writing data: {}", source))]
+    WriteResult { source: SinkError },
 }
 
 impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = login(self, args).map_err(|source| CmdError::Login { source })?;
-        args.write_result(result)?;
+    type CmdError = Error;
+    fn exec(&self, args: &Context) -> Result<(), Error> {
+        let result = login(self, args)?;
+        args.write_result(result).context(WriteResult)?;
         Ok(())
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct AuthRequest {
-    #[serde(alias = "account")]
-    account: String,
-    #[serde(alias = "password")]
-    password: String,
-    #[serde(alias = "rememberMe")]
-    remember_me: bool,
-}
-
-pub fn login(opts: &Input, args: &CmdArgs) -> Result<AuthResp, Error> {
-    let url = &format!("{}/api/v1/open/auth/login", args.docspell_url());
+pub fn login(opts: &Input, args: &Context) -> Result<AuthResp, Error> {
     let body = AuthRequest {
         account: get_account(opts, args)?,
         password: get_password(opts, args)?,
         remember_me: false,
     };
-    let result = args
-        .client
-        .post(url)
-        .json(&body)
-        .send()
-        .and_then(|r| r.error_for_status())
-        .context(Http { url })?
-        .json::<AuthResp>()
-        .context(ReadResponse)?;
-
-    check_auth_result(result).and_then(|r| {
+    args.client.login(&body).context(HttpClient).and_then(|r| {
         store_session(&r)?;
         Ok(r)
     })
 }
 
-fn get_password(opts: &Input, args: &CmdArgs) -> Result<String, Error> {
+fn get_password(opts: &Input, args: &Context) -> Result<String, Error> {
     match args.pass_entry(&opts.pass_entry) {
         Some(pe) => pass::pass_password(&pe).context(PassEntry),
         None => match std::env::var_os(DSC_PASSWORD) {
@@ -136,28 +122,13 @@ fn get_password(opts: &Input, args: &CmdArgs) -> Result<String, Error> {
     }
 }
 
-fn get_account(opts: &Input, args: &CmdArgs) -> Result<String, Error> {
+fn get_account(opts: &Input, args: &Context) -> Result<String, Error> {
     let acc = match &opts.user {
         Some(u) => Ok(u.clone()),
         None => args.cfg.default_account.clone().ok_or(Error::NoAccount),
     };
     log::debug!("Using account: {:?}", &acc);
     acc
-}
-
-pub fn session_login(token: &str, args: &CmdArgs) -> Result<AuthResp, Error> {
-    let url = &format!("{}/api/v1/sec/auth/session", args.docspell_url());
-    let result = args
-        .client
-        .post(url)
-        .header(DOCSPELL_AUTH, token)
-        .send()
-        .and_then(|r| r.error_for_status())
-        .context(Http { url })?
-        .json::<AuthResp>()
-        .context(ReadResponse)?;
-
-    check_auth_result(result)
 }
 
 fn store_session(resp: &AuthResp) -> Result<(), Error> {
@@ -182,7 +153,7 @@ fn store_session(resp: &AuthResp) -> Result<(), Error> {
 ///
 /// If a session token can be loaded, it is checked for expiry and
 /// refreshed if deemed necessary.
-pub fn session_token(args: &CmdArgs) -> Result<String, Error> {
+pub fn session_token(args: &Context) -> Result<String, Error> {
     let given_token = args
         .opts
         .session
@@ -205,7 +176,7 @@ pub fn session_token(args: &CmdArgs) -> Result<String, Error> {
     let created = extract_creation_time(&token)?;
     if near_expiry(created, valid) {
         log::info!("Token is nearly expired. Trying to refresh");
-        let resp = session_login(&token, args)?;
+        let resp = args.client.session_login(&token).context(HttpClient)?;
         if no_token {
             store_session(&resp)?;
         } else {
@@ -269,15 +240,6 @@ fn get_token(resp: &AuthResp) -> Result<String, Error> {
     match &resp.token {
         Some(t) => Ok(t.clone()),
         None => Err(Error::NotLoggedIn),
-    }
-}
-
-fn check_auth_result(result: AuthResp) -> Result<AuthResp, Error> {
-    if result.success {
-        Ok(result)
-    } else {
-        log::debug!("Login result: {:?}", result);
-        Err(Error::LoginFailed)
     }
 }
 

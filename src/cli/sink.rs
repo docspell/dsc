@@ -1,5 +1,5 @@
-use crate::opts::Format;
-use prettytable::Table;
+use super::opts::Format;
+use crate::cli::table::AsTable;
 use serde::Serialize;
 use snafu::Snafu;
 use std::convert::From;
@@ -36,10 +36,6 @@ where
     }
 }
 
-pub trait AsTable {
-    fn to_table(&self) -> Table;
-}
-
 #[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("Error serializing to JSON"))]
@@ -65,9 +61,4 @@ impl From<serde_lexpr::Error> for Error {
     fn from(e: serde_lexpr::Error) -> Error {
         Error::Lisp { source: e }
     }
-}
-
-//TODO this shouldn't be here (only used for creating tables)
-pub fn str_or_empty(opt: Option<&String>) -> &str {
-    opt.as_ref().map(|s| s.as_str()).unwrap_or("")
 }

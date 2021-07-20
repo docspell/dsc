@@ -1,4 +1,4 @@
-use crate::opts::Format;
+use crate::cli::opts::Format;
 use serde::{Deserialize, Serialize};
 use snafu::{ResultExt, Snafu};
 use std::default;

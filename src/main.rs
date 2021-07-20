@@ -32,7 +32,8 @@ fn execute() -> Result<()> {
     if remove_env {
         env::remove_var(LOG_LEVEL);
     }
-    result
+    result?;
+    Ok(())
 }
 
 fn set_log_level(level: &str) -> bool {
