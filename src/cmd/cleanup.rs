@@ -21,6 +21,10 @@ use super::watch;
 ///
 /// If you want to upload all files that don't exists in some
 /// directory, use the `upload` command.
+///
+/// When using the integration endpoint and a collective is not
+/// specified, it will be guessed from the first directory of the
+/// directory that is specified.
 #[derive(Clap, Debug)]
 pub struct Input {
     #[clap(flatten)]
