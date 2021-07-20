@@ -159,7 +159,7 @@ fn upload_and_report(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<(), 
 
 fn upload_file(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<BasicResult, Error> {
     let mut ep = opts.endpoint.clone();
-    if let Some(cid) = find_collective(&path, opts)? {
+    if let Some(cid) = find_collective(&path, &opts.dirs, &opts.endpoint)? {
         ep.collective = Some(cid);
     }
 
@@ -178,13 +178,19 @@ fn upload_file(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<BasicResul
     upload::upload_files(data, args).context(Upload)
 }
 
-fn find_collective(path: &PathBuf, opts: &Input) -> Result<Option<String>, Error> {
-    if opts.endpoint.integration {
-        for dir in &opts.dirs {
+//TODO move to some better place
+pub fn find_collective(
+    path: &PathBuf,
+    dirs: &Vec<PathBuf>,
+    opts: &EndpointOpts,
+) -> Result<Option<String>, Error> {
+    if opts.integration && opts.collective.is_none() {
+        let file = path.canonicalize().unwrap();
+        for dir in dirs {
             let can_dir = dir.canonicalize().unwrap();
-            log::debug!("Check prefix {} -> {}", can_dir.display(), path.display());
-            if path.starts_with(&can_dir) {
-                let rest = path.strip_prefix(&can_dir).context(FindCollective)?;
+            log::debug!("Check prefix {} -> {}", can_dir.display(), file.display());
+            if file.starts_with(&can_dir) {
+                let rest = file.strip_prefix(&can_dir).context(FindCollective)?;
                 let coll = rest.iter().next();
                 log::debug!("Found collective: {:?}", &coll);
                 return Ok(coll.and_then(|s| s.to_str()).map(|s| s.to_string()));

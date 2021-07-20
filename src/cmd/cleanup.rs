@@ -11,6 +11,7 @@ use snafu::{ResultExt, Snafu};
 use std::path::PathBuf;
 
 use super::file_exists;
+use super::watch;
 
 /// Cleans directories from files that are in Docspell.
 ///
@@ -54,6 +55,9 @@ pub enum Error {
 
     #[snafu(display("No action given! Use --move or --delete."))]
     NoAction,
+
+    #[snafu(display("A collective was not found and was not specified"))]
+    NoCollective,
 
     #[snafu(display("The target '{}' is not a directory!", path.display()))]
     TargetNotDirectory { path: PathBuf },
@@ -116,7 +120,7 @@ fn cleanup_and_report(
     cfg: &CmdArgs,
 ) -> Result<u32, Error> {
     eprintln!("Check file: {}", file.display());
-    let exists = check_file_exists(&file, &args.endpoint, cfg)?;
+    let exists = check_file_exists(&file, root, &args.endpoint, cfg)?;
     log::debug!("Checking file: {} (exists: {})", file.display(), exists);
     if exists {
         eprint!(" - exists: ");
@@ -145,8 +149,23 @@ fn cleanup_and_report(
     Ok(0)
 }
 
-fn check_file_exists(path: &PathBuf, opts: &EndpointOpts, args: &CmdArgs) -> Result<bool, Error> {
-    file_exists::check_file(path, opts, args)
+fn check_file_exists(
+    path: &PathBuf,
+    root: Option<&PathBuf>,
+    opts: &EndpointOpts,
+    args: &CmdArgs,
+) -> Result<bool, Error> {
+    let mut ep = opts.clone();
+    let dirs: Vec<PathBuf> = match root {
+        Some(d) => vec![d.clone()],
+        None => vec![],
+    };
+    if let Some(cid) =
+        watch::find_collective(path, &dirs, opts).map_err(|_e| Error::NoCollective)?
+    {
+        ep.collective = Some(cid);
+    }
+    file_exists::check_file(path, &ep, args)
         .context(FileExists)
         .map(|result| result.exists)
 }
