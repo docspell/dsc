@@ -1,9 +1,9 @@
 // use crate::cmd::download;
-// use crate::cmd::file_exists;
+use super::cmd::file_exists;
 // use crate::cmd::geninvite;
 // use crate::cmd::item;
-use super::cmd::login;
 use super::cmd::logout;
+use super::cmd::{login, Context};
 // use crate::cmd::register;
 use super::cmd::search;
 // use crate::cmd::search_summary;
@@ -12,9 +12,11 @@ use super::cmd::search;
 use super::cmd::{generate_completions, version};
 // use crate::cmd::view;
 // use crate::cmd::watch;
-use crate::config::DsConfig;
+use crate::{
+    config::DsConfig,
+    http::{FileAuth, IntegrationAuth, IntegrationData},
+};
 use clap::{AppSettings, ArgEnum, ArgGroup, Clap, ValueHint};
-use reqwest::blocking::RequestBuilder;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -102,14 +104,13 @@ pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Search(search::Input),
+
     // #[clap(setting = AppSettings::ColoredHelp)]
     // #[clap(version, alias = "summary")]
     // SearchSummary(search_summary::Input),
-
-    // #[clap(setting = AppSettings::ColoredHelp)]
-    // #[clap(version)]
-    // FileExists(file_exists::Input),
-
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    FileExists(file_exists::Input),
     // #[clap(setting = AppSettings::ColoredHelp)]
     // #[clap(version)]
     // GenInvite(geninvite::Input),
@@ -186,37 +187,32 @@ pub struct EndpointOpts {
 }
 
 impl EndpointOpts {
-    pub fn apply(&self, c: RequestBuilder) -> RequestBuilder {
-        self.apply_basic(self.apply_header(c))
-    }
-
     pub fn get_source_id(&self, cfg: &DsConfig) -> Option<String> {
         self.source.clone().or(cfg.default_source_id.clone())
     }
 
-    fn apply_basic(&self, c: RequestBuilder) -> RequestBuilder {
-        if let Some(b) = &self.basic {
-            log::debug!(
-                "Using integration endpoint with basic auth: {}:{}",
-                b.name,
-                b.value
-            );
-            c.basic_auth(&b.name, Some(&b.value))
+    pub fn to_file_auth(&self, ctx: &Context) -> FileAuth {
+        if self.integration {
+            let cid = self.collective.clone().unwrap(); // must be checked by cli
+            let mut res = IntegrationData {
+                collective: cid.clone(),
+                auth: IntegrationAuth::None,
+            };
+            if let Some(basic) = &self.basic {
+                res.auth = IntegrationAuth::Basic(basic.name.clone(), basic.value.clone());
+            }
+            if let Some(header) = &self.header {
+                res.auth = IntegrationAuth::Header(header.name.clone(), header.value.clone());
+            }
+            FileAuth::Integration(res)
         } else {
-            c
-        }
-    }
-
-    fn apply_header(&self, c: RequestBuilder) -> RequestBuilder {
-        if let Some(h) = &self.header {
-            log::debug!(
-                "Using integration endpoint with header: {}:{}",
-                h.name,
-                h.value
-            );
-            c.header(&h.name, &h.value)
-        } else {
-            c
+            let sid = self.get_source_id(ctx.cfg);
+            match sid {
+                Some(id) => FileAuth::from_source(id),
+                None => FileAuth::Session {
+                    token: ctx.opts.session.clone(),
+                },
+            }
         }
     }
 }

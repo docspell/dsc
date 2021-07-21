@@ -1,7 +1,7 @@
 // pub mod admin;
 // pub mod cleanup;
 // pub mod download;
-// pub mod file_exists;
+pub mod file_exists;
 pub mod generate_completions;
 // pub mod geninvite;
 // pub mod item;
@@ -118,10 +118,7 @@ pub enum CmdError {
     // GenInvite {
     //     source: geninvite::Error,
     // },
-
-    // FileExists {
-    //     source: file_exists::Error,
-    // },
+    FileExists { source: file_exists::Error },
 
     // AdminGeneratePreview {
     //     source: admin::generate_previews::Error,
@@ -163,5 +160,10 @@ impl From<logout::Error> for CmdError {
 impl From<search::Error> for CmdError {
     fn from(source: search::Error) -> Self {
         CmdError::Search { source }
+    }
+}
+impl From<file_exists::Error> for CmdError {
+    fn from(source: file_exists::Error) -> Self {
+        CmdError::FileExists { source }
     }
 }

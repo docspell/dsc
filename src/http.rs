@@ -4,6 +4,7 @@ mod util;
 
 use self::payload::*;
 use self::util::DOCSPELL_AUTH;
+use reqwest::{blocking::RequestBuilder, StatusCode};
 use snafu::{ResultExt, Snafu};
 
 #[derive(Debug, Snafu)]
@@ -19,6 +20,12 @@ pub enum Error {
 
     #[snafu(display("Login failed!"))]
     LoginFailed,
+
+    #[snafu(display("Authentication failure for integration endpoint: {}", url))]
+    IntEndpointAuth { url: String },
+
+    #[snafu(display("Unexpected response status: {}", status))]
+    UnexpectedStatus { status: u16, url: String },
 }
 
 pub struct Client {
@@ -107,5 +114,124 @@ impl Client {
             .context(Http { url })?
             .json::<SearchResult>()
             .context(SerializeResp)
+    }
+
+    pub fn int_endpoint_avail(&self, data: IntegrationData) -> Result<bool, Error> {
+        let url = format!(
+            "{}/api/v1/open/integration/item/{}",
+            self.base_url, data.collective
+        );
+
+        let rb = self.client.get(&url);
+        let resp = data
+            .auth
+            .apply(rb)
+            .send()
+            .context(Http { url: url.clone() })?;
+        match resp.status() {
+            StatusCode::NOT_FOUND => Ok(false),
+            StatusCode::UNAUTHORIZED => Err(Error::IntEndpointAuth { url }),
+            StatusCode::FORBIDDEN => Err(Error::IntEndpointAuth { url }),
+            StatusCode::OK => Ok(true),
+            code => {
+                resp.error_for_status().context(Http { url: url.clone() })?;
+                Err(Error::UnexpectedStatus {
+                    status: code.as_u16(),
+                    url: url.clone(),
+                })
+            }
+        }
+    }
+
+    pub fn file_exists<S: Into<String>>(
+        &self,
+        hash: S,
+        file_auth: &FileAuth,
+    ) -> Result<CheckFileResult, Error> {
+        let url = match file_auth {
+            FileAuth::Source { id } => {
+                format!(
+                    "{}/api/v1/open/checkfile/{}/{}",
+                    self.base_url,
+                    id,
+                    hash.into()
+                )
+            }
+            FileAuth::Integration(IntegrationData { collective, .. }) => format!(
+                "{}/api/v1/open/integration/checkfile/{}/{}",
+                self.base_url,
+                collective,
+                hash.into()
+            ),
+            FileAuth::Session { .. } => {
+                format!("{}/api/v1/sec/checkfile/{}", self.base_url, hash.into())
+            }
+        };
+
+        let rb = self.client.get(&url);
+        file_auth
+            .apply(self, rb)?
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<CheckFileResult>()
+            .context(SerializeResp)
+    }
+}
+
+pub enum FileAuth {
+    Source { id: String },
+    Integration(IntegrationData),
+    Session { token: Option<String> },
+}
+
+pub struct IntegrationData {
+    pub collective: String,
+    pub auth: IntegrationAuth,
+}
+
+pub enum IntegrationAuth {
+    Header(String, String),
+    Basic(String, String),
+    None,
+}
+impl IntegrationAuth {
+    fn apply(&self, rb: RequestBuilder) -> RequestBuilder {
+        match self {
+            IntegrationAuth::Header(name, value) => {
+                log::debug!("Using integration endpoint with header: {}:{}", name, value);
+                rb.header(name, value)
+            }
+            IntegrationAuth::Basic(name, pass) => {
+                log::debug!("Using integration endpoint with basic auth: {}:***", name,);
+                rb.basic_auth(name, Some(pass))
+            }
+            IntegrationAuth::None => rb,
+        }
+    }
+}
+
+impl FileAuth {
+    pub fn from_session<S: Into<String>>(token: S) -> FileAuth {
+        FileAuth::Session {
+            token: Some(token.into()),
+        }
+    }
+
+    pub fn from_source<S: Into<String>>(source_id: S) -> FileAuth {
+        FileAuth::Source {
+            id: source_id.into(),
+        }
+    }
+
+    fn apply(&self, client: &Client, rb: RequestBuilder) -> Result<RequestBuilder, Error> {
+        match self {
+            FileAuth::Source { .. } => Ok(rb),
+            FileAuth::Integration(IntegrationData { auth, .. }) => Ok(auth.apply(rb)),
+            FileAuth::Session { token } => {
+                let h = session::session_token(token, client).context(Session)?;
+                Ok(rb.header(DOCSPELL_AUTH, h))
+            }
+        }
     }
 }

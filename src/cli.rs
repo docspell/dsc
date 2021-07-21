@@ -31,7 +31,7 @@ pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), CmdError> {
         // SubCommand::SearchSummary(input) => input.exec(&args)?,
         // SubCommand::Source(input) => input.exec(&args)?,
         // SubCommand::Admin(input) => input.exec(&args)?,
-        // SubCommand::FileExists(input) => input.exec(&args)?,
+        SubCommand::FileExists(input) => input.exec(&ctx)?,
         // SubCommand::GenInvite(input) => input.exec(&args)?,
         // SubCommand::Register(input) => input.exec(&args)?,
         // SubCommand::Upload(input) => input.exec(&args)?,

@@ -1,12 +1,14 @@
-use crate::cmd::login;
-use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::file;
-use crate::opts::EndpointOpts;
-use crate::types::{CheckFileResult, DOCSPELL_AUTH};
 use clap::{Clap, ValueHint};
-use reqwest::blocking::RequestBuilder;
 use snafu::{ResultExt, Snafu};
 use std::path::PathBuf;
+
+use crate::cli::opts::EndpointOpts;
+use crate::cli::sink::Error as SinkError;
+use crate::http::payload::CheckFileResult;
+use crate::http::Error as HttpError;
+use crate::util::digest;
+
+use super::{Cmd, Context};
 
 /// Checks if the given files exist in docspell.
 ///
@@ -34,88 +36,41 @@ pub enum Error {
         path: PathBuf,
     },
 
-    #[snafu(display("Error received from server at {}: {}", url, source))]
-    Http { source: reqwest::Error, url: String },
+    #[snafu(display("An http error occurred: {}!", source))]
+    HttpClient { source: HttpError },
 
-    #[snafu(display("Error received from server: {}", source))]
-    ReadResponse { source: reqwest::Error },
-
-    #[snafu(display(
-        "Error logging in via session. Consider the `login` command. {}",
-        source
-    ))]
-    Login { source: login::Error },
+    #[snafu(display("Error writing data: {}", source))]
+    WriteResult { source: SinkError },
 }
 
 impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
+    type CmdError = Error;
+
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
         let mut results = Vec::with_capacity(self.files.capacity());
         for file in &self.files {
             if file.is_file() {
-                let result = check_file(&file, &self.endpoint, args)
-                    .map_err(|source| CmdError::FileExists { source })?;
+                let result = check_file(&file, &self.endpoint, ctx)?;
                 results.push(result);
+            } else {
+                log::debug!("Ignoring directory: {}", file.display());
             }
         }
-        args.write_result(results)?;
+        ctx.write_result(results).context(WriteResult)?;
         Ok(())
     }
 }
 
 pub fn check_file(
     file: &PathBuf,
-    args: &EndpointOpts,
-    opts: &CmdArgs,
+    opts: &EndpointOpts,
+    ctx: &Context,
 ) -> Result<CheckFileResult, Error> {
-    let hash = file::digest_file_sha256(file).context(DigestFail { path: file })?;
-    let mut result = check_hash(&hash, args, opts)?;
+    let fa = opts.to_file_auth(ctx);
+    let hash = digest::digest_file_sha256(file).context(DigestFail { path: file })?;
+    let mut result = ctx.client.file_exists(hash, &fa).context(HttpClient)?;
     result.file = file.canonicalize().ok().map(|p| p.display().to_string());
     Ok(result)
-}
-
-pub fn check_hash(
-    hash: &str,
-    opts: &EndpointOpts,
-    args: &CmdArgs,
-) -> Result<CheckFileResult, Error> {
-    let url = &if opts.integration {
-        let coll_id = opts.collective.as_ref().ok_or(Error::NoCollective)?;
-        format!(
-            "{}/api/v1/open/integration/checkfile/{}/{}",
-            args.docspell_url(),
-            coll_id,
-            hash
-        )
-    } else {
-        match opts.get_source_id(args.cfg) {
-            Some(id) => format!(
-                "{}/api/v1/open/checkfile/{}/{}",
-                args.docspell_url(),
-                id,
-                hash
-            ),
-            None => format!("{}/api/v1/sec/checkfile/{}", args.docspell_url(), hash),
-        }
-    };
-
-    let client = create_client(&url, opts, args)?;
-    client
-        .send()
-        .and_then(|r| r.error_for_status())
-        .context(Http { url })?
-        .json::<CheckFileResult>()
-        .context(ReadResponse)
-}
-
-fn create_client(url: &str, ep: &EndpointOpts, args: &CmdArgs) -> Result<RequestBuilder, Error> {
-    if ep.get_source_id(args.cfg).is_none() && !ep.integration {
-        let token = login::session_token(args).context(Login)?;
-        Ok(args.client.get(url).header(DOCSPELL_AUTH, token))
-    } else {
-        let mut c = args.client.get(url);
-        c = ep.apply(c);
-        Ok(c)
-    }
 }
 
 // fn int_endpoint_available(

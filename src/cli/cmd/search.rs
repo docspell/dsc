@@ -47,7 +47,7 @@ pub enum Error {
     WriteResult { source: SinkError },
 }
 
-pub fn search(opts: &Input, ctx: &Context) -> Result<SearchResult, Error> {
+fn search(opts: &Input, ctx: &Context) -> Result<SearchResult, Error> {
     let req = SearchReq {
         limit: opts.limit,
         offset: opts.offset,
