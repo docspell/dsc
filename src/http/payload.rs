@@ -353,3 +353,12 @@ pub struct Group {
 pub struct SearchResult {
     pub groups: Vec<Group>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchReq {
+    pub offset: u32,
+    pub limit: u32,
+    #[serde(alias = "withDetails")]
+    pub with_details: bool,
+    pub query: String,
+}

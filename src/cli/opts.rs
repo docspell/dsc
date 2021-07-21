@@ -5,7 +5,7 @@
 use super::cmd::login;
 // use crate::cmd::logout;
 // use crate::cmd::register;
-// use crate::cmd::search;
+use super::cmd::search;
 // use crate::cmd::search_summary;
 // use crate::cmd::source;
 // use crate::cmd::upload;
@@ -97,11 +97,9 @@ pub enum SubCommand {
     // #[clap(setting = AppSettings::ColoredHelp)]
     // #[clap(version)]
     // Logout(logout::Input),
-
-    // #[clap(setting = AppSettings::ColoredHelp)]
-    // #[clap(version)]
-    // Search(search::Input),
-
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    Search(search::Input),
     // #[clap(setting = AppSettings::ColoredHelp)]
     // #[clap(version, alias = "summary")]
     // SearchSummary(search_summary::Input),

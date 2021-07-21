@@ -8,7 +8,7 @@ pub mod generate_completions;
 pub mod login;
 // pub mod logout;
 // pub mod register;
-// pub mod search;
+pub mod search;
 // pub mod search_summary;
 // pub mod source;
 // pub mod upload;
@@ -103,10 +103,7 @@ pub enum CmdError {
     // SearchSummary {
     //     source: search_summary::Error,
     // },
-
-    // Search {
-    //     source: search::Error,
-    // },
+    Search { source: search::Error },
 
     // View {
     //     source: view::Error,
@@ -158,5 +155,10 @@ impl From<version::Error> for CmdError {
 impl From<login::Error> for CmdError {
     fn from(source: login::Error) -> Self {
         CmdError::Login { source }
+    }
+}
+impl From<search::Error> for CmdError {
+    fn from(source: search::Error) -> Self {
+        CmdError::Search { source }
     }
 }

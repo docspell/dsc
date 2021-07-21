@@ -65,24 +65,24 @@ pub enum Error {
 
 impl Cmd for Input {
     type CmdError = Error;
-    fn exec(&self, args: &Context) -> Result<(), Error> {
-        let result = login(self, args)?;
-        args.write_result(result).context(WriteResult)?;
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
+        let result = login(self, ctx)?;
+        ctx.write_result(result).context(WriteResult)?;
         Ok(())
     }
 }
 
-pub fn login(opts: &Input, args: &Context) -> Result<AuthResp, Error> {
+pub fn login(opts: &Input, ctx: &Context) -> Result<AuthResp, Error> {
     let body = AuthRequest {
-        account: get_account(opts, args)?,
-        password: get_password(opts, args)?,
+        account: get_account(opts, ctx)?,
+        password: get_password(opts, ctx)?,
         remember_me: false,
     };
-    args.client.login(&body).context(HttpClient)
+    ctx.client.login(&body).context(HttpClient)
 }
 
-fn get_password(opts: &Input, args: &Context) -> Result<String, Error> {
-    match args.pass_entry(&opts.pass_entry) {
+fn get_password(opts: &Input, ctx: &Context) -> Result<String, Error> {
+    match ctx.pass_entry(&opts.pass_entry) {
         Some(pe) => pass::pass_password(&pe).context(PassEntry),
         None => match std::env::var_os(DSC_PASSWORD) {
             Some(pw) => {
@@ -94,10 +94,10 @@ fn get_password(opts: &Input, args: &Context) -> Result<String, Error> {
     }
 }
 
-fn get_account(opts: &Input, args: &Context) -> Result<String, Error> {
+fn get_account(opts: &Input, ctx: &Context) -> Result<String, Error> {
     let acc = match &opts.user {
         Some(u) => Ok(u.clone()),
-        None => args.cfg.default_account.clone().ok_or(Error::NoAccount),
+        None => ctx.cfg.default_account.clone().ok_or(Error::NoAccount),
     };
     log::debug!("Using account: {:?}", &acc);
     acc

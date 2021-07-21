@@ -59,7 +59,7 @@ pub fn store_session(resp: &AuthResp) -> Result<(), Error> {
 ///
 /// If a session token can be loaded, it is checked for expiry and
 /// refreshed if deemed necessary.
-pub fn session_token(token: &Option<String>, client: Client) -> Result<String, Error> {
+pub fn session_token(token: &Option<String>, client: &Client) -> Result<String, Error> {
     let given_token = token.clone().or_else(|| get_token_from_env().clone());
     let no_token = given_token.is_none();
     let (token, valid) = match given_token {

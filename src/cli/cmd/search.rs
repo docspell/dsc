@@ -1,8 +1,10 @@
-use crate::cmd::login;
-use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::types::{SearchResult, DOCSPELL_AUTH};
 use clap::Clap;
 use snafu::{ResultExt, Snafu};
+
+use super::{Cmd, Context};
+use crate::cli::sink::Error as SinkError;
+use crate::http::payload::{SearchReq, SearchResult};
+use crate::http::Error as HttpError;
 
 /// Searches for documents and prints the results.
 ///
@@ -27,43 +29,33 @@ pub struct Input {
 }
 
 impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = search(&self, args).map_err(|source| CmdError::Search { source })?;
-        args.write_result(result)?;
+    type CmdError = Error;
+
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
+        let result = search(&self, ctx)?;
+        ctx.write_result(result).context(WriteResult)?;
         Ok(())
     }
 }
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Error received from server at {}: {}", url, source))]
-    Http { source: reqwest::Error, url: String },
+    #[snafu(display("An http error occurred: {}!", source))]
+    HttpClient { source: HttpError },
 
-    #[snafu(display("Error received from server: {}", source))]
-    ReadResponse { source: reqwest::Error },
-
-    #[snafu(display(
-        "Error logging in via session. Consider the `login` command. {}",
-        source
-    ))]
-    Login { source: login::Error },
+    #[snafu(display("Error writing data: {}", source))]
+    WriteResult { source: SinkError },
 }
 
-pub fn search(opts: &Input, args: &CmdArgs) -> Result<SearchResult, Error> {
-    let url = &format!("{}/api/v1/sec/item/search", args.docspell_url());
-    let token = login::session_token(args).context(Login)?;
-    args.client
-        .get(url)
-        .header(DOCSPELL_AUTH, token)
-        .query(&[
-            ("limit", &opts.limit.to_string()),
-            ("offset", &opts.offset.to_string()),
-            ("withDetails", &opts.with_details.to_string()),
-            ("q", &opts.query),
-        ])
-        .send()
-        .and_then(|r| r.error_for_status())
-        .context(Http { url })?
-        .json::<SearchResult>()
-        .context(ReadResponse)
+pub fn search(opts: &Input, ctx: &Context) -> Result<SearchResult, Error> {
+    let req = SearchReq {
+        limit: opts.limit,
+        offset: opts.offset,
+        with_details: opts.with_details,
+        query: opts.query.clone(),
+    };
+
+    ctx.client
+        .search(&ctx.opts.session, req)
+        .context(HttpClient)
 }

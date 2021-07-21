@@ -85,4 +85,23 @@ impl Client {
             Err(Error::LoginFailed)
         }
     }
+
+    pub fn search(&self, token: &Option<String>, req: SearchReq) -> Result<SearchResult, Error> {
+        let url = &format!("{}/api/v1/sec/item/search", self.base_url);
+        let token = session::session_token(token, self).context(Session)?;
+        self.client
+            .get(url)
+            .header(DOCSPELL_AUTH, token)
+            .query(&[
+                ("limit", &req.limit.to_string()),
+                ("offset", &req.offset.to_string()),
+                ("withDetails", &req.with_details.to_string()),
+                ("q", &req.query),
+            ])
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<SearchResult>()
+            .context(SerializeResp)
+    }
 }
