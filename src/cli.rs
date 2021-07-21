@@ -26,7 +26,7 @@ pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), CmdError> {
         // SubCommand::Watch(input) => input.exec(&args)?,
         SubCommand::Version(input) => input.exec(&ctx)?,
         SubCommand::Login(input) => input.exec(&ctx)?,
-        // SubCommand::Logout(input) => input.exec(&args)?,
+        SubCommand::Logout(input) => input.exec(&ctx)?,
         SubCommand::Search(input) => input.exec(&ctx)?,
         // SubCommand::SearchSummary(input) => input.exec(&args)?,
         // SubCommand::Source(input) => input.exec(&args)?,

@@ -3,7 +3,7 @@
 // use crate::cmd::geninvite;
 // use crate::cmd::item;
 use super::cmd::login;
-// use crate::cmd::logout;
+use super::cmd::logout;
 // use crate::cmd::register;
 use super::cmd::search;
 // use crate::cmd::search_summary;
@@ -94,9 +94,11 @@ pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Login(login::Input),
-    // #[clap(setting = AppSettings::ColoredHelp)]
-    // #[clap(version)]
-    // Logout(logout::Input),
+
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    Logout(logout::Input),
+
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Search(search::Input),

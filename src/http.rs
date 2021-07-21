@@ -66,6 +66,10 @@ impl Client {
         }
     }
 
+    pub fn logout(&self) -> Result<(), Error> {
+        session::drop_session().context(Session)
+    }
+
     pub fn session_login(&self, token: &str) -> Result<AuthResp, Error> {
         let url = &format!("{}/api/v1/sec/auth/session", self.base_url);
         let result = self

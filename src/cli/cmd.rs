@@ -6,7 +6,7 @@ pub mod generate_completions;
 // pub mod geninvite;
 // pub mod item;
 pub mod login;
-// pub mod logout;
+pub mod logout;
 // pub mod register;
 pub mod search;
 // pub mod search_summary;
@@ -88,9 +88,7 @@ pub enum CmdError {
     // },
     Login { source: login::Error },
 
-    // Logout {
-    //     source: logout::Error,
-    // },
+    Logout { source: logout::Error },
 
     // Cleanup {
     //     source: cleanup::Error,
@@ -155,6 +153,11 @@ impl From<version::Error> for CmdError {
 impl From<login::Error> for CmdError {
     fn from(source: login::Error) -> Self {
         CmdError::Login { source }
+    }
+}
+impl From<logout::Error> for CmdError {
+    fn from(source: logout::Error) -> Self {
+        CmdError::Logout { source }
     }
 }
 impl From<search::Error> for CmdError {

@@ -24,6 +24,12 @@ pub enum Error {
     #[snafu(display("No session file found!"))]
     NoSessionFile,
 
+    #[snafu(display("Error storing session file at {}: {}", path.display(), source))]
+    DeleteSessionFile {
+        source: std::io::Error,
+        path: PathBuf,
+    },
+
     #[snafu(display("You are not logged in!"))]
     NotLoggedIn,
 
@@ -94,6 +100,16 @@ pub fn session_token(token: &Option<String>, client: &Client) -> Result<String, 
     }
 }
 
+pub fn drop_session() -> Result<(), Error> {
+    let path = get_token_file()?;
+    if path.exists() {
+        std::fs::remove_file(&path).context(DeleteSessionFile { path })?;
+    }
+    Ok(())
+}
+
+// --- helper
+
 fn near_expiry(created: u64, valid: Option<u64>) -> bool {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::SystemTime::UNIX_EPOCH)
@@ -124,8 +140,6 @@ fn extract_creation_time(token: &str) -> Result<u64, Error> {
         }),
     }
 }
-
-// --- helper
 
 fn get_token_from_env() -> Option<String> {
     std::env::var_os(DSC_SESSION)
