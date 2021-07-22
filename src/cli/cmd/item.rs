@@ -1,8 +1,9 @@
 pub mod get;
 
-use crate::cmd::{Cmd, CmdArgs, CmdError};
 use clap::{AppSettings, Clap};
-use snafu::Snafu;
+use snafu::{ResultExt, Snafu};
+
+use super::{Cmd, Context};
 
 /// Manage items.
 #[derive(Clap, std::fmt::Debug)]
@@ -19,12 +20,16 @@ pub enum ItemCommand {
 }
 
 #[derive(Debug, Snafu)]
-pub struct Error {}
+pub enum Error {
+    Get { source: get::Error },
+}
 
 impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
+    type CmdError = Error;
+
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
         match &self.subcmd {
-            ItemCommand::Get(input) => input.exec(args),
+            ItemCommand::Get(input) => input.exec(ctx).context(Get),
         }
     }
 }

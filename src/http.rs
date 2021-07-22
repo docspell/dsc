@@ -97,7 +97,7 @@ impl Client {
         }
     }
 
-    pub fn search(&self, token: &Option<String>, req: SearchReq) -> Result<SearchResult, Error> {
+    pub fn search(&self, token: &Option<String>, req: &SearchReq) -> Result<SearchResult, Error> {
         let url = &format!("{}/api/v1/sec/item/search", self.base_url);
         let token = session::session_token(token, self).context(Session)?;
         self.client
@@ -145,6 +145,31 @@ impl Client {
             .context(Http { url })?
             .json::<SourceList>()
             .context(SerializeResp)
+    }
+
+    pub fn get_item<S: Into<String>>(
+        &self,
+        token: &Option<String>,
+        id: S,
+    ) -> Result<Option<ItemDetail>, Error> {
+        let url = &format!("{}/api/v1/sec/item/{}", self.base_url, id.into());
+        let token = session::session_token(token, self).context(Session)?;
+        let resp = self
+            .client
+            .get(url)
+            .header(DOCSPELL_AUTH, token)
+            .send()
+            .context(Http { url })?;
+
+        if resp.status() == StatusCode::NOT_FOUND {
+            Ok(None)
+        } else {
+            resp.error_for_status()
+                .context(Http { url })?
+                .json::<ItemDetail>()
+                .context(SerializeResp)
+                .map(|r| Some(r))
+        }
     }
 
     pub fn int_endpoint_avail(&self, data: IntegrationData) -> Result<bool, Error> {

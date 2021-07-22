@@ -4,7 +4,7 @@
 pub mod file_exists;
 pub mod generate_completions;
 pub mod geninvite;
-// pub mod item;
+pub mod item;
 pub mod login;
 pub mod logout;
 pub mod register;
@@ -79,9 +79,7 @@ pub enum CmdError {
     // Watch {
     //     source: watch::Error,
     // },
-    // ItemGet {
-    //     source: item::get::Error,
-    // },
+    Item { source: item::Error },
     Version { source: version::Error },
     // Upload {
     //     source: upload::Error,
@@ -173,5 +171,10 @@ impl From<search_summary::Error> for CmdError {
 impl From<source::Error> for CmdError {
     fn from(source: source::Error) -> Self {
         CmdError::Source { source }
+    }
+}
+impl From<item::Error> for CmdError {
+    fn from(source: item::Error) -> Self {
+        CmdError::Item { source }
     }
 }

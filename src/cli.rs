@@ -22,7 +22,7 @@ pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), CmdError> {
             let mut app = MainOpts::into_app();
             input.print_completions(&mut app);
         }
-        // SubCommand::Item(input) => input.exec(&args)?,
+        SubCommand::Item(input) => input.exec(&ctx)?,
         // SubCommand::Watch(input) => input.exec(&args)?,
         SubCommand::Version(input) => input.exec(&ctx)?,
         SubCommand::Login(input) => input.exec(&ctx)?,

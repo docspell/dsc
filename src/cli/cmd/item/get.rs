@@ -1,12 +1,10 @@
-use crate::types::DOCSPELL_AUTH;
-use crate::{cmd::login, types::ItemDetail};
-use crate::{
-    cmd::{search, Cmd, CmdArgs, CmdError},
-    types::SearchResult,
-};
 use clap::Clap;
-use reqwest::StatusCode;
 use snafu::{ResultExt, Snafu};
+
+use super::{Cmd, Context};
+use crate::cli::sink::Error as SinkError;
+use crate::http::payload::{ItemDetail, SearchReq, SearchResult};
+use crate::http::Error as HttpError;
 
 /// List all sources for your collective
 #[derive(Clap, Debug)]
@@ -17,20 +15,14 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Error received from server at {}: {}", url, source))]
-    Http { source: reqwest::Error, url: String },
+    #[snafu(display("An http error occurred: {}!", source))]
+    HttpClient { source: HttpError },
 
-    #[snafu(display("Error received from server: {}", source))]
-    ReadResponse { source: reqwest::Error },
-
-    #[snafu(display(
-        "Error logging in via session. Consider the `login` command. {}",
-        source
-    ))]
-    Login { source: login::Error },
+    #[snafu(display("Error writing data: {}", source))]
+    WriteResult { source: SinkError },
 
     #[snafu(display("Could not query the complete id: {}", source))]
-    IdSearch { source: search::Error },
+    IdSearch { source: HttpError },
 
     #[snafu(display("The item was not found"))]
     ItemNotFound,
@@ -40,56 +32,45 @@ pub enum Error {
 }
 
 impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let item =
-            get_item(self.id.as_str(), args).map_err(|source| CmdError::ItemGet { source })?;
-        args.write_result(item)?;
+    type CmdError = Error;
+
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
+        let item = get_item(self.id.as_str(), ctx)?;
+        ctx.write_result(item).context(WriteResult)?;
         Ok(())
     }
 }
 
-pub fn get_item(id: &str, args: &CmdArgs) -> Result<ItemDetail, Error> {
+fn get_item(id: &str, ctx: &Context) -> Result<ItemDetail, Error> {
     let item_id = if id.len() < 47 {
-        get_item_id(id, args)?
+        get_item_id(id, ctx)?
     } else {
         id.into()
     };
 
-    let url = &format!("{}/api/v1/sec/item/{}", args.docspell_url(), item_id);
-    let token = login::session_token(args).context(Login)?;
-    let resp = args
+    let result = ctx
         .client
-        .get(url)
-        .header(DOCSPELL_AUTH, token)
-        .send()
-        .context(Http { url })?;
+        .get_item(&ctx.opts.session, item_id)
+        .context(HttpClient)?;
 
-    if resp.status() == StatusCode::NOT_FOUND {
-        Err(Error::ItemNotFound)
-    } else {
-        resp.error_for_status()
-            .context(Http { url })?
-            .json::<ItemDetail>()
-            .context(ReadResponse)
-    }
+    result.ok_or(Error::ItemNotFound)
 }
 
-fn get_item_id(partial_id: &str, args: &CmdArgs) -> Result<String, Error> {
+fn get_item_id(partial_id: &str, ctx: &Context) -> Result<String, Error> {
     log::debug!(
         "Item id '{}' is not complete, searching for the item via a query",
         partial_id
     );
-    search::search(
-        &search::Input {
-            query: format!("id:{}*", partial_id),
-            offset: 0,
-            limit: 2,
-            with_details: false,
-        },
-        args,
-    )
-    .context(IdSearch)
-    .and_then(|r| find_id(&r))
+    let req = SearchReq {
+        offset: 0,
+        limit: 2,
+        with_details: false,
+        query: format!("id:{}*", partial_id).into(),
+    };
+    ctx.client
+        .search(&ctx.opts.session, &req)
+        .context(IdSearch)
+        .and_then(|r| find_id(&r))
 }
 
 fn find_id(results: &SearchResult) -> Result<String, Error> {

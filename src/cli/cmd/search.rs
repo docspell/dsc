@@ -56,6 +56,6 @@ fn search(opts: &Input, ctx: &Context) -> Result<SearchResult, Error> {
     };
 
     ctx.client
-        .search(&ctx.opts.session, req)
+        .search(&ctx.opts.session, &req)
         .context(HttpClient)
 }
