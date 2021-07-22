@@ -5,8 +5,8 @@ use super::cmd::geninvite;
 use super::cmd::logout;
 use super::cmd::register;
 use super::cmd::search;
+use super::cmd::search_summary;
 use super::cmd::{login, Context};
-// use crate::cmd::search_summary;
 // use crate::cmd::source;
 // use crate::cmd::upload;
 use super::cmd::{generate_completions, version};
@@ -105,9 +105,10 @@ pub enum SubCommand {
     #[clap(version)]
     Search(search::Input),
 
-    // #[clap(setting = AppSettings::ColoredHelp)]
-    // #[clap(version, alias = "summary")]
-    // SearchSummary(search_summary::Input),
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version, alias = "summary")]
+    SearchSummary(search_summary::Input),
+
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     FileExists(file_exists::Input),

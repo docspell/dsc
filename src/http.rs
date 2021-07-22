@@ -116,6 +116,24 @@ impl Client {
             .context(SerializeResp)
     }
 
+    pub fn summary<S: Into<String>>(
+        &self,
+        token: &Option<String>,
+        query: S,
+    ) -> Result<Summary, Error> {
+        let url = &format!("{}/api/v1/sec/item/searchStats", self.base_url);
+        let token = session::session_token(token, self).context(Session)?;
+        self.client
+            .get(url)
+            .header(DOCSPELL_AUTH, token)
+            .query(&[("q", &query.into())])
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<Summary>()
+            .context(SerializeResp)
+    }
+
     pub fn int_endpoint_avail(&self, data: IntegrationData) -> Result<bool, Error> {
         let url = format!(
             "{}/api/v1/open/integration/item/{}",

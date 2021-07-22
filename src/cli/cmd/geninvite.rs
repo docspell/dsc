@@ -1,10 +1,10 @@
-use crate::http::Error as HttpError;
 use clap::Clap;
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
 use crate::cli::sink::Error as SinkError;
 use crate::http::payload::GenInvite;
+use crate::http::Error as HttpError;
 
 /// Generates a new invitation key.
 ///

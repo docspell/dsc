@@ -9,7 +9,7 @@ pub mod login;
 pub mod logout;
 pub mod register;
 pub mod search;
-// pub mod search_summary;
+pub mod search_summary;
 // pub mod source;
 // pub mod upload;
 pub mod version;
@@ -97,10 +97,7 @@ pub enum CmdError {
     // SourceList {
     //     source: source::list::Error,
     // },
-
-    // SearchSummary {
-    //     source: search_summary::Error,
-    // },
+    SearchSummary { source: search_summary::Error },
     Search { source: search::Error },
 
     // View {
@@ -169,5 +166,10 @@ impl From<geninvite::Error> for CmdError {
 impl From<register::Error> for CmdError {
     fn from(source: register::Error) -> Self {
         CmdError::Register { source }
+    }
+}
+impl From<search_summary::Error> for CmdError {
+    fn from(source: search_summary::Error) -> Self {
+        CmdError::SearchSummary { source }
     }
 }
