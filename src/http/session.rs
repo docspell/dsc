@@ -39,7 +39,7 @@ pub enum Error {
     #[snafu(display("Error serializing auth response: {}", source))]
     SerializeSession { source: serde_json::Error },
 
-    #[snafu(display("Error refreshing session: {}", mesg))]
+    #[snafu(display("Error refreshing session. Use the `login` command. {}", mesg))]
     RefreshSession { mesg: String },
 }
 

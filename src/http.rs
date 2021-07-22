@@ -177,6 +177,17 @@ impl Client {
             .json::<CheckFileResult>()
             .context(SerializeResp)
     }
+
+    pub fn gen_invite(&self, req: &GenInvite) -> Result<InviteResult, Error> {
+        let url = &format!("{}/api/v1/open/signup/newinvite", self.base_url);
+        self.client
+            .post(url)
+            .json(req)
+            .send()
+            .context(Http { url })?
+            .json::<InviteResult>()
+            .context(SerializeResp)
+    }
 }
 
 pub enum FileAuth {

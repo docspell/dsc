@@ -1,7 +1,10 @@
-use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::types::{GenInvite, InviteResult};
+use crate::http::Error as HttpError;
 use clap::Clap;
 use snafu::{ResultExt, Snafu};
+
+use super::{Cmd, Context};
+use crate::cli::sink::Error as SinkError;
+use crate::http::payload::GenInvite;
 
 /// Generates a new invitation key.
 ///
@@ -14,31 +17,23 @@ pub struct Input {
 }
 
 impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = gen_invite(self, args).map_err(|source| CmdError::GenInvite { source })?;
-        args.write_result(result)?;
+    type CmdError = Error;
+
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
+        let req = GenInvite {
+            password: self.password.clone(),
+        };
+        let result = ctx.client.gen_invite(&req).context(HttpClient)?;
+        ctx.write_result(result).context(WriteResult)?;
         Ok(())
     }
 }
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Error received from server at {}: {}", url, source))]
-    Http { source: reqwest::Error, url: String },
+    #[snafu(display("An http error occurred: {}!", source))]
+    HttpClient { source: HttpError },
 
-    #[snafu(display("Error received from server: {}", source))]
-    ReadResponse { source: reqwest::Error },
-}
-
-pub fn gen_invite(opts: &Input, args: &CmdArgs) -> Result<InviteResult, Error> {
-    let url = &format!("{}/api/v1/open/signup/newinvite", args.docspell_url());
-    args.client
-        .post(url)
-        .json(&GenInvite {
-            password: opts.password.clone(),
-        })
-        .send()
-        .context(Http { url })?
-        .json::<InviteResult>()
-        .context(ReadResponse)
+    #[snafu(display("Error writing data: {}", source))]
+    WriteResult { source: SinkError },
 }

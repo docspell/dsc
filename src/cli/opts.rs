@@ -1,6 +1,6 @@
 // use crate::cmd::download;
 use super::cmd::file_exists;
-// use crate::cmd::geninvite;
+use super::cmd::geninvite;
 // use crate::cmd::item;
 use super::cmd::logout;
 use super::cmd::{login, Context};
@@ -111,10 +111,10 @@ pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     FileExists(file_exists::Input),
-    // #[clap(setting = AppSettings::ColoredHelp)]
-    // #[clap(version)]
-    // GenInvite(geninvite::Input),
 
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    GenInvite(geninvite::Input),
     // #[clap(setting = AppSettings::ColoredHelp)]
     // #[clap(version)]
     // Register(register::Input),
