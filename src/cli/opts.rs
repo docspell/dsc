@@ -6,8 +6,8 @@ use super::cmd::logout;
 use super::cmd::register;
 use super::cmd::search;
 use super::cmd::search_summary;
+use super::cmd::source;
 use super::cmd::{login, Context};
-// use crate::cmd::source;
 // use crate::cmd::upload;
 use super::cmd::{generate_completions, version};
 // use crate::cmd::view;
@@ -120,10 +120,10 @@ pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Register(register::Input),
-    // #[clap(setting = AppSettings::ColoredHelp)]
-    // #[clap(version)]
-    // Source(source::Input),
 
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    Source(source::Input),
     // #[clap(setting = AppSettings::ColoredHelp)]
     // #[clap(version)]
     // Item(item::Input),

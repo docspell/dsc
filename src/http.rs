@@ -134,6 +134,19 @@ impl Client {
             .context(SerializeResp)
     }
 
+    pub fn list_sources(&self, token: &Option<String>) -> Result<SourceList, Error> {
+        let url = &format!("{}/api/v1/sec/source", self.base_url);
+        let token = session::session_token(token, self).context(Session)?;
+        self.client
+            .get(url)
+            .header(DOCSPELL_AUTH, token)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<SourceList>()
+            .context(SerializeResp)
+    }
+
     pub fn int_endpoint_avail(&self, data: IntegrationData) -> Result<bool, Error> {
         let url = format!(
             "{}/api/v1/open/integration/item/{}",

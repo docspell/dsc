@@ -10,7 +10,7 @@ pub mod logout;
 pub mod register;
 pub mod search;
 pub mod search_summary;
-// pub mod source;
+pub mod source;
 // pub mod upload;
 pub mod version;
 // pub mod view;
@@ -93,10 +93,7 @@ pub enum CmdError {
     // Cleanup {
     //     source: cleanup::Error,
     // },
-
-    // SourceList {
-    //     source: source::list::Error,
-    // },
+    Source { source: source::Error },
     SearchSummary { source: search_summary::Error },
     Search { source: search::Error },
 
@@ -171,5 +168,10 @@ impl From<register::Error> for CmdError {
 impl From<search_summary::Error> for CmdError {
     fn from(source: search_summary::Error) -> Self {
         CmdError::SearchSummary { source }
+    }
+}
+impl From<source::Error> for CmdError {
+    fn from(source: source::Error) -> Self {
+        CmdError::Source { source }
     }
 }
