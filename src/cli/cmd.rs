@@ -7,7 +7,7 @@ pub mod geninvite;
 // pub mod item;
 pub mod login;
 pub mod logout;
-// pub mod register;
+pub mod register;
 pub mod search;
 // pub mod search_summary;
 // pub mod source;
@@ -110,10 +110,7 @@ pub enum CmdError {
     // Download {
     //     source: download::Error,
     // },
-
-    // Register {
-    //     source: register::Error,
-    // },
+    Register { source: register::Error },
     GenInvite { source: geninvite::Error },
     FileExists { source: file_exists::Error },
 
@@ -167,5 +164,10 @@ impl From<file_exists::Error> for CmdError {
 impl From<geninvite::Error> for CmdError {
     fn from(source: geninvite::Error) -> Self {
         CmdError::GenInvite { source }
+    }
+}
+impl From<register::Error> for CmdError {
+    fn from(source: register::Error) -> Self {
+        CmdError::Register { source }
     }
 }

@@ -1,7 +1,10 @@
-use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::types::{BasicResult, Registration};
 use clap::{Clap, ValueHint};
 use snafu::{ResultExt, Snafu};
+
+use super::{Cmd, Context};
+use crate::cli::sink::Error as SinkError;
+use crate::http::payload::Registration;
+use crate::http::Error as HttpError;
 
 /// Register a new account at Docspell.
 #[derive(Clap, Debug)]
@@ -26,37 +29,27 @@ pub struct Input {
 }
 
 impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = register(self, args).map_err(|source| CmdError::Register { source })?;
-        args.write_result(result)?;
+    type CmdError = Error;
+
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
+        let body = Registration {
+            collective_name: self.collective_name.clone(),
+            login: self.login.clone(),
+            password: self.password.clone(),
+            invite: self.invite.clone(),
+        };
+
+        let result = ctx.client.register(&body).context(HttpClient)?;
+        ctx.write_result(result).context(WriteResult)?;
         Ok(())
     }
 }
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Error received from server at {}: {}", url, source))]
-    Http { source: reqwest::Error, url: String },
+    #[snafu(display("An http error occurred: {}!", source))]
+    HttpClient { source: HttpError },
 
-    #[snafu(display("Error received from server: {}", source))]
-    ReadResponse { source: reqwest::Error },
-}
-
-fn register(opts: &Input, args: &CmdArgs) -> Result<BasicResult, Error> {
-    let url = &format!("{}/api/v1/open/signup/register", args.docspell_url());
-    let body = &Registration {
-        collective_name: opts.collective_name.clone(),
-        login: opts.login.clone(),
-        password: opts.password.clone(),
-        invite: opts.invite.clone(),
-    };
-    log::debug!("Register new account: {:?}", body);
-    args.client
-        .post(url)
-        .json(body)
-        .send()
-        .and_then(|r| r.error_for_status())
-        .context(Http { url })?
-        .json::<BasicResult>()
-        .context(ReadResponse)
+    #[snafu(display("Error writing data: {}", source))]
+    WriteResult { source: SinkError },
 }

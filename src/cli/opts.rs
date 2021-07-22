@@ -3,9 +3,9 @@ use super::cmd::file_exists;
 use super::cmd::geninvite;
 // use crate::cmd::item;
 use super::cmd::logout;
-use super::cmd::{login, Context};
-// use crate::cmd::register;
+use super::cmd::register;
 use super::cmd::search;
+use super::cmd::{login, Context};
 // use crate::cmd::search_summary;
 // use crate::cmd::source;
 // use crate::cmd::upload;
@@ -115,10 +115,10 @@ pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     GenInvite(geninvite::Input),
-    // #[clap(setting = AppSettings::ColoredHelp)]
-    // #[clap(version)]
-    // Register(register::Input),
 
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    Register(register::Input),
     // #[clap(setting = AppSettings::ColoredHelp)]
     // #[clap(version)]
     // Source(source::Input),

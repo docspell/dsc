@@ -188,6 +188,19 @@ impl Client {
             .json::<InviteResult>()
             .context(SerializeResp)
     }
+
+    pub fn register(&self, req: &Registration) -> Result<BasicResult, Error> {
+        let url = &format!("{}/api/v1/open/signup/register", self.base_url);
+        log::debug!("Register new account: {:?}", req);
+        self.client
+            .post(url)
+            .json(req)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<BasicResult>()
+            .context(SerializeResp)
+    }
 }
 
 pub enum FileAuth {
