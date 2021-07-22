@@ -3,7 +3,7 @@ pub mod session;
 mod util;
 
 use self::payload::*;
-use self::util::DOCSPELL_AUTH;
+use self::util::{DOCSPELL_ADMIN, DOCSPELL_AUTH};
 use reqwest::{blocking::RequestBuilder, StatusCode};
 use snafu::{ResultExt, Snafu};
 
@@ -255,6 +255,56 @@ impl Client {
             .and_then(|r| r.error_for_status())
             .context(Http { url })?
             .json::<BasicResult>()
+            .context(SerializeResp)
+    }
+
+    pub fn admin_generate_previews<S: Into<String>>(
+        &self,
+        admin_secret: S,
+    ) -> Result<BasicResult, Error> {
+        let url = &format!(
+            "{}/api/v1/admin/attachments/generatePreviews",
+            self.base_url
+        );
+        self.client
+            .post(url)
+            .header(DOCSPELL_ADMIN, admin_secret.into())
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<BasicResult>()
+            .context(SerializeResp)
+    }
+
+    pub fn admin_recreate_index<S: Into<String>>(
+        &self,
+        admin_secret: S,
+    ) -> Result<BasicResult, Error> {
+        let url = &format!("{}/api/v1/admin/fts/reIndexAll", self.base_url);
+        self.client
+            .post(url)
+            .header(DOCSPELL_ADMIN, admin_secret.into())
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<BasicResult>()
+            .context(SerializeResp)
+    }
+
+    pub fn admin_reset_password<S: Into<String>>(
+        &self,
+        admin_secret: S,
+        account: &Account,
+    ) -> Result<ResetPasswordResp, Error> {
+        let url = &format!("{}/api/v1/admin/user/resetPassword", self.base_url);
+        self.client
+            .post(url)
+            .header(DOCSPELL_ADMIN, admin_secret.into())
+            .json(&account)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<ResetPasswordResp>()
             .context(SerializeResp)
     }
 }

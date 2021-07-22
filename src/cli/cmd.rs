@@ -1,4 +1,4 @@
-// pub mod admin;
+pub mod admin;
 // pub mod cleanup;
 // pub mod download;
 pub mod file_exists;
@@ -106,17 +106,8 @@ pub enum CmdError {
     GenInvite { source: geninvite::Error },
     FileExists { source: file_exists::Error },
 
-    // AdminGeneratePreview {
-    //     source: admin::generate_previews::Error,
-    // },
+    Admin { source: admin::Error },
 
-    // AdminRecreateIndex {
-    //     source: admin::recreate_index::Error,
-    // },
-
-    // AdminResetPassword {
-    //     source: admin::reset_password::Error,
-    // },
     WriteSink { source: SinkError },
 
     WriteConfig { source: ConfigError },
@@ -176,5 +167,10 @@ impl From<source::Error> for CmdError {
 impl From<item::Error> for CmdError {
     fn from(source: item::Error) -> Self {
         CmdError::Item { source }
+    }
+}
+impl From<admin::Error> for CmdError {
+    fn from(source: admin::Error) -> Self {
+        CmdError::Admin { source }
     }
 }

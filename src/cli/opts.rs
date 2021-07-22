@@ -1,4 +1,5 @@
 // use crate::cmd::download;
+use super::cmd::admin;
 use super::cmd::file_exists;
 use super::cmd::geninvite;
 use super::cmd::item;
@@ -143,10 +144,9 @@ pub enum SubCommand {
     // #[clap(setting = AppSettings::ColoredHelp)]
     // #[clap(version)]
     // Cleanup(cleanup::Input),
-
-    // #[clap(setting = AppSettings::ColoredHelp)]
-    // #[clap(version)]
-    // Admin(admin::Input),
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    Admin(admin::Input),
 }
 
 #[derive(ArgEnum, Debug, Copy, Clone, Serialize, Deserialize)]

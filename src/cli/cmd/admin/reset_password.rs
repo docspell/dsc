@@ -1,10 +1,11 @@
-use crate::cmd::{admin, CmdArgs, CmdError};
-use crate::types::DOCSPELL_ADMIN;
-use crate::types::{Account, ResetPasswordResp};
 use clap::{Clap, ValueHint};
 use snafu::{ResultExt, Snafu};
 
 use super::AdminCmd;
+use super::Context;
+use crate::cli::sink::Error as SinkError;
+use crate::http::payload::{Account, ResetPasswordResp};
+use crate::http::Error as HttpError;
 
 /// Resets the password of the given account.
 #[derive(Clap, std::fmt::Debug)]
@@ -14,21 +15,22 @@ pub struct Input {
 }
 
 impl AdminCmd for Input {
-    fn exec(&self, admin_opts: &admin::Input, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = reset_password(self, admin_opts, args)
-            .map_err(|source| CmdError::AdminResetPassword { source })?;
-        args.write_result(result)?;
+    type CmdError = Error;
+
+    fn exec(&self, admin_opts: &super::Input, ctx: &Context) -> Result<(), Error> {
+        let result = reset_password(self, admin_opts, ctx)?;
+        ctx.write_result(result).context(WriteResult)?;
         Ok(())
     }
 }
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Error received from server at {}: {}", url, source))]
-    Http { source: reqwest::Error, url: String },
+    #[snafu(display("An http error occurred: {}!", source))]
+    HttpClient { source: HttpError },
 
-    #[snafu(display("Error received from server: {}", source))]
-    ReadResponse { source: reqwest::Error },
+    #[snafu(display("Error writing data: {}", source))]
+    WriteResult { source: SinkError },
 
     #[snafu(display("No admin secret provided!"))]
     NoAdminSecret,
@@ -36,21 +38,14 @@ pub enum Error {
 
 pub fn reset_password(
     input: &Input,
-    admin_opts: &admin::Input,
-    args: &CmdArgs,
+    admin_opts: &super::Input,
+    ctx: &Context,
 ) -> Result<ResetPasswordResp, Error> {
-    let secret = admin::get_secret(admin_opts, args).ok_or(Error::NoAdminSecret)?;
-    let url = &format!("{}/api/v1/admin/user/resetPassword", args.docspell_url());
+    let secret = super::get_secret(admin_opts, ctx).ok_or(Error::NoAdminSecret)?;
     let account = Account {
         account: input.account.clone(),
     };
-    args.client
-        .post(url)
-        .header(DOCSPELL_ADMIN, secret)
-        .json(&account)
-        .send()
-        .and_then(|r| r.error_for_status())
-        .context(Http { url })?
-        .json::<ResetPasswordResp>()
-        .context(ReadResponse)
+    ctx.client
+        .admin_reset_password(secret, &account)
+        .context(HttpClient)
 }

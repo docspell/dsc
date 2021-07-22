@@ -2,8 +2,10 @@ pub mod generate_previews;
 pub mod recreate_index;
 pub mod reset_password;
 
-use crate::cmd::{Cmd, CmdArgs, CmdError};
 use clap::{AppSettings, Clap};
+use snafu::{ResultExt, Snafu};
+
+use super::{Cmd, Context};
 
 /// Admin commands.
 ///
@@ -18,6 +20,13 @@ pub struct Input {
 
     #[clap(subcommand)]
     pub subcmd: AdminCommand,
+}
+
+#[derive(Debug, Snafu)]
+pub enum Error {
+    GeneratePreview { source: generate_previews::Error },
+    RecreateIndex { source: recreate_index::Error },
+    ResetPassword { source: reset_password::Error },
 }
 
 #[derive(Clap, Debug)]
@@ -36,27 +45,31 @@ pub enum AdminCommand {
 }
 
 impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
+    type CmdError = Error;
+
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
         match &self.subcmd {
-            AdminCommand::GeneratePreviews(input) => input.exec(self, args),
-            AdminCommand::RecreateIndex(input) => input.exec(self, args),
-            AdminCommand::ResetPassword(input) => input.exec(self, args),
+            AdminCommand::GeneratePreviews(input) => input.exec(self, ctx).context(GeneratePreview),
+            AdminCommand::RecreateIndex(input) => input.exec(self, ctx).context(RecreateIndex),
+            AdminCommand::ResetPassword(input) => input.exec(self, ctx).context(ResetPassword),
         }
     }
 }
 
 pub trait AdminCmd {
-    fn exec<'a>(&self, admin_opts: &'a Input, args: &'a CmdArgs) -> Result<(), CmdError>;
+    type CmdError;
+
+    fn exec<'a>(&self, admin_opts: &'a Input, args: &'a Context) -> Result<(), Self::CmdError>;
 }
 
-fn get_secret(opts: &Input, args: &CmdArgs) -> Option<String> {
+fn get_secret(opts: &Input, ctx: &Context) -> Option<String> {
     let secret = opts
         .admin_secret
         .as_ref()
-        .or(args.cfg.admin_secret.as_ref())
+        .or(ctx.cfg.admin_secret.as_ref())
         .map(String::clone);
 
-    if secret.is_some() && args.opts.verbose > 2 {
+    if secret.is_some() && ctx.opts.verbose > 2 {
         log::debug!("Using secret: {:?}", secret);
     }
 
