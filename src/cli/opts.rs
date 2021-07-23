@@ -10,8 +10,8 @@ use super::cmd::search_summary;
 use super::cmd::source;
 use super::cmd::{login, Context};
 // use crate::cmd::upload;
+use super::cmd::view;
 use super::cmd::{generate_completions, version};
-// use crate::cmd::view;
 // use crate::cmd::watch;
 use crate::{
     config::DsConfig,
@@ -136,9 +136,9 @@ pub enum SubCommand {
     #[clap(version)]
     Download(download::Input),
 
-    // #[clap(setting = AppSettings::ColoredHelp)]
-    // #[clap(version)]
-    // View(view::Input),
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    View(view::Input),
 
     // #[clap(setting = AppSettings::ColoredHelp)]
     // #[clap(version)]

@@ -3,7 +3,7 @@ use snafu::{ResultExt, Snafu};
 use std::path::{Display, PathBuf};
 
 use super::{Cmd, Context};
-use crate::{cli::sink::Error as SinkError, http::payload::SearchReq};
+use crate::http::payload::SearchReq;
 use crate::{
     http::{Downloads, Error as HttpError},
     util::dupes::Dupes,
@@ -89,9 +89,6 @@ pub enum DupeMode {
 pub enum Error {
     #[snafu(display("An http error occurred: {}!", source))]
     HttpClient { source: HttpError },
-
-    #[snafu(display("Error writing data: {}", source))]
-    WriteResult { source: SinkError },
 
     #[snafu(display("Error creating a file. {}", source))]
     CreateFile { source: std::io::Error },

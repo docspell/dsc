@@ -13,7 +13,7 @@ pub mod search_summary;
 pub mod source;
 // pub mod upload;
 pub mod version;
-// pub mod view;
+pub mod view;
 // pub mod watch;
 
 use super::opts::Format;
@@ -95,9 +95,7 @@ pub enum CmdError {
     SearchSummary { source: search_summary::Error },
     Search { source: search::Error },
 
-    // View {
-    //     source: view::Error,
-    // },
+    View { source: view::Error },
     Download { source: download::Error },
     Register { source: register::Error },
     GenInvite { source: geninvite::Error },
@@ -174,5 +172,10 @@ impl From<admin::Error> for CmdError {
 impl From<download::Error> for CmdError {
     fn from(source: download::Error) -> Self {
         CmdError::Download { source }
+    }
+}
+impl From<view::Error> for CmdError {
+    fn from(source: view::Error) -> Self {
+        CmdError::View { source }
     }
 }

@@ -1,11 +1,12 @@
-use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::{cmd::login, types::DOCSPELL_AUTH};
-use crate::{cmd::search, types::Attach};
 use clap::{ArgGroup, Clap};
 use dialoguer::Confirm;
-use reqwest::blocking::Response;
 use snafu::{ResultExt, Snafu};
 use std::{path::PathBuf, process::Command};
+
+use super::{Cmd, Context};
+use crate::http::payload::SearchReq;
+use crate::http::DownloadRef;
+use crate::http::Error as HttpError;
 
 /// View pdf files.
 ///
@@ -34,29 +35,10 @@ pub struct Input {
     stop: bool,
 }
 
-impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        view(self, args).map_err(|source| CmdError::View { source })?;
-        Ok(())
-    }
-}
-
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Error received from server at {}: {}", url, source))]
-    Http { source: reqwest::Error, url: String },
-
-    #[snafu(display("Error received from server: {}", source))]
-    ReadResponse { source: reqwest::Error },
-
-    #[snafu(display(
-        "Error logging in via session. Consider the `login` command. {}",
-        source
-    ))]
-    Login { source: login::Error },
-
-    #[snafu(display("Error while searching. {}", source))]
-    Search { source: search::Error },
+    #[snafu(display("An http error occurred: {}!", source))]
+    HttpClient { source: HttpError },
 
     #[snafu(display("Error creating a file. {}", source))]
     CreateFile { source: std::io::Error },
@@ -71,57 +53,67 @@ pub enum Error {
     Interact { source: std::io::Error },
 }
 
-pub fn view(opts: &Input, args: &CmdArgs) -> Result<(), Error> {
-    let parent = std::env::temp_dir().join("dsc-view");
+impl Cmd for Input {
+    type CmdError = Error;
 
-    if !parent.exists() {
-        std::fs::create_dir_all(&parent).context(CreateFile)?;
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
+        let parent = std::env::temp_dir().join("dsc-view");
+
+        if !parent.exists() {
+            std::fs::create_dir_all(&parent).context(CreateFile)?;
+        }
+
+        view_all(self, ctx, &parent)
     }
-
-    view_all(opts, args, &parent)
 }
 
-pub fn view_all(opts: &Input, args: &CmdArgs, parent: &PathBuf) -> Result<(), Error> {
-    let search_params = search::Input {
+pub fn view_all(opts: &Input, ctx: &Context, parent: &PathBuf) -> Result<(), Error> {
+    let req = SearchReq {
         query: opts.query.clone(),
         offset: opts.offset,
         limit: opts.limit,
         with_details: true,
     };
-    let result = search::search(&search_params, args).context(Search)?;
+    let result = ctx
+        .client
+        .download_search(&ctx.opts.session, &req)
+        .context(HttpClient)?;
 
     let mut confirm = false;
-    for g in result.groups {
-        for item in g.items {
-            for a in item.attachments {
-                if confirm {
-                    if is_stop_viewing(opts)? {
-                        return Ok(());
-                    }
-                } else {
-                    confirm = true;
-                }
-
-                let file = download(a, args, parent)?;
-                let tool = &args.cfg.pdf_viewer.get(0).ok_or(Error::NoPdfViewer)?;
-                let tool_args: Vec<String> = args
-                    .cfg
-                    .pdf_viewer
-                    .iter()
-                    .skip(1)
-                    .map(|s| s.replace("{}", file.display().to_string().as_str()))
-                    .collect();
-                log::info!(
-                    "Run: {} {}",
-                    tool,
-                    tool_args
-                        .iter()
-                        .map(|s| format!("'{}'", s))
-                        .collect::<Vec<String>>()
-                        .join(" ")
-                );
-                Command::new(tool).args(tool_args).output().context(Exec)?;
+    for dref in result {
+        if confirm {
+            if is_stop_viewing(opts)? {
+                return Ok(());
             }
+        } else {
+            confirm = true;
+        }
+
+        let file = download(&dref, ctx, parent)?;
+        if let Some(f) = file {
+            let tool = &ctx.cfg.pdf_viewer.get(0).ok_or(Error::NoPdfViewer)?;
+            let tool_args: Vec<String> = ctx
+                .cfg
+                .pdf_viewer
+                .iter()
+                .skip(1)
+                .map(|s| s.replace("{}", f.display().to_string().as_str()))
+                .collect();
+            log::info!(
+                "Run: {} {}",
+                tool,
+                tool_args
+                    .iter()
+                    .map(|s| format!("'{}'", s))
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            );
+            Command::new(tool).args(tool_args).output().context(Exec)?;
+        } else {
+            eprintln!(
+                "Skip attachment: {}/{}. There was no file!",
+                dref.id, dref.name
+            );
         }
     }
 
@@ -143,34 +135,27 @@ fn is_stop_viewing(opts: &Input) -> Result<bool, Error> {
     return Ok(false);
 }
 
-fn download(attach: Attach, args: &CmdArgs, parent: &PathBuf) -> Result<PathBuf, Error> {
-    let mut resp = attach.download(args)?;
+fn download(
+    attach: &DownloadRef,
+    ctx: &Context,
+    parent: &PathBuf,
+) -> Result<Option<PathBuf>, Error> {
+    let dlopt = attach
+        .get(&ctx.client, &ctx.opts.session)
+        .context(HttpClient)?;
+
     let path = parent.join("view.pdf");
 
-    if path.exists() {
-        std::fs::remove_file(&path).context(CreateFile)?;
-    }
+    if let Some(mut dl) = dlopt {
+        if path.exists() {
+            std::fs::remove_file(&path).context(CreateFile)?;
+        }
 
-    let file = std::fs::File::create(&path).context(CreateFile)?;
-    let mut writer = std::io::BufWriter::new(file);
-    resp.copy_to(&mut writer).context(ReadResponse)?;
-
-    Ok(path)
-}
-
-impl Attach {
-    fn to_url(&self, args: &CmdArgs) -> String {
-        format!("{}/api/v1/sec/attachment/{}", args.docspell_url(), self.id)
-    }
-
-    fn download(&self, args: &CmdArgs) -> Result<Response, Error> {
-        let url = self.to_url(args);
-        let token = login::session_token(args).context(Login)?;
-        args.client
-            .get(&url)
-            .header(DOCSPELL_AUTH, &token)
-            .send()
-            .and_then(|r| r.error_for_status())
-            .context(Http { url: url.clone() })
+        let file = std::fs::File::create(&path).context(CreateFile)?;
+        let mut writer = std::io::BufWriter::new(file);
+        dl.copy_to(&mut writer).context(HttpClient)?;
+        Ok(Some(path))
+    } else {
+        Ok(None)
     }
 }
