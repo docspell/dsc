@@ -2,9 +2,12 @@ pub mod payload;
 pub mod session;
 mod util;
 
+use std::io::Write;
+
 use self::payload::*;
 use self::util::{DOCSPELL_ADMIN, DOCSPELL_AUTH};
-use reqwest::{blocking::RequestBuilder, StatusCode};
+use reqwest::blocking::{RequestBuilder, Response};
+use reqwest::StatusCode;
 use snafu::{ResultExt, Snafu};
 
 #[derive(Debug, Snafu)]
@@ -170,6 +173,15 @@ impl Client {
                 .context(SerializeResp)
                 .map(|r| Some(r))
         }
+    }
+
+    pub fn download_search(
+        &self,
+        token: &Option<String>,
+        req: &SearchReq,
+    ) -> Result<Downloads, Error> {
+        let results = self.search(token, req)?;
+        Ok(Downloads::new(&results))
     }
 
     pub fn int_endpoint_avail(&self, data: IntegrationData) -> Result<bool, Error> {
@@ -363,5 +375,159 @@ impl FileAuth {
                 Ok(rb.header(DOCSPELL_AUTH, h))
             }
         }
+    }
+}
+
+pub struct Download {
+    pub id: String,
+    pub url: String,
+    pub name: String,
+    resp: Response,
+}
+
+impl Download {
+    pub fn get_filename(&self) -> Option<&str> {
+        self.resp
+            .headers()
+            .get("Content-Disposition")
+            .and_then(|hv| hv.to_str().ok())
+            .and_then(util::filename_from_header)
+    }
+
+    pub fn copy_to<W: ?Sized>(&mut self, w: &mut W) -> Result<u64, Error>
+    where
+        W: Write,
+    {
+        let resp = &mut self.resp;
+        resp.copy_to(w).context(Http {
+            url: self.url.clone(),
+        })
+    }
+}
+
+pub struct DownloadRef {
+    pub id: String,
+    pub name: String,
+}
+impl DownloadRef {
+    fn new<S: Into<String>>(id: S, name: S) -> DownloadRef {
+        DownloadRef {
+            id: id.into(),
+            name: name.into(),
+        }
+    }
+
+    pub fn has_archive(&self, client: &Client, token: &Option<String>) -> Result<bool, Error> {
+        let url = format!(
+            "{}/api/v1/sec/attachment/{}/archive",
+            client.base_url, self.id
+        );
+        self.head_file(client, token, &url)
+    }
+
+    pub fn get(&self, client: &Client, token: &Option<String>) -> Result<Option<Download>, Error> {
+        let url = format!("{}/api/v1/sec/attachment/{}", client.base_url, self.id);
+        self.get_file(client, token, &url)
+    }
+
+    pub fn get_original(
+        &self,
+        client: &Client,
+        token: &Option<String>,
+    ) -> Result<Option<Download>, Error> {
+        let url = format!(
+            "{}/api/v1/sec/attachment/{}/original",
+            client.base_url, self.id
+        );
+        self.get_file(client, token, &url)
+    }
+
+    pub fn get_archive(
+        &self,
+        client: &Client,
+        token: &Option<String>,
+    ) -> Result<Option<Download>, Error> {
+        let url = format!(
+            "{}/api/v1/sec/attachment/{}/archive",
+            client.base_url, self.id
+        );
+        self.get_file(client, token, &url)
+    }
+
+    fn get_file(
+        &self,
+        client: &Client,
+        token: &Option<String>,
+        url: &str,
+    ) -> Result<Option<Download>, Error> {
+        let token = session::session_token(token, client).context(Session)?;
+        let resp = client
+            .client
+            .get(url)
+            .header(DOCSPELL_AUTH, &token)
+            .send()
+            .context(Http { url: url.clone() })?;
+        if resp.status() == StatusCode::NOT_FOUND {
+            Ok(None)
+        } else {
+            Ok(Some(Download {
+                id: self.id.clone(),
+                url: url.to_string(),
+                resp: resp.error_for_status().context(Http { url: url.clone() })?,
+                name: self.name.clone(),
+            }))
+        }
+    }
+
+    fn head_file(&self, client: &Client, token: &Option<String>, url: &str) -> Result<bool, Error> {
+        let token = session::session_token(token, client).context(Session)?;
+        let resp = client
+            .client
+            .head(url)
+            .header(DOCSPELL_AUTH, &token)
+            .send()
+            .context(Http { url: url.clone() })?;
+        if resp.status() == StatusCode::NOT_FOUND {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+}
+
+pub struct Downloads {
+    refs: Vec<DownloadRef>,
+}
+
+impl Downloads {
+    fn new(results: &SearchResult) -> Downloads {
+        let refs: Vec<DownloadRef> = results
+            .groups
+            .iter()
+            .flat_map(|g| g.items.iter())
+            .flat_map(|i| i.attachments.iter())
+            .map(|a| DownloadRef::new(&a.id, &a.name.as_ref().unwrap_or(&format!("{}.pdf", &a.id))))
+            .collect();
+
+        Downloads { refs }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.refs.is_empty()
+    }
+
+    pub fn non_empty(&self) -> bool {
+        !self.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.refs.len()
+    }
+}
+impl Iterator for Downloads {
+    type Item = DownloadRef;
+
+    fn next(&mut self) -> Option<DownloadRef> {
+        self.refs.pop()
     }
 }

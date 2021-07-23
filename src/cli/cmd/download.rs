@@ -1,13 +1,12 @@
-use crate::cmd::search;
-use crate::cmd::{Cmd, CmdArgs, CmdError};
-use crate::file;
-use crate::{cmd::login, types::DOCSPELL_AUTH};
 use clap::{ArgEnum, ArgGroup, Clap};
-use reqwest::{blocking::Response, StatusCode};
 use snafu::{ResultExt, Snafu};
-use std::{
-    collections::HashMap,
-    path::{Display, PathBuf},
+use std::path::{Display, PathBuf};
+
+use super::{Cmd, Context};
+use crate::{cli::sink::Error as SinkError, http::payload::SearchReq};
+use crate::{
+    http::{Downloads, Error as HttpError},
+    util::dupes::Dupes,
 };
 
 /// Downloads files given a query.
@@ -68,37 +67,6 @@ pub struct Input {
     #[clap(short, long)]
     target: Option<PathBuf>,
 }
-
-#[derive(ArgEnum, Debug, PartialEq, Eq)]
-pub enum DupeMode {
-    Skip,
-    Rename,
-}
-
-impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        check_args(self)
-            .and_then(|_unit| download(self, args))
-            .map_err(|source| CmdError::Download { source })?;
-        Ok(())
-    }
-}
-
-fn check_args(args: &Input) -> Result<(), Error> {
-    match &args.target {
-        Some(path) => {
-            if args.zip && path.exists() && path.is_dir() {
-                Err(Error::NotAFile { path: path.clone() })
-            } else if !args.zip && !path.is_dir() && path.exists() {
-                Err(Error::NotADirectory { path: path.clone() })
-            } else {
-                Ok(())
-            }
-        }
-        None => Ok(()),
-    }
-}
-
 impl Input {
     fn download_type(&self) -> &'static str {
         if self.original {
@@ -111,22 +79,19 @@ impl Input {
     }
 }
 
+#[derive(ArgEnum, Debug, PartialEq, Eq)]
+pub enum DupeMode {
+    Skip,
+    Rename,
+}
+
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Error received from server at {}: {}", url, source))]
-    Http { source: reqwest::Error, url: String },
+    #[snafu(display("An http error occurred: {}!", source))]
+    HttpClient { source: HttpError },
 
-    #[snafu(display("Error received from server: {}", source))]
-    ReadResponse { source: reqwest::Error },
-
-    #[snafu(display(
-        "Error logging in via session. Consider the `login` command. {}",
-        source
-    ))]
-    Login { source: login::Error },
-
-    #[snafu(display("Error while searching. {}", source))]
-    Search { source: search::Error },
+    #[snafu(display("Error writing data: {}", source))]
+    WriteResult { source: SinkError },
 
     #[snafu(display("Error creating a file. {}", source))]
     CreateFile { source: std::io::Error },
@@ -144,74 +109,84 @@ pub enum Error {
     NotAFile { path: PathBuf },
 }
 
-fn action_msg(opts: &Input, len: usize, target: Display) -> String {
-    if opts.original {
-        format!("original files of {} attachments into {}", len, target)
-    } else if opts.archive {
-        format!("archives of {} attachments into {}", len, target)
-    } else {
-        format!("{} attachments into {}", len, target)
-    }
-}
+impl Cmd for Input {
+    type CmdError = Error;
 
-pub fn download(opts: &Input, args: &CmdArgs) -> Result<(), Error> {
-    let attachs = get_attachments(opts, args)?;
-    if attachs.is_empty() {
-        println!("The search result is empty.");
-        Ok(())
-    } else {
-        match opts.zip {
-            true => {
-                let zip_file = opts
-                    .target
-                    .clone()
-                    .unwrap_or(PathBuf::from("docspell-files.zip"));
-                if let Some(parent) = zip_file.parent() {
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
+        check_args(self)?;
+        let req = SearchReq {
+            offset: self.offset,
+            limit: self.limit,
+            with_details: true,
+            query: self.query.clone(),
+        };
+        let attachs = ctx
+            .client
+            .download_search(&ctx.opts.session, &req)
+            .context(HttpClient)?;
+
+        if attachs.is_empty() {
+            println!("The search result is empty.");
+            Ok(())
+        } else {
+            match self.zip {
+                true => {
+                    let zip_file = self
+                        .target
+                        .clone()
+                        .unwrap_or(PathBuf::from("docspell-files.zip"));
+                    if let Some(parent) = zip_file.parent() {
+                        if !parent.exists() {
+                            std::fs::create_dir_all(&parent).context(CreateFile)?;
+                        }
+                    }
+                    println!(
+                        "Zipping {}",
+                        action_msg(self, attachs.len(), zip_file.display())
+                    );
+
+                    download_zip(attachs, self, ctx, &zip_file)
+                }
+                false => {
+                    let parent = self
+                        .target
+                        .clone()
+                        .unwrap_or(std::env::current_dir().context(CreateFile)?);
+
                     if !parent.exists() {
                         std::fs::create_dir_all(&parent).context(CreateFile)?;
                     }
+                    println!(
+                        "Downloading {}",
+                        action_msg(self, attachs.len(), parent.display())
+                    );
+
+                    download_flat(attachs, self, ctx, &parent)
                 }
-                println!(
-                    "Zipping {}",
-                    action_msg(opts, attachs.len(), zip_file.display())
-                );
-
-                download_zip(attachs, opts, args, &zip_file)
-            }
-            false => {
-                let parent = opts
-                    .target
-                    .clone()
-                    .unwrap_or(std::env::current_dir().context(CreateFile)?);
-
-                if !parent.exists() {
-                    std::fs::create_dir_all(&parent).context(CreateFile)?;
-                }
-                println!(
-                    "Downloading {}",
-                    action_msg(opts, attachs.len(), parent.display())
-                );
-
-                download_flat(attachs, opts, args, &parent)
             }
         }
     }
 }
 
 fn download_flat(
-    attachs: Vec<Attach>,
+    attachs: Downloads,
     opts: &Input,
-    args: &CmdArgs,
+    ctx: &Context,
     parent: &PathBuf,
 ) -> Result<(), Error> {
     let mut dupes = Dupes::new();
-    for s in attachs {
-        let (mut resp, url) = s.download(opts, args)?;
-        if resp.status() == StatusCode::NOT_FOUND {
-            println!("No {} file for attachment {}", opts.download_type(), s.name);
+    for dref in attachs {
+        let dlopt = if opts.original {
+            dref.get_original(&ctx.client, &ctx.opts.session)
+        } else if opts.archive {
+            dref.get_archive(&ctx.client, &ctx.opts.session)
         } else {
-            resp = resp.error_for_status().context(Http { url })?;
-            let org_name = get_filename(&resp).unwrap_or(&s.name);
+            dref.get(&ctx.client, &ctx.opts.session)
+        }
+        .context(HttpClient)?;
+
+        if let Some(mut dl) = dlopt {
+            let org_name = dl.get_filename().unwrap_or(&dref.name);
             let (fname, duplicate) = dupes.use_name(org_name);
             let path = parent.join(&fname);
             if path.exists() && !opts.overwrite {
@@ -222,17 +197,23 @@ fn download_flat(
                 println!("Downloading {} …", &fname);
                 let file = std::fs::File::create(path).context(CreateFile)?;
                 let mut writer = std::io::BufWriter::new(file);
-                resp.copy_to(&mut writer).context(ReadResponse)?;
+                dl.copy_to(&mut writer).context(HttpClient)?;
             }
+        } else {
+            println!(
+                "No {} file for attachment {}",
+                opts.download_type(),
+                dref.name
+            );
         }
     }
     Ok(())
 }
 
 fn download_zip(
-    attachs: Vec<Attach>,
+    attachs: Downloads,
     opts: &Input,
-    args: &CmdArgs,
+    ctx: &Context,
     zip_file: &PathBuf,
 ) -> Result<(), Error> {
     if zip_file.exists() && !opts.overwrite {
@@ -244,13 +225,18 @@ fn download_zip(
         let zip = std::fs::File::create(zip_file).context(CreateFile)?;
         let mut zw = zip::ZipWriter::new(zip);
         let mut dupes = Dupes::new();
-        for s in attachs {
-            let (mut resp, url) = s.download(opts, args)?;
-            if resp.status() == StatusCode::NOT_FOUND {
-                println!("No {} file for attachment {}", opts.download_type(), s.name);
+        for dref in attachs {
+            let dlopt = if opts.original {
+                dref.get_original(&ctx.client, &ctx.opts.session)
+            } else if opts.archive {
+                dref.get_archive(&ctx.client, &ctx.opts.session)
             } else {
-                resp = resp.error_for_status().context(Http { url })?;
-                let org_name = get_filename(&resp).unwrap_or(&s.name);
+                dref.get(&ctx.client, &ctx.opts.session)
+            }
+            .context(HttpClient)?;
+
+            if let Some(mut dl) = dlopt {
+                let org_name = dl.get_filename().unwrap_or(&dref.name);
                 let (fname, duplicate) = dupes.use_name(org_name);
                 if duplicate && opts.dupes == DupeMode::Skip {
                     println!("Skipping already downloaded file {}", org_name);
@@ -258,8 +244,14 @@ fn download_zip(
                     zw.start_file(&fname, zip::write::FileOptions::default())
                         .context(Zip)?;
                     println!("Downloading {} …", &fname);
-                    resp.copy_to(&mut zw).context(ReadResponse)?;
+                    dl.copy_to(&mut zw).context(HttpClient)?;
                 }
+            } else {
+                println!(
+                    "No {} file for attachment {}",
+                    opts.download_type(),
+                    dref.name
+                );
             }
         }
         zw.finish().context(Zip)?;
@@ -274,113 +266,27 @@ fn download_zip(
     Ok(())
 }
 
-fn get_filename<'a>(resp: &'a Response) -> Option<&'a str> {
-    resp.headers()
-        .get("Content-Disposition")
-        .and_then(|hv| hv.to_str().ok())
-        .and_then(file::filename_from_header)
-}
-
-fn get_attachments(opts: &Input, args: &CmdArgs) -> Result<Vec<Attach>, Error> {
-    let search_params = search::Input {
-        query: opts.query.clone(),
-        offset: opts.offset,
-        limit: opts.limit,
-        with_details: true,
-    };
-    let result = search::search(&search_params, args).context(Search)?;
-    let mut attachs: Vec<Attach> = Vec::new();
-    for g in result.groups {
-        for item in g.items {
-            for a in item.attachments {
-                attachs.push(Attach {
-                    id: a.id.clone(),
-                    name: a.name.unwrap_or(format!("{}.pdf", a.id)),
-                });
+fn check_args(args: &Input) -> Result<(), Error> {
+    match &args.target {
+        Some(path) => {
+            if args.zip && path.exists() && path.is_dir() {
+                Err(Error::NotAFile { path: path.clone() })
+            } else if !args.zip && !path.is_dir() && path.exists() {
+                Err(Error::NotADirectory { path: path.clone() })
+            } else {
+                Ok(())
             }
         }
-    }
-    Ok(attachs)
-}
-
-//////////////////////////////////////////////////////////////////////////////
-/// Helper structs
-
-#[derive(Debug)]
-struct Attach {
-    name: String,
-    id: String,
-}
-impl Attach {
-    fn to_url(&self, opts: &Input, args: &CmdArgs) -> String {
-        let base = format!("{}/api/v1/sec/attachment/{}", args.docspell_url(), self.id);
-        if opts.original {
-            format!("{}/original", base)
-        } else if opts.archive {
-            format!("{}/archive", base)
-        } else {
-            base
-        }
-    }
-
-    fn download(&self, opts: &Input, args: &CmdArgs) -> Result<(Response, String), Error> {
-        let url = self.to_url(opts, args);
-        let token = login::session_token(args).context(Login)?;
-        let resp = args
-            .client
-            .get(&url)
-            .header(DOCSPELL_AUTH, &token)
-            .send()
-            //     .and_then(|r| r.error_for_status())
-            .context(Http { url: url.clone() })?;
-        Ok((resp, url))
+        None => Ok(()),
     }
 }
 
-struct Dupes {
-    names: HashMap<String, i32>,
-}
-
-impl Dupes {
-    fn new() -> Dupes {
-        Dupes {
-            names: HashMap::new(),
-        }
-    }
-
-    fn use_name(&mut self, name: &str) -> (String, bool) {
-        let fname = name.to_string();
-        match self.names.get(&fname) {
-            Some(count) => {
-                let next_name = file::splice_name(name, count);
-                let next_count = count + 1;
-                self.names.insert(fname.clone(), next_count);
-                (next_name, true)
-            }
-            None => {
-                self.names.insert(fname.clone(), 1);
-                (fname, false)
-            }
-        }
-    }
-
-    fn is_empty(&self) -> bool {
-        self.names.is_empty()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-
-    #[test]
-    fn unit_dupes_add() {
-        let mut dupes = Dupes::new();
-        assert_eq!(dupes.use_name("test.png"), ("test.png".into(), false));
-        assert_eq!(dupes.use_name("test.png"), ("test_1.png".into(), true));
-        assert_eq!(dupes.use_name("test.png"), ("test_2.png".into(), true));
-        assert_eq!(dupes.use_name("test.png"), ("test_3.png".into(), true));
-        assert_eq!(dupes.use_name("test.jpg"), ("test.jpg".into(), false));
+fn action_msg(opts: &Input, len: usize, target: Display) -> String {
+    if opts.original {
+        format!("original files of {} attachments into {}", len, target)
+    } else if opts.archive {
+        format!("archives of {} attachments into {}", len, target)
+    } else {
+        format!("{} attachments into {}", len, target)
     }
 }

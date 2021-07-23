@@ -35,7 +35,7 @@ pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), CmdError> {
         SubCommand::GenInvite(input) => input.exec(&ctx)?,
         SubCommand::Register(input) => input.exec(&ctx)?,
         // SubCommand::Upload(input) => input.exec(&args)?,
-        // SubCommand::Download(input) => input.exec(&args)?,
+        SubCommand::Download(input) => input.exec(&ctx)?,
         // SubCommand::View(input) => input.exec(&args)?,
         // SubCommand::Cleanup(input) => input.exec(&args)?,
     };
