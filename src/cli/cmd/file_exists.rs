@@ -72,29 +72,3 @@ pub fn check_file(
     result.file = file.canonicalize().ok().map(|p| p.display().to_string());
     Ok(result)
 }
-
-// fn int_endpoint_available(
-//     args: &Input,
-//     cfg: &ConfigOpts,
-//     collective: &str,
-// ) -> Result<reqwest::blocking::Response, CmdError> {
-//     use reqwest::StatusCode;
-//     let url = format!(
-//         "{}/api/v1/open/integration/item/{}",
-//         cfg.docspell_url, collective
-//     );
-//     log::debug!("Checking availability of integration endpoint: {}", url);
-//     create_client(&url, args, cfg)?.send().map_or_else(
-//         |e| Err(CmdError::HttpError(e)),
-//         |r| match r.status() {
-//             StatusCode::NOT_FOUND => Err(CmdError::IntEndpointNotAvail),
-//             StatusCode::UNAUTHORIZED => Err(CmdError::AuthError(
-//                 "Integration endpoint auth failed.".into(),
-//             )),
-//             StatusCode::FORBIDDEN => Err(CmdError::AuthError(
-//                 "Integration endpoint auth failed.".into(),
-//             )),
-//             _ => r.error_for_status().map_err(CmdError::HttpError),
-//         },
-//     )
-// }

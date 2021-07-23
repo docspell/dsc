@@ -8,3 +8,16 @@ pub fn filename_from_header<'a>(header_value: &'a str) -> Option<&'a str> {
         .map(|index| &header_value[9 + index..])
         .map(|rest| rest.trim_matches('"'))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_filename_from_header() {
+        assert_eq!(
+            filename_from_header("inline; filename=\"test.jpg\""),
+            Some("test.jpg")
+        );
+    }
+}

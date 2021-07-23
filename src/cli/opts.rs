@@ -1,4 +1,5 @@
 use super::cmd::admin;
+use super::cmd::cleanup;
 use super::cmd::download;
 use super::cmd::file_exists;
 use super::cmd::geninvite;
@@ -140,9 +141,10 @@ pub enum SubCommand {
     #[clap(version)]
     View(view::Input),
 
-    // #[clap(setting = AppSettings::ColoredHelp)]
-    // #[clap(version)]
-    // Cleanup(cleanup::Input),
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    Cleanup(cleanup::Input),
+
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Admin(admin::Input),

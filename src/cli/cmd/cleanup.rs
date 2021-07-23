@@ -1,17 +1,15 @@
-use crate::{
-    cmd::{Cmd, CmdArgs, CmdError},
-    types::BasicResult,
-};
-use crate::{
-    file::FileActionResult,
-    opts::{EndpointOpts, FileAction},
-};
 use clap::Clap;
 use snafu::{ResultExt, Snafu};
 use std::path::PathBuf;
 
-use super::file_exists;
-use super::watch;
+use super::{Cmd, Context};
+use crate::http::Error as HttpError;
+use crate::util::{digest, file};
+use crate::{
+    cli::opts::{EndpointOpts, FileAction},
+    util::file::FileActionResult,
+};
+use crate::{cli::sink::Error as SinkError, http::payload::BasicResult};
 
 /// Cleans directories from files that are in Docspell.
 ///
@@ -23,7 +21,7 @@ use super::watch;
 /// directory, use the `upload` command.
 ///
 /// When using the integration endpoint and a collective is not
-/// specified, it will be guessed from the first directory of the
+/// specified, it will be guessed from the first subdirectory of the
 /// directory that is specified.
 #[derive(Clap, Debug)]
 pub struct Input {
@@ -45,8 +43,11 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Error on file exists: {}", source))]
-    FileExists { source: file_exists::Error },
+    #[snafu(display("An http error occurred: {}!", source))]
+    HttpClient { source: HttpError },
+
+    #[snafu(display("Error writing data: {}", source))]
+    WriteResult { source: SinkError },
 
     #[snafu(display("Pattern error: {}", source))]
     Pattern { source: glob::PatternError },
@@ -65,17 +66,25 @@ pub enum Error {
 
     #[snafu(display("The target '{}' is not a directory!", path.display()))]
     TargetNotDirectory { path: PathBuf },
+
+    #[snafu(display("Calculating digest of file {} failed: {}", path.display(), source))]
+    DigestFail {
+        source: std::io::Error,
+        path: PathBuf,
+    },
 }
 
 impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = check_args(self)
-            .and_then(|_unit| cleanup(self, args))
-            .map_err(|source| CmdError::Cleanup { source })?;
-        args.write_result(BasicResult {
+    type CmdError = Error;
+
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
+        check_args(self)?;
+        let result = cleanup(self, ctx)?;
+        ctx.write_result(BasicResult {
             success: true,
             message: format!("Cleaned up files: {}", result).into(),
-        })?;
+        })
+        .context(WriteResult)?;
         Ok(())
     }
 }
@@ -99,7 +108,7 @@ fn check_args(args: &Input) -> Result<(), Error> {
     }
 }
 
-pub fn cleanup(args: &Input, cfg: &CmdArgs) -> Result<u32, Error> {
+fn cleanup(args: &Input, ctx: &Context) -> Result<u32, Error> {
     let mut counter = 0;
     for file in &args.files {
         if file.is_dir() {
@@ -107,11 +116,11 @@ pub fn cleanup(args: &Input, cfg: &CmdArgs) -> Result<u32, Error> {
             for child in glob::glob(&pattern).context(Pattern)? {
                 let cf = child.context(Glob)?;
                 if cf.is_file() {
-                    counter = counter + cleanup_and_report(&cf, Some(&file), args, cfg)?;
+                    counter = counter + cleanup_and_report(&cf, Some(&file), args, ctx)?;
                 }
             }
         } else {
-            counter = counter + cleanup_and_report(&file, None, args, cfg)?;
+            counter = counter + cleanup_and_report(&file, None, args, ctx)?;
         }
     }
     Ok(counter)
@@ -121,10 +130,10 @@ fn cleanup_and_report(
     file: &PathBuf,
     root: Option<&PathBuf>,
     args: &Input,
-    cfg: &CmdArgs,
+    ctx: &Context,
 ) -> Result<u32, Error> {
     eprintln!("Check file: {}", file.display());
-    let exists = check_file_exists(&file, root, &args.endpoint, cfg)?;
+    let exists = check_file_exists(&file, root, &args.endpoint, ctx)?;
     log::debug!("Checking file: {} (exists: {})", file.display(), exists);
     if exists {
         eprint!(" - exists: ");
@@ -157,19 +166,25 @@ fn check_file_exists(
     path: &PathBuf,
     root: Option<&PathBuf>,
     opts: &EndpointOpts,
-    args: &CmdArgs,
+    ctx: &Context,
 ) -> Result<bool, Error> {
     let mut ep = opts.clone();
     let dirs: Vec<PathBuf> = match root {
         Some(d) => vec![d.clone()],
         None => vec![],
     };
-    if let Some(cid) =
-        watch::find_collective(path, &dirs, opts).map_err(|_e| Error::NoCollective)?
-    {
-        ep.collective = Some(cid);
+    if opts.integration && opts.collective.is_none() {
+        if let Some(cid) =
+            file::collective_from_subdir(path, &dirs).map_err(|_e| Error::NoCollective)?
+        {
+            ep.collective = Some(cid);
+        }
     }
-    file_exists::check_file(path, &ep, args)
-        .context(FileExists)
-        .map(|result| result.exists)
+    let hash = digest::digest_file_sha256(path).context(DigestFail { path })?;
+    let result = ctx
+        .client
+        .file_exists(hash, &opts.to_file_auth(ctx))
+        .context(HttpClient)?;
+
+    Ok(result.exists)
 }

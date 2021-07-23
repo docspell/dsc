@@ -37,7 +37,7 @@ pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), CmdError> {
         // SubCommand::Upload(input) => input.exec(&args)?,
         SubCommand::Download(input) => input.exec(&ctx)?,
         SubCommand::View(input) => input.exec(&ctx)?,
-        // SubCommand::Cleanup(input) => input.exec(&args)?,
+        SubCommand::Cleanup(input) => input.exec(&ctx)?,
     };
     Ok(())
 }

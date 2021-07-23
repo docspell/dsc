@@ -29,6 +29,24 @@ fn delete_parent_if_empty(file: &PathBuf, root: Option<&PathBuf>) -> Result<(), 
     }
 }
 
+pub fn collective_from_subdir(
+    path: &PathBuf,
+    roots: &Vec<PathBuf>,
+) -> Result<Option<String>, std::path::StripPrefixError> {
+    let file = path.canonicalize().unwrap();
+    for dir in roots {
+        let can_dir = dir.canonicalize().unwrap();
+        log::debug!("Check prefix {} -> {}", can_dir.display(), file.display());
+        if file.starts_with(&can_dir) {
+            let rest = file.strip_prefix(&can_dir)?;
+            let coll = rest.iter().next();
+            log::debug!("Found collective: {:?}", &coll);
+            return Ok(coll.and_then(|s| s.to_str()).map(|s| s.to_string()));
+        }
+    }
+    Ok(None)
+}
+
 #[derive(Debug, Clone)]
 pub enum FileActionResult {
     Deleted(PathBuf),
@@ -93,14 +111,6 @@ impl FileAction {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn unit_filename_from_header() {
-        assert_eq!(
-            filename_from_header("inline; filename=\"test.jpg\""),
-            Some("test.jpg")
-        );
-    }
 
     #[test]
     fn unit_splice_name() {

@@ -1,5 +1,5 @@
 pub mod admin;
-// pub mod cleanup;
+pub mod cleanup;
 pub mod download;
 pub mod file_exists;
 pub mod generate_completions;
@@ -79,33 +79,25 @@ pub enum CmdError {
     // Watch {
     //     source: watch::Error,
     // },
-    Item { source: item::Error },
-    Version { source: version::Error },
     // Upload {
     //     source: upload::Error,
     // },
-    Login { source: login::Error },
-
-    Logout { source: logout::Error },
-
-    // Cleanup {
-    //     source: cleanup::Error,
-    // },
-    Source { source: source::Error },
-    SearchSummary { source: search_summary::Error },
-    Search { source: search::Error },
-
-    View { source: view::Error },
-    Download { source: download::Error },
-    Register { source: register::Error },
-    GenInvite { source: geninvite::Error },
-    FileExists { source: file_exists::Error },
-
     Admin { source: admin::Error },
-
-    WriteSink { source: SinkError },
-
+    Cleanup { source: cleanup::Error },
+    Download { source: download::Error },
+    FileExists { source: file_exists::Error },
+    GenInvite { source: geninvite::Error },
+    Item { source: item::Error },
+    Login { source: login::Error },
+    Logout { source: logout::Error },
+    Register { source: register::Error },
+    Search { source: search::Error },
+    SearchSummary { source: search_summary::Error },
+    Source { source: source::Error },
+    Version { source: version::Error },
+    View { source: view::Error },
     WriteConfig { source: ConfigError },
+    WriteSink { source: SinkError },
 }
 
 impl From<ConfigError> for CmdError {
@@ -177,5 +169,10 @@ impl From<download::Error> for CmdError {
 impl From<view::Error> for CmdError {
     fn from(source: view::Error) -> Self {
         CmdError::View { source }
+    }
+}
+impl From<cleanup::Error> for CmdError {
+    fn from(source: cleanup::Error) -> Self {
+        CmdError::Cleanup { source }
     }
 }
