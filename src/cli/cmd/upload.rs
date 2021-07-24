@@ -279,6 +279,8 @@ fn upload_single(
             } else {
                 file_exists_message(path);
             }
+        } else {
+            eprintln!("Skip '{}', doesn't match given pattern(s)", path.display());
         }
     }
 
