@@ -231,3 +231,12 @@ fn remote_download_zip() -> Result<()> {
     std::fs::remove_dir_all("zip_test/").unwrap();
     Ok(())
 }
+
+// #[test]
+// fn remote_admin_convert_all_pdfs() -> Result<()> {
+//     let mut cmd = mk_cmd()?;
+//     let out = cmd.arg("admin").arg("convert-all-pdfs").assert();
+
+//     out.success().stderr("").stdout("");
+//     Ok(())
+// }

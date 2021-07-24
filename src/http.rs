@@ -475,6 +475,26 @@ impl Client {
             .context(SerializeResp)
     }
 
+    /// Submits a task to convert all (not yet converted) pdfs via the
+    /// configured tool (by default ocrmypdf).
+    ///
+    /// It requires to provide the admin secret from Docspells
+    /// configuration file.
+    pub fn admin_convert_all_pdfs<S: Into<String>>(
+        &self,
+        admin_secret: S,
+    ) -> Result<BasicResult, Error> {
+        let url = &format!("{}/api/v1/admin/attachments/convertallpdfs", self.base_url);
+        self.client
+            .post(url)
+            .header(DOCSPELL_ADMIN, admin_secret.into())
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<BasicResult>()
+            .context(SerializeResp)
+    }
+
     /// Resets the password for the given account.
     ///
     /// It requires to provide the admin secret from Docspells configuration file.

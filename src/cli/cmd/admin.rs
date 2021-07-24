@@ -1,3 +1,4 @@
+pub mod convert_all_pdfs;
 pub mod generate_previews;
 pub mod recreate_index;
 pub mod reset_password;
@@ -27,6 +28,7 @@ pub enum Error {
     GeneratePreview { source: generate_previews::Error },
     RecreateIndex { source: recreate_index::Error },
     ResetPassword { source: reset_password::Error },
+    ConvertAllPdfs { source: convert_all_pdfs::Error },
 }
 
 #[derive(Clap, Debug)]
@@ -42,6 +44,10 @@ pub enum AdminCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     ResetPassword(reset_password::Input),
+
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    ConvertAllPdfs(convert_all_pdfs::Input),
 }
 
 impl Cmd for Input {
@@ -52,6 +58,7 @@ impl Cmd for Input {
             AdminCommand::GeneratePreviews(input) => input.exec(self, ctx).context(GeneratePreview),
             AdminCommand::RecreateIndex(input) => input.exec(self, ctx).context(RecreateIndex),
             AdminCommand::ResetPassword(input) => input.exec(self, ctx).context(ResetPassword),
+            AdminCommand::ConvertAllPdfs(input) => input.exec(self, ctx).context(ConvertAllPdfs),
         }
     }
 }
