@@ -1,6 +1,6 @@
 use clap::{Clap, ValueHint};
 use snafu::{ResultExt, Snafu};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::cli::opts::EndpointOpts;
 use crate::cli::sink::Error as SinkError;
@@ -62,7 +62,7 @@ impl Cmd for Input {
 }
 
 pub fn check_file(
-    file: &PathBuf,
+    file: &Path,
     opts: &EndpointOpts,
     ctx: &Context,
 ) -> Result<CheckFileResult, Error> {

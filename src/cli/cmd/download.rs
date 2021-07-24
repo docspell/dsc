@@ -1,6 +1,6 @@
 use clap::{ArgEnum, ArgGroup, Clap};
 use snafu::{ResultExt, Snafu};
-use std::path::{Display, PathBuf};
+use std::path::{Display, Path, PathBuf};
 
 use super::{Cmd, Context};
 use crate::http::payload::SearchReq;
@@ -131,7 +131,7 @@ impl Cmd for Input {
                     let zip_file = self
                         .target
                         .clone()
-                        .unwrap_or(PathBuf::from("docspell-files.zip"));
+                        .unwrap_or_else(|| PathBuf::from("docspell-files.zip"));
                     if let Some(parent) = zip_file.parent() {
                         if !parent.exists() {
                             std::fs::create_dir_all(&parent).context(CreateFile)?;
@@ -169,7 +169,7 @@ fn download_flat(
     attachs: Downloads,
     opts: &Input,
     ctx: &Context,
-    parent: &PathBuf,
+    parent: &Path,
 ) -> Result<(), Error> {
     let mut dupes = Dupes::new();
     for dref in attachs {
@@ -211,7 +211,7 @@ fn download_zip(
     attachs: Downloads,
     opts: &Input,
     ctx: &Context,
-    zip_file: &PathBuf,
+    zip_file: &Path,
 ) -> Result<(), Error> {
     if zip_file.exists() && !opts.overwrite {
         println!("Zip file already exists! {}", zip_file.display());

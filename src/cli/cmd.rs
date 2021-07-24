@@ -63,7 +63,7 @@ impl Context<'_> {
     }
 
     fn pass_entry(&self, given: &Option<String>) -> Option<String> {
-        given.clone().or(self.cfg.pass_entry.clone())
+        given.clone().or_else(|| self.cfg.pass_entry.clone())
     }
 }
 

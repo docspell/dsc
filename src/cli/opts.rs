@@ -178,14 +178,16 @@ pub struct EndpointOpts {
 
 impl EndpointOpts {
     pub fn get_source_id(&self, cfg: &DsConfig) -> Option<String> {
-        self.source.clone().or(cfg.default_source_id.clone())
+        self.source
+            .clone()
+            .or_else(|| cfg.default_source_id.clone())
     }
 
     pub fn to_file_auth(&self, ctx: &Context) -> FileAuth {
         if self.integration {
             let cid = self.collective.clone().unwrap(); // must be checked by cli
             let mut res = IntegrationData {
-                collective: cid.clone(),
+                collective: cid,
                 auth: IntegrationAuth::None,
             };
             if let Some(basic) = &self.basic {

@@ -1,7 +1,10 @@
 use clap::{ArgGroup, Clap};
 use dialoguer::Confirm;
 use snafu::{ResultExt, Snafu};
-use std::{path::PathBuf, process::Command};
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use super::{Cmd, Context};
 use crate::http::payload::SearchReq;
@@ -67,7 +70,7 @@ impl Cmd for Input {
     }
 }
 
-pub fn view_all(opts: &Input, ctx: &Context, parent: &PathBuf) -> Result<(), Error> {
+pub fn view_all(opts: &Input, ctx: &Context, parent: &Path) -> Result<(), Error> {
     let req = SearchReq {
         query: opts.query.clone(),
         offset: opts.offset,
@@ -129,17 +132,11 @@ fn is_stop_viewing(opts: &Input) -> Result<bool, Error> {
         {
             return Ok(!answer);
         }
-    } else {
-        return Ok(false);
     }
-    return Ok(false);
+    Ok(false)
 }
 
-fn download(
-    attach: &DownloadRef,
-    ctx: &Context,
-    parent: &PathBuf,
-) -> Result<Option<PathBuf>, Error> {
+fn download(attach: &DownloadRef, ctx: &Context, parent: &Path) -> Result<Option<PathBuf>, Error> {
     let dlopt = attach
         .get(&ctx.client, &ctx.opts.session)
         .context(HttpClient)?;

@@ -65,7 +65,7 @@ fn get_item_id(partial_id: &str, ctx: &Context) -> Result<String, Error> {
         offset: 0,
         limit: 2,
         with_details: false,
-        query: format!("id:{}*", partial_id).into(),
+        query: format!("id:{}*", partial_id),
     };
     ctx.client
         .search(&ctx.opts.session, &req)

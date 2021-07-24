@@ -9,13 +9,16 @@
 //! This is for internal use only.
 
 use snafu::{ResultExt, Snafu};
-use std::{path::PathBuf, time::Duration};
+use std::{
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use super::payload::AuthResp;
 use super::Client;
 
-const TOKEN_FILENAME: &'static str = "dsc-token.json";
-const DSC_SESSION: &'static str = "DSC_SESSION";
+const TOKEN_FILENAME: &str = "dsc-token.json";
+const DSC_SESSION: &str = "DSC_SESSION";
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -76,7 +79,7 @@ pub fn store_session(resp: &AuthResp) -> Result<(), Error> {
 /// If a session token can be loaded, it is checked for expiry and
 /// refreshed if deemed necessary.
 pub fn session_token(token: &Option<String>, client: &Client) -> Result<String, Error> {
-    let given_token = token.clone().or_else(|| get_token_from_env().clone());
+    let given_token = token.clone().or_else(get_token_from_env);
     let no_token = given_token.is_none();
     let (token, valid) = match given_token {
         Some(token) => {
@@ -168,7 +171,7 @@ fn get_token_file() -> Result<PathBuf, Error> {
     }
 }
 
-fn read_token_file(path: &PathBuf) -> Result<AuthResp, Error> {
+fn read_token_file(path: &Path) -> Result<AuthResp, Error> {
     let _flock = acquire_lock(path, false)?;
 
     let cnt = std::fs::read_to_string(&path).context(ReadSessionFile { path })?;
@@ -176,7 +179,7 @@ fn read_token_file(path: &PathBuf) -> Result<AuthResp, Error> {
     Ok(resp)
 }
 
-fn write_token_file(resp: &AuthResp, path: &PathBuf) -> Result<(), Error> {
+fn write_token_file(resp: &AuthResp, path: &Path) -> Result<(), Error> {
     let flock = acquire_lock(path, true);
     match flock {
         Ok(_fl) => {
@@ -204,12 +207,12 @@ fn get_token(resp: &AuthResp) -> Result<String, Error> {
 // --- file lock
 
 #[cfg(windows)]
-fn acquire_lock(path: &PathBuf, write: bool) -> Result<(), Error> {
+fn acquire_lock(path: &Path, write: bool) -> Result<(), Error> {
     Ok(())
 }
 
 #[cfg(unix)]
-fn acquire_lock(path: &PathBuf, write: bool) -> Result<(), Error> {
+fn acquire_lock(path: &Path, write: bool) -> Result<(), Error> {
     if write {
         file_locker::FileLock::new(path)
             .blocking(false)

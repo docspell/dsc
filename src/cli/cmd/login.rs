@@ -103,4 +103,4 @@ fn get_account(opts: &Input, ctx: &Context) -> Result<String, Error> {
     acc
 }
 
-const DSC_PASSWORD: &'static str = "DSC_PASSWORD";
+const DSC_PASSWORD: &str = "DSC_PASSWORD";

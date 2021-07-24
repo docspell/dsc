@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::cli::opts::FileAction;
 
@@ -16,7 +16,7 @@ pub fn splice_name(fname: &str, suffix: &i32) -> String {
     }
 }
 
-fn delete_parent_if_empty(file: &PathBuf, root: Option<&PathBuf>) -> Result<(), std::io::Error> {
+fn delete_parent_if_empty(file: &Path, root: Option<&PathBuf>) -> Result<(), std::io::Error> {
     match (root, file.parent()) {
         (Some(r), Some(p)) => {
             if p != r && std::fs::read_dir(p)?.next().is_none() {
@@ -30,8 +30,8 @@ fn delete_parent_if_empty(file: &PathBuf, root: Option<&PathBuf>) -> Result<(), 
 }
 
 pub fn collective_from_subdir(
-    path: &PathBuf,
-    roots: &Vec<PathBuf>,
+    path: &Path,
+    roots: &[PathBuf],
 ) -> Result<Option<String>, std::path::StripPrefixError> {
     let file = path.canonicalize().unwrap();
     for dir in roots {
@@ -57,14 +57,15 @@ pub enum FileActionResult {
 impl FileAction {
     pub fn execute(
         &self,
-        file: &PathBuf,
+        file: &Path,
         root: Option<&PathBuf>,
     ) -> Result<FileActionResult, std::io::Error> {
         match &self.move_to {
-            Some(target) => Self::move_file(file, root, target).map(|p| FileActionResult::Moved(p)),
+            Some(target) => Self::move_file(file, root, target).map(FileActionResult::Moved),
             None => {
                 if self.delete {
-                    Self::delete_file(&file, root).map(|_r| FileActionResult::Deleted(file.clone()))
+                    Self::delete_file(&file, root)
+                        .map(|_| FileActionResult::Deleted(file.to_path_buf()))
                 } else {
                     Ok(FileActionResult::Nothing)
                 }
@@ -73,9 +74,9 @@ impl FileAction {
     }
 
     fn move_file(
-        file: &PathBuf,
+        file: &Path,
         root: Option<&PathBuf>,
-        target: &PathBuf,
+        target: &Path,
     ) -> Result<PathBuf, std::io::Error> {
         let target_file = match root {
             Some(r) => {
@@ -100,7 +101,7 @@ impl FileAction {
         Ok(target_file)
     }
 
-    fn delete_file(file: &PathBuf, root: Option<&PathBuf>) -> Result<(), std::io::Error> {
+    fn delete_file(file: &Path, root: Option<&PathBuf>) -> Result<(), std::io::Error> {
         log::debug!("Deleting file: {}", file.display());
         std::fs::remove_file(file)?;
         delete_parent_if_empty(file, root)?;

@@ -15,7 +15,6 @@ use clap::Clap;
 use cli::opts::MainOpts;
 use config::DsConfig;
 use error::Result;
-use log;
 use std::path::PathBuf;
 
 pub fn read_args() -> MainOpts {

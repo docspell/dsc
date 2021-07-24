@@ -63,7 +63,7 @@ impl DsConfig {
                 cfg_file.to_path_buf().display(),
                 std::env::current_dir()
                     .map(|p| p.display().to_string())
-                    .unwrap_or("unknown directory".into())
+                    .unwrap_or_else(|_| "unknown directory".into())
             );
             let given_path = cfg_file.as_path().canonicalize().context(ReadFile {
                 path: cfg_file.as_path().to_path_buf(),
@@ -159,4 +159,4 @@ fn write_to(cfg: &DsConfig, file: &Path) -> Result<(), ConfigError> {
     })
 }
 
-const DSC_CONFIG: &'static str = "DSC_CONFIG";
+const DSC_CONFIG: &str = "DSC_CONFIG";

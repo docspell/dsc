@@ -1,6 +1,6 @@
 use clap::Clap;
 use snafu::{ResultExt, Snafu};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use super::{Cmd, Context};
 use crate::http::Error as HttpError;
@@ -82,7 +82,7 @@ impl Cmd for Input {
         let result = cleanup(self, ctx)?;
         ctx.write_result(BasicResult {
             success: true,
-            message: format!("Cleaned up files: {}", result).into(),
+            message: format!("Cleaned up files: {}", result),
         })
         .context(WriteResult)?;
         Ok(())
@@ -116,18 +116,18 @@ fn cleanup(args: &Input, ctx: &Context) -> Result<u32, Error> {
             for child in glob::glob(&pattern).context(Pattern)? {
                 let cf = child.context(Glob)?;
                 if cf.is_file() {
-                    counter = counter + cleanup_and_report(&cf, Some(&file), args, ctx)?;
+                    counter += cleanup_and_report(&cf, Some(&file), args, ctx)?;
                 }
             }
         } else {
-            counter = counter + cleanup_and_report(&file, None, args, ctx)?;
+            counter += cleanup_and_report(&file, None, args, ctx)?;
         }
     }
     Ok(counter)
 }
 
 fn cleanup_and_report(
-    file: &PathBuf,
+    file: &Path,
     root: Option<&PathBuf>,
     args: &Input,
     ctx: &Context,
@@ -163,7 +163,7 @@ fn cleanup_and_report(
 }
 
 fn check_file_exists(
-    path: &PathBuf,
+    path: &Path,
     root: Option<&PathBuf>,
     opts: &EndpointOpts,
     ctx: &Context,

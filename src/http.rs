@@ -14,7 +14,11 @@ pub mod payload;
 mod session;
 mod util;
 
-use std::{fs::File, io::Write, path::PathBuf};
+use std::{
+    fs::File,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use self::payload::*;
 use self::util::{DOCSPELL_ADMIN, DOCSPELL_AUTH};
@@ -25,7 +29,7 @@ use reqwest::blocking::{
 use reqwest::StatusCode;
 use snafu::{ResultExt, Snafu};
 
-const APP_JSON: &'static str = "application/json";
+const APP_JSON: &str = "application/json";
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -78,13 +82,12 @@ impl Client {
     /// Queries the Docspell server for its version and build information.
     pub fn version(&self) -> Result<VersionInfo, Error> {
         let url = &format!("{}/api/info/version", self.base_url);
-        return self
-            .client
+        self.client
             .get(url)
             .send()
             .context(Http { url })?
             .json::<VersionInfo>()
-            .context(SerializeResp);
+            .context(SerializeResp)
     }
 
     /// Login to Docspell returning the session token that must be
@@ -229,7 +232,7 @@ impl Client {
                 .context(Http { url })?
                 .json::<ItemDetail>()
                 .context(SerializeResp)
-                .map(|r| Some(r))
+                .map(Some)
         }
     }
 
@@ -270,7 +273,7 @@ impl Client {
                 resp.error_for_status().context(Http { url: url.clone() })?;
                 Err(Error::UnexpectedStatus {
                     status: code.as_u16(),
-                    url: url.clone(),
+                    url,
                 })
             }
         }
@@ -353,7 +356,7 @@ impl Client {
         &self,
         file_auth: &FileAuth,
         meta: &UploadMeta,
-        files: &Vec<&PathBuf>,
+        files: &[&Path],
     ) -> Result<BasicResult, Error> {
         let url = match file_auth {
             FileAuth::Source { id } => {
@@ -380,7 +383,7 @@ impl Client {
             let len = fopen.metadata().context(OpenFile { path })?.len();
             let bufr = std::io::BufReader::new(fopen);
             let mut fpart = Part::reader_with_length(bufr, len);
-            if let Some(fname) = path.as_path().file_name() {
+            if let Some(fname) = path.file_name() {
                 let f: String = fname.to_string_lossy().into();
                 fpart = fpart.file_name(f);
             }
@@ -616,14 +619,14 @@ impl DownloadRef {
             .get(url)
             .header(DOCSPELL_AUTH, &token)
             .send()
-            .context(Http { url: url.clone() })?;
+            .context(Http { url })?;
         if resp.status() == StatusCode::NOT_FOUND {
             Ok(None)
         } else {
             Ok(Some(Download {
                 id: self.id.clone(),
                 url: url.to_string(),
-                resp: resp.error_for_status().context(Http { url: url.clone() })?,
+                resp: resp.error_for_status().context(Http { url })?,
                 name: self.name.clone(),
             }))
         }
@@ -636,7 +639,7 @@ impl DownloadRef {
             .head(url)
             .header(DOCSPELL_AUTH, &token)
             .send()
-            .context(Http { url: url.clone() })?;
+            .context(Http { url })?;
         if resp.status() == StatusCode::NOT_FOUND {
             Ok(true)
         } else {

@@ -1,6 +1,6 @@
 use clap::{ArgGroup, Clap, ValueHint};
 use snafu::{ResultExt, Snafu};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use super::{Cmd, Context};
 use crate::cli::opts::{EndpointOpts, FileAction, UploadMeta};
@@ -187,7 +187,7 @@ pub fn upload_files(args: &Input, ctx: &Context) -> Result<BasicResult, Error> {
     }
 }
 
-fn apply_file_action(path: &PathBuf, root: Option<&PathBuf>, opts: &Input) -> Result<(), Error> {
+fn apply_file_action(path: &Path, root: Option<&PathBuf>, opts: &Input) -> Result<(), Error> {
     let res = opts
         .action
         .execute(path, root)
@@ -219,10 +219,10 @@ fn upload_traverse(
                 let exists = check_existence(&child, opts, ctx)?;
                 if !exists {
                     eprintln!("Uploading {}", child.display());
-                    counter = counter + 1;
+                    counter += 1;
                     if !opts.dry_run {
                         ctx.client
-                            .upload_files(&fauth, meta, &vec![path])
+                            .upload_files(&fauth, meta, &[path.as_path()])
                             .context(HttpClient)?;
                         apply_file_action(&child, Some(&path), opts)?;
                     }
@@ -231,33 +231,31 @@ fn upload_traverse(
                     apply_file_action(&child, Some(&path), opts)?;
                 }
             }
-        } else {
-            if matcher.is_included(&path) {
-                let exists = check_existence(path, opts, ctx)?;
-                if !exists {
-                    eprintln!("Uploading file {}", path.display());
-                    counter = counter + 1;
-                    if !opts.dry_run {
-                        ctx.client
-                            .upload_files(&fauth, meta, &vec![path])
-                            .context(HttpClient)?;
-                        apply_file_action(&path, None, opts)?;
-                    }
-                } else {
-                    file_exists_message(path);
+        } else if matcher.is_included(&path) {
+            let exists = check_existence(path, opts, ctx)?;
+            if !exists {
+                eprintln!("Uploading file {}", path.display());
+                counter += 1;
+                if !opts.dry_run {
+                    ctx.client
+                        .upload_files(&fauth, meta, &[path.as_path()])
+                        .context(HttpClient)?;
                     apply_file_action(&path, None, opts)?;
                 }
+            } else {
+                file_exists_message(path);
+                apply_file_action(&path, None, opts)?;
             }
         }
     }
 
     Ok(BasicResult {
         success: true,
-        message: format!("Uploaded {}", counter).into(),
+        message: format!("Uploaded {}", counter),
     })
 }
 
-fn file_exists_message(path: &PathBuf) {
+fn file_exists_message(path: &Path) {
     eprintln!("File already in Docspell: {}", path.display());
 }
 
@@ -269,7 +267,7 @@ fn upload_single(
     matcher: matching::Matcher,
 ) -> Result<BasicResult, Error> {
     let fauth = opts.endpoint.to_file_auth(ctx);
-    let mut files: Vec<&PathBuf> = Vec::new();
+    let mut files: Vec<&Path> = Vec::new();
     for path in &opts.files {
         if matcher.is_included(path) {
             let exists = check_existence(path, opts, ctx)?;
@@ -285,7 +283,7 @@ fn upload_single(
     }
 
     if !opts.dry_run {
-        if files.len() > 0 {
+        if !files.is_empty() {
             eprintln!("Sending request …");
             ctx.client
                 .upload_files(&fauth, meta, &files)
@@ -299,12 +297,12 @@ fn upload_single(
     } else {
         Ok(BasicResult {
             success: true,
-            message: format!("Would upload {} file(s)", files.len()).into(),
+            message: format!("Would upload {} file(s)", files.len()),
         })
     }
 }
 
-fn check_existence(path: &PathBuf, opts: &Input, ctx: &Context) -> Result<bool, Error> {
+fn check_existence(path: &Path, opts: &Input, ctx: &Context) -> Result<bool, Error> {
     if opts.upload.skip_duplicates {
         let fauth = opts.endpoint.to_file_auth(ctx);
         let hash = digest::digest_file_sha256(path).context(DigestFile { path })?;
@@ -361,14 +359,14 @@ mod matching {
             })
         }
 
-        pub fn is_included(&self, path: &PathBuf) -> bool {
+        pub fn is_included(&self, path: &Path) -> bool {
             let bi = self.include.matches_path(path);
             let result = bi && !check_exclude(&self.exclude, path);
             log::debug!("Including '{}': {}", path.display(), result);
             result
         }
 
-        pub fn traverse(&self, start: &PathBuf) -> Result<Matches, Error> {
+        pub fn traverse(&self, start: &Path) -> Result<Matches, Error> {
             let pattern = start.join(&self.include_glob).display().to_string();
             log::info!("Traversing {} (excluding {:?})", pattern, self.exclude_glob);
             let paths = glob::glob(&pattern).context(BadGlobPattern {
@@ -392,14 +390,8 @@ mod matching {
 
         fn next(&mut self) -> Option<Self::Item> {
             loop {
-                let next = self.paths.next();
-                if next.is_none() {
-                    return None;
-                }
-                let filtered = match next {
-                    None => None,
-                    Some(result) => match_result(result, &self.excl).filter(|p| p.is_file()),
-                };
+                let next = self.paths.next()?;
+                let filtered = match_result(next, &self.excl).filter(|p| p.is_file());
                 if filtered.is_some() {
                     return filtered;
                 } else {
@@ -428,7 +420,7 @@ mod matching {
         }
     }
 
-    fn check_exclude(patt: &Option<glob::Pattern>, path: &PathBuf) -> bool {
+    fn check_exclude(patt: &Option<glob::Pattern>, path: &Path) -> bool {
         match patt {
             Some(p) => p.matches_path(path),
             None => false,

@@ -10,7 +10,7 @@ pub fn pass_password(entry: &str) -> Result<String, io::Error> {
         Err(io_err(&format!(
             "Pass failed with an error ({:}): {}",
             output.status,
-            msg.unwrap_or("no output".into())
+            msg.unwrap_or_else(|_| "no output".into())
         )))
     } else {
         String::from_utf8(output.stdout)
@@ -18,7 +18,7 @@ pub fn pass_password(entry: &str) -> Result<String, io::Error> {
             .lines()
             .next()
             .map(String::from)
-            .ok_or(io_err(&format!("No password found for entry: {}", entry)))
+            .ok_or_else(|| io_err(&format!("No password found for entry: {}", entry)))
     }
 }
 

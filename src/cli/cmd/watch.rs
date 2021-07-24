@@ -1,7 +1,7 @@
 use clap::{Clap, ValueHint};
 use notify::{DebouncedEvent, RecursiveMode, Watcher};
 use snafu::{ResultExt, Snafu};
-use std::sync::mpsc;
+use std::{path::Path, sync::mpsc};
 use std::{
     path::{PathBuf, StripPrefixError},
     time::Duration,
@@ -122,7 +122,7 @@ pub fn watch_directories(opts: &Input, ctx: &Context) -> Result<(), Error> {
     }
 }
 
-fn check_is_dir(dirs: &Vec<PathBuf>) -> Result<(), Error> {
+fn check_is_dir(dirs: &[PathBuf]) -> Result<(), Error> {
     for path in dirs {
         if !path.is_dir() {
             return Err(Error::NotADirectory { path: path.clone() });
@@ -185,14 +185,16 @@ fn upload_file(path: PathBuf, opts: &Input, ctx: &Context) -> Result<BasicResult
 }
 
 pub fn find_collective(
-    path: &PathBuf,
-    dirs: &Vec<PathBuf>,
+    path: &Path,
+    dirs: &[PathBuf],
     opts: &EndpointOpts,
 ) -> Result<Option<String>, Error> {
     if opts.integration && opts.collective.is_none() {
         let cid = file::collective_from_subdir(path, dirs).context(FindCollective)?;
         if cid.is_none() {
-            Err(Error::NoCollective { path: path.clone() })
+            Err(Error::NoCollective {
+                path: path.to_path_buf(),
+            })
         } else {
             Ok(cid)
         }

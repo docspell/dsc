@@ -234,7 +234,7 @@ impl AsTable for Vec<&CatCount> {
         table.set_titles(row![bFg => "name", "count"]);
         for item in self {
             table.add_row(row![
-                item.name.clone().unwrap_or("(no category)".into()),
+                item.name.clone().unwrap_or_else(|| "(no category)".into()),
                 item.count,
             ]);
         }
@@ -293,11 +293,11 @@ impl Sink for Summary {
 
     fn write_csv(value: &Self) -> Result<(), SinkError> {
         value.to_table().to_csv(std::io::stdout())?;
-        println!("");
+        println!();
         Sink::write_csv(&value.tag_cloud.without_empty())?;
-        println!("");
+        println!();
         Sink::write_csv(&value.tag_category_cloud.without_empty())?;
-        println!("");
+        println!();
         Sink::write_csv(&value.field_stats)?;
         Ok(())
     }
@@ -332,10 +332,13 @@ impl AsTable for SearchResult {
                     item.name,
                     item.state,
                     format_date(item.date),
-                    item.due_date.map(format_date).unwrap_or("".into()),
+                    item.due_date.map(format_date).unwrap_or_else(|| "".into()),
                     combine(&item.corr_org, &item.corr_person, "/"),
                     combine(&item.conc_person, &item.conc_equip, "/"),
-                    item.folder.as_ref().map(|a| a.name.as_str()).unwrap_or(""),
+                    item.folder
+                        .as_ref()
+                        .map(|a| a.name.as_str())
+                        .unwrap_or_else(|| ""),
                     tag_list.join(", "),
                     field_list.join(", "),
                     item.attachments.len(),

@@ -66,7 +66,7 @@ fn get_secret(opts: &Input, ctx: &Context) -> Option<String> {
     let secret = opts
         .admin_secret
         .as_ref()
-        .or(ctx.cfg.admin_secret.as_ref())
+        .or_else(|| ctx.cfg.admin_secret.as_ref())
         .map(String::clone);
 
     if secret.is_some() && ctx.opts.verbose > 2 {

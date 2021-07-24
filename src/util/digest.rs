@@ -1,14 +1,13 @@
 use sha2::{Digest, Sha256};
-use std::io;
-use std::path::PathBuf;
+use std::{io, path::Path};
 
 const BUFFER_SIZE: usize = 1024;
 
-pub fn digest_file_sha256(file: &PathBuf) -> Result<String, io::Error> {
+pub fn digest_file_sha256(file: &Path) -> Result<String, io::Error> {
     digest_file::<Sha256>(file)
 }
 
-pub fn digest_file<D: Digest + Default>(file: &PathBuf) -> Result<String, io::Error> {
+pub fn digest_file<D: Digest + Default>(file: &Path) -> Result<String, io::Error> {
     log::debug!("Calculating hash for file {}", file.display());
     std::fs::File::open(file).and_then(|mut f| digest::<D, _>(&mut f))
 }
