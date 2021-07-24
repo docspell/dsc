@@ -11,7 +11,7 @@ pub mod register;
 pub mod search;
 pub mod search_summary;
 pub mod source;
-// pub mod upload;
+pub mod upload;
 pub mod version;
 pub mod view;
 // pub mod watch;
@@ -79,9 +79,7 @@ pub enum CmdError {
     // Watch {
     //     source: watch::Error,
     // },
-    // Upload {
-    //     source: upload::Error,
-    // },
+    Upload { source: upload::Error },
     Admin { source: admin::Error },
     Cleanup { source: cleanup::Error },
     Download { source: download::Error },
@@ -105,7 +103,6 @@ impl From<ConfigError> for CmdError {
         CmdError::WriteConfig { source }
     }
 }
-
 impl From<version::Error> for CmdError {
     fn from(source: version::Error) -> Self {
         CmdError::Version { source }
@@ -174,5 +171,10 @@ impl From<view::Error> for CmdError {
 impl From<cleanup::Error> for CmdError {
     fn from(source: cleanup::Error) -> Self {
         CmdError::Cleanup { source }
+    }
+}
+impl From<upload::Error> for CmdError {
+    fn from(source: upload::Error) -> Self {
+        CmdError::Upload { source }
     }
 }

@@ -74,7 +74,7 @@ pub struct AuthResp {
     pub valid_ms: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UploadMeta {
     pub multiple: bool,
     pub direction: Option<String>,
@@ -90,7 +90,7 @@ pub struct UploadMeta {
     pub language: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct StringList {
     pub items: Vec<String>,
 }

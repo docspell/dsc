@@ -1,29 +1,48 @@
 //! A http client for Docspell.
 //!
-//! This provides a http client to Docspell based on reqwest.
+//! This provides a http client to Docspell based on reqwest. It
+//! implements the endpoints as described
+//! [here](https://docspell.org/openapi/docspell-openapi.html).
+//!
+//! ## Session handling
+//!
+//! The `login` method can be used to perform a login. The returned
+//! session is stored in the user's home directory and used for all
+//! secured requests where no explicit token is supplied.
 
 pub mod payload;
 mod session;
 mod util;
 
-use std::io::Write;
+use std::{fs::File, io::Write, path::PathBuf};
 
 use self::payload::*;
 use self::util::{DOCSPELL_ADMIN, DOCSPELL_AUTH};
-use reqwest::blocking::{RequestBuilder, Response};
+use reqwest::blocking::{
+    multipart::{Form, Part},
+    RequestBuilder, Response,
+};
 use reqwest::StatusCode;
 use snafu::{ResultExt, Snafu};
+
+const APP_JSON: &'static str = "application/json";
 
 #[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("An error was received from: {}!", url))]
     Http { source: reqwest::Error, url: String },
 
+    #[snafu(display("An error parsing mime '{}': {}!", raw, source))]
+    Mime { source: reqwest::Error, raw: String },
+
     #[snafu(display("Session error: {}", source))]
     Session { source: self::session::Error },
 
     #[snafu(display("An error occured serializing the response!"))]
     SerializeResp { source: reqwest::Error },
+
+    #[snafu(display("An error occured serializing the request!"))]
+    SerializeReq { source: serde_json::Error },
 
     #[snafu(display("Login failed!"))]
     LoginFailed,
@@ -33,6 +52,12 @@ pub enum Error {
 
     #[snafu(display("Unexpected response status: {}", status))]
     UnexpectedStatus { status: u16, url: String },
+
+    #[snafu(display("Error opening file '{}': {}", path.display(), source))]
+    OpenFile {
+        source: std::io::Error,
+        path: PathBuf,
+    },
 }
 
 pub struct Client {
@@ -50,6 +75,7 @@ impl Client {
         }
     }
 
+    /// Queries the Docspell server for its version and build information.
     pub fn version(&self) -> Result<VersionInfo, Error> {
         let url = &format!("{}/api/info/version", self.base_url);
         return self
@@ -61,6 +87,11 @@ impl Client {
             .context(SerializeResp);
     }
 
+    /// Login to Docspell returning the session token that must be
+    /// used with all secured requests.
+    ///
+    /// This token is stored in the filesystem and will be used as a
+    /// fallback if no specific token is supplied.
     pub fn login(&self, req: &AuthRequest) -> Result<AuthResp, Error> {
         let url = &format!("{}/api/v1/open/auth/login", self.base_url);
         let result = self
@@ -82,10 +113,13 @@ impl Client {
         }
     }
 
+    /// Performs a logout by deleting the current session information.
     pub fn logout(&self) -> Result<(), Error> {
         session::drop_session().context(Session)
     }
 
+    /// Performs a login via a session token. It returns a new session
+    /// token with a fresh lifetime.
     pub fn session_login(&self, token: &str) -> Result<AuthResp, Error> {
         let url = &format!("{}/api/v1/sec/auth/session", self.base_url);
         let result = self
@@ -106,6 +140,12 @@ impl Client {
         }
     }
 
+    /// Searches for documents using the given query. See [the query
+    /// documentation](https://docspell.org/docs/query/) for
+    /// information about the query.
+    ///
+    /// If `token` is specified, it is used to authenticate. Otherwise
+    /// a stored session is used.
     pub fn search(&self, token: &Option<String>, req: &SearchReq) -> Result<SearchResult, Error> {
         let url = &format!("{}/api/v1/sec/item/search", self.base_url);
         let token = session::session_token(token, self).context(Session)?;
@@ -125,6 +165,10 @@ impl Client {
             .context(SerializeResp)
     }
 
+    /// Returns a summary for a given search query.
+    ///
+    /// If `token` is specified, it is used to authenticate. Otherwise
+    /// a stored session is used.
     pub fn summary<S: Into<String>>(
         &self,
         token: &Option<String>,
@@ -143,6 +187,10 @@ impl Client {
             .context(SerializeResp)
     }
 
+    /// Lists all sources for the current user.
+    ///
+    /// If `token` is specified, it is used to authenticate. Otherwise
+    /// a stored session is used.
     pub fn list_sources(&self, token: &Option<String>) -> Result<SourceList, Error> {
         let url = &format!("{}/api/v1/sec/source", self.base_url);
         let token = session::session_token(token, self).context(Session)?;
@@ -156,6 +204,10 @@ impl Client {
             .context(SerializeResp)
     }
 
+    /// Get all item details. The item is identified by its id.
+    ///
+    /// If `token` is specified, it is used to authenticate. Otherwise
+    /// a stored session is used.
     pub fn get_item<S: Into<String>>(
         &self,
         token: &Option<String>,
@@ -181,6 +233,12 @@ impl Client {
         }
     }
 
+    /// Given a search query, returns an iterator over all attachments
+    /// of the results. The attachments can be downloaded by calling
+    /// the corresponding functions on the iterators elements.
+    ///
+    /// If `token` is specified, it is used to authenticate. Otherwise
+    /// a stored session is used.
     pub fn download_search(
         &self,
         token: &Option<String>,
@@ -190,6 +248,7 @@ impl Client {
         Ok(Downloads::new(&results))
     }
 
+    /// Checks if the integration endpoint is enabled for the given collective.
     pub fn int_endpoint_avail(&self, data: IntegrationData) -> Result<bool, Error> {
         let url = format!(
             "{}/api/v1/open/integration/item/{}",
@@ -217,6 +276,37 @@ impl Client {
         }
     }
 
+    /// Generates a new invitation key that can be used when
+    /// registering an account.
+    pub fn gen_invite(&self, req: &GenInvite) -> Result<InviteResult, Error> {
+        let url = &format!("{}/api/v1/open/signup/newinvite", self.base_url);
+        self.client
+            .post(url)
+            .json(req)
+            .send()
+            .context(Http { url })?
+            .json::<InviteResult>()
+            .context(SerializeResp)
+    }
+
+    /// Registers a new account with Docspell.
+    pub fn register(&self, req: &Registration) -> Result<BasicResult, Error> {
+        let url = &format!("{}/api/v1/open/signup/register", self.base_url);
+        log::debug!("Register new account: {:?}", req);
+        self.client
+            .post(url)
+            .json(req)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<BasicResult>()
+            .context(SerializeResp)
+    }
+
+    /// Checks if a file with give hash (sha256) exists in Docspell.
+    ///
+    /// Authentication can be via the session, a source id or the
+    /// integration endpoint as defined via the `FileAuth`.
     pub fn file_exists<S: Into<String>>(
         &self,
         hash: S,
@@ -252,23 +342,54 @@ impl Client {
             .context(SerializeResp)
     }
 
-    pub fn gen_invite(&self, req: &GenInvite) -> Result<InviteResult, Error> {
-        let url = &format!("{}/api/v1/open/signup/newinvite", self.base_url);
-        self.client
-            .post(url)
-            .json(req)
-            .send()
-            .context(Http { url })?
-            .json::<InviteResult>()
-            .context(SerializeResp)
-    }
+    /// Upload some files for processing.
+    ///
+    /// The `meta` part can be used to control some parts of
+    /// processing. The vec of files must not be empty.
+    ///
+    /// Authentication can be via the session, a source id or the
+    /// integration endpoint as defined via the `FileAuth`.
+    pub fn upload_files(
+        &self,
+        file_auth: &FileAuth,
+        meta: &UploadMeta,
+        files: &Vec<&PathBuf>,
+    ) -> Result<BasicResult, Error> {
+        let url = match file_auth {
+            FileAuth::Source { id } => {
+                format!("{}/api/v1/open/item/{}", self.base_url, id,)
+            }
+            FileAuth::Integration(IntegrationData { collective, .. }) => format!(
+                "{}/api/v1/open/integration/item/{}",
+                self.base_url, collective,
+            ),
+            FileAuth::Session { .. } => {
+                format!("{}/api/v1/sec/upload/item", self.base_url)
+            }
+        };
 
-    pub fn register(&self, req: &Registration) -> Result<BasicResult, Error> {
-        let url = &format!("{}/api/v1/open/signup/register", self.base_url);
-        log::debug!("Register new account: {:?}", req);
-        self.client
-            .post(url)
-            .json(req)
+        let meta_json = serde_json::to_vec(&meta).context(SerializeReq)?;
+        let meta_part = Part::bytes(meta_json)
+            .mime_str(APP_JSON)
+            .context(Mime { raw: APP_JSON })?;
+        let mut form = Form::new().part("meta", meta_part);
+        for path in files {
+            log::debug!("Adding to request: {}", path.display());
+
+            let fopen = File::open(path).context(OpenFile { path })?;
+            let len = fopen.metadata().context(OpenFile { path })?.len();
+            let bufr = std::io::BufReader::new(fopen);
+            let mut fpart = Part::reader_with_length(bufr, len);
+            if let Some(fname) = path.as_path().file_name() {
+                let f: String = fname.to_string_lossy().into();
+                fpart = fpart.file_name(f);
+            }
+            form = form.part("file", fpart);
+        }
+
+        file_auth
+            .apply(self, self.client.post(&url))?
+            .multipart(form)
             .send()
             .and_then(|r| r.error_for_status())
             .context(Http { url })?
@@ -276,6 +397,11 @@ impl Client {
             .context(SerializeResp)
     }
 
+    /// Submits a task on the Docspell server, that (re)generates all preview images.
+    ///
+    /// This is needed if the preview dpi setting has been changed.
+    ///
+    /// It requires to provide the admin secret from Docspells configuration file.
     pub fn admin_generate_previews<S: Into<String>>(
         &self,
         admin_secret: S,
@@ -294,6 +420,9 @@ impl Client {
             .context(SerializeResp)
     }
 
+    /// Submits a task to re-create the entire fulltext index (across all collectives).
+    ///
+    /// It requires to provide the admin secret from Docspells configuration file.
     pub fn admin_recreate_index<S: Into<String>>(
         &self,
         admin_secret: S,
@@ -309,6 +438,9 @@ impl Client {
             .context(SerializeResp)
     }
 
+    /// Resets the password for the given account.
+    ///
+    /// It requires to provide the admin secret from Docspells configuration file.
     pub fn admin_reset_password<S: Into<String>>(
         &self,
         admin_secret: S,
@@ -327,17 +459,29 @@ impl Client {
     }
 }
 
+/// Defines methods to authenticate when uploading files.
+///
+/// Either use a [source
+/// id](https://docspell.org/docs/webapp/uploading/#anonymous-upload),
+/// use the [integration
+/// endpoint](https://docspell.org/docs/api/upload/#integration-endpoint)
+/// or the session.
 pub enum FileAuth {
     Source { id: String },
     Integration(IntegrationData),
     Session { token: Option<String> },
 }
 
+/// When using the integration endpoint, a collective id is required
+/// and possibly some authentication information.
 pub struct IntegrationData {
     pub collective: String,
     pub auth: IntegrationAuth,
 }
 
+/// The integration endpoint allows several authentication methods:
+/// via http basic, some other specific header or without any extra
+/// data (using fixed ip addresses).
 pub enum IntegrationAuth {
     Header(String, String),
     Basic(String, String),

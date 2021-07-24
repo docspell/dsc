@@ -1,21 +1,14 @@
-use crate::types::{BasicResult, StringList, UploadMeta as MetaRequest, DOCSPELL_AUTH};
-use crate::{
-    cmd::{Cmd, CmdArgs, CmdError},
-    opts::FileAction,
-};
-use crate::{
-    file::FileActionResult,
-    opts::{EndpointOpts, UploadMeta},
-};
 use clap::{ArgGroup, Clap, ValueHint};
-use reqwest::blocking::multipart::{Form, Part};
-use reqwest::blocking::RequestBuilder;
 use snafu::{ResultExt, Snafu};
-use std::fs::File;
 use std::path::PathBuf;
 
-use super::file_exists;
-use super::login;
+use super::{Cmd, Context};
+use crate::cli::opts::{EndpointOpts, FileAction, UploadMeta};
+use crate::cli::sink::Error as SinkError;
+use crate::http::payload::{BasicResult, StringList, UploadMeta as MetaRequest};
+use crate::http::Error as HttpError;
+use crate::util::digest;
+use crate::util::file::FileActionResult;
 
 /// Uploads files to docspell.
 ///
@@ -90,31 +83,24 @@ pub struct Input {
     #[clap(required = true, min_values = 1, value_hint = ValueHint::FilePath)]
     pub files: Vec<PathBuf>,
 }
-impl Input {
-    fn collective_id(&self) -> Result<&String, Error> {
-        self.endpoint
-            .collective
-            .as_ref()
-            .ok_or(Error::CollectiveNotGiven {})
-    }
-}
 
 #[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("The collective is required, but was not specified!"))]
     CollectiveNotGiven {},
 
-    #[snafu(display("Serializing the upload meta data failed!"))]
-    MetaSerialize { source: serde_json::Error },
-
-    #[snafu(display("Unable to create the upload part: {}", source))]
-    PartCreate { source: reqwest::Error },
-
     #[snafu(display("Unable to open file {}: {}", path.display(), source))]
     OpenFile {
         path: PathBuf,
         source: std::io::Error,
     },
+
+    #[snafu(display("Error creating hash for '{}': {}", path.display(), source))]
+    DigestFile {
+        source: std::io::Error,
+        path: PathBuf,
+    },
+
     #[snafu(display("Cannot delete or move {}: {}", path.display(), source))]
     FileActionError {
         source: std::io::Error,
@@ -127,17 +113,11 @@ pub enum Error {
         source: std::io::Error,
     },
 
-    #[snafu(display("Error received from server at {}: {}", url, source))]
-    Http { source: reqwest::Error, url: String },
+    #[snafu(display("An http error occurred: {}!", source))]
+    HttpClient { source: HttpError },
 
-    #[snafu(display("Error received from server: {}", source))]
-    ReadResponse { source: reqwest::Error },
-
-    #[snafu(display(
-        "Error logging in via session. Consider the `login` command. {}",
-        source
-    ))]
-    Login { source: login::Error },
+    #[snafu(display("Error writing data: {}", source))]
+    WriteResult { source: SinkError },
 
     #[snafu(display("The `--single-item` option cannot be used with `--traverse`"))]
     MultipleWithTraverse,
@@ -150,38 +130,23 @@ pub enum Error {
         source: glob::PatternError,
         pattern: String,
     },
-
-    #[snafu(display("Error while detecting if file exists! {}", source))]
-    FileExists { source: file_exists::Error },
 }
 
 impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        let result = upload_files(self, args).map_err(|source| CmdError::Upload { source })?;
-        args.write_result(result)?;
+    type CmdError = Error;
 
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
+        let result = upload_files(self, ctx)?;
+        ctx.write_result(result).context(WriteResult)?;
         Ok(())
     }
 }
 
-pub fn upload_files(args: &Input, cfg: &CmdArgs) -> Result<BasicResult, Error> {
+fn upload_files(args: &Input, ctx: &Context) -> Result<BasicResult, Error> {
     check_flags(args)?;
     let matcher = matching::Matcher::new(args)?;
 
-    let url = &if args.endpoint.integration {
-        let coll_id = args.collective_id()?;
-        format!(
-            "{}/api/v1/open/integration/item/{}",
-            cfg.cfg.docspell_url, coll_id
-        )
-    } else {
-        match &args.endpoint.get_source_id(cfg.cfg) {
-            Some(id) => format!("{}/api/v1/open/upload/item/{}", cfg.docspell_url(), id),
-            None => format!("{}/api/v1/sec/upload/item", cfg.docspell_url()),
-        }
-    };
-
-    let meta = &MetaRequest {
+    let meta = MetaRequest {
         multiple: args.multiple,
         direction: args
             .upload
@@ -196,7 +161,6 @@ pub fn upload_files(args: &Input, cfg: &CmdArgs) -> Result<BasicResult, Error> {
         file_filter: args.upload.file_filter.clone(),
         language: args.upload.language.clone(),
     };
-    let meta_json = serde_json::to_vec(&meta).context(MetaSerialize)?;
     log::debug!("Send file metadata: {:?}", serde_json::to_string(&meta));
     if args.traverse {
         if let Some(delay) = args.poll {
@@ -212,23 +176,19 @@ pub fn upload_files(args: &Input, cfg: &CmdArgs) -> Result<BasicResult, Error> {
                     "Traversing to upload '{}' (every {:?}) …",
                     dir_list, delay_dur
                 );
-                upload_traverse(url, &meta_json, args, cfg, &matcher)?;
+                upload_traverse(&meta, args, ctx, &matcher)?;
                 std::thread::sleep(delay_dur);
             }
         } else {
-            upload_traverse(url, &meta_json, args, cfg, &matcher)
+            upload_traverse(&meta, args, ctx, &matcher)
         }
     } else {
-        let meta_part = Part::bytes(meta_json)
-            .mime_str(APP_JSON)
-            .context(PartCreate)?;
-
-        upload_single(url, meta_part, args, cfg, matcher)
+        upload_single(&meta, args, ctx, matcher)
     }
 }
 
-fn apply_file_action(path: &PathBuf, root: Option<&PathBuf>, args: &Input) -> Result<(), Error> {
-    let res = args
+fn apply_file_action(path: &PathBuf, root: Option<&PathBuf>, opts: &Input) -> Result<(), Error> {
+    let res = opts
         .action
         .execute(path, root)
         .context(FileActionError { path })?;
@@ -246,42 +206,46 @@ fn apply_file_action(path: &PathBuf, root: Option<&PathBuf>, args: &Input) -> Re
 }
 
 fn upload_traverse(
-    url: &str,
-    meta_json: &Vec<u8>,
-    args: &Input,
-    cfg: &CmdArgs,
+    meta: &MetaRequest,
+    opts: &Input,
+    ctx: &Context,
     matcher: &matching::Matcher,
 ) -> Result<BasicResult, Error> {
     let mut counter = 0;
-    for path in &args.files {
+    let fauth = opts.endpoint.to_file_auth(ctx);
+    for path in &opts.files {
         if path.is_dir() {
             for child in matcher.traverse(&path)? {
-                let exists = check_existence(&child, args, cfg)?;
+                let exists = check_existence(&child, opts, ctx)?;
                 if !exists {
                     eprintln!("Uploading {}", child.display());
                     counter = counter + 1;
-                    if !args.dry_run {
-                        send_file(url, &child, meta_json.clone(), args, cfg)?;
-                        apply_file_action(&child, Some(&path), args)?;
+                    if !opts.dry_run {
+                        ctx.client
+                            .upload_files(&fauth, meta, &vec![path])
+                            .context(HttpClient)?;
+                        apply_file_action(&child, Some(&path), opts)?;
                     }
                 } else {
                     file_exists_message(&child);
-                    apply_file_action(&child, Some(&path), args)?;
+                    apply_file_action(&child, Some(&path), opts)?;
                 }
             }
         } else {
             if matcher.is_included(&path) {
-                let exists = check_existence(path, args, cfg)?;
+                let exists = check_existence(path, opts, ctx)?;
                 if !exists {
                     eprintln!("Uploading file {}", path.display());
                     counter = counter + 1;
-                    if !args.dry_run {
-                        send_file(url, path, meta_json.clone(), args, cfg)?;
-                        apply_file_action(&path, None, args)?;
+                    if !opts.dry_run {
+                        ctx.client
+                            .upload_files(&fauth, meta, &vec![path])
+                            .context(HttpClient)?;
+                        apply_file_action(&path, None, opts)?;
                     }
                 } else {
                     file_exists_message(path);
-                    apply_file_action(&path, None, args)?;
+                    apply_file_action(&path, None, opts)?;
                 }
             }
         }
@@ -297,55 +261,22 @@ fn file_exists_message(path: &PathBuf) {
     eprintln!("File already in Docspell: {}", path.display());
 }
 
-fn send_file(
-    url: &str,
-    path: &PathBuf,
-    meta_json: Vec<u8>,
-    args: &Input,
-    cfg: &CmdArgs,
-) -> Result<BasicResult, Error> {
-    let meta_part = Part::bytes(meta_json)
-        .mime_str(APP_JSON)
-        .context(PartCreate)?;
-    let mut form = Form::new().part("meta", meta_part);
-    let fopen = File::open(path).context(OpenFile { path })?;
-    let len = fopen.metadata().context(OpenFile { path })?.len();
-    let bufr = std::io::BufReader::new(fopen);
-    let mut fpart = Part::reader_with_length(bufr, len);
-    if let Some(fname) = path.as_path().file_name() {
-        let f: String = fname.to_string_lossy().into();
-        fpart = fpart.file_name(f);
-    }
-    form = form.part("file", fpart);
-    send_file_form(form, url, args, cfg)
-}
-
 /// Uploads all files in a single request.
 fn upload_single(
-    url: &str,
-    meta_part: Part,
-    args: &Input,
-    cfg: &CmdArgs,
+    meta: &MetaRequest,
+    opts: &Input,
+    ctx: &Context,
     matcher: matching::Matcher,
 ) -> Result<BasicResult, Error> {
-    let mut form = Form::new().part("meta", meta_part);
-    let mut counter = 0;
-    for path in &args.files {
+    let fauth = opts.endpoint.to_file_auth(ctx);
+    let mut files: Vec<&PathBuf> = Vec::new();
+    for path in &opts.files {
         if matcher.is_included(path) {
-            let exists = check_existence(path, args, cfg)?;
+            let exists = check_existence(path, opts, ctx)?;
             if !exists {
-                counter = counter + 1;
                 eprintln!("Adding to request: {}", path.display());
-                if !args.dry_run {
-                    let fopen = File::open(path).context(OpenFile { path })?;
-                    let len = fopen.metadata().context(OpenFile { path })?.len();
-                    let bufr = std::io::BufReader::new(fopen);
-                    let mut fpart = Part::reader_with_length(bufr, len);
-                    if let Some(fname) = path.as_path().file_name() {
-                        let f: String = fname.to_string_lossy().into();
-                        fpart = fpart.file_name(f);
-                    }
-                    form = form.part("file", fpart);
+                if !opts.dry_run {
+                    files.push(path);
                 }
             } else {
                 file_exists_message(path);
@@ -353,10 +284,12 @@ fn upload_single(
         }
     }
 
-    if !args.dry_run {
-        if counter > 0 {
+    if !opts.dry_run {
+        if files.len() > 0 {
             eprintln!("Sending request …");
-            send_file_form(form, url, args, cfg)
+            ctx.client
+                .upload_files(&fauth, meta, &files)
+                .context(HttpClient)
         } else {
             Ok(BasicResult {
                 success: true,
@@ -366,35 +299,20 @@ fn upload_single(
     } else {
         Ok(BasicResult {
             success: true,
-            message: format!("Would upload {} file(s)", &counter).into(),
+            message: format!("Would upload {} file(s)", files.len()).into(),
         })
     }
 }
 
-fn check_existence(path: &PathBuf, args: &Input, cfg: &CmdArgs) -> Result<bool, Error> {
-    if args.upload.skip_duplicates {
-        file_exists::check_file(path, &args.endpoint, cfg)
-            .context(FileExists)
-            .map(|result| result.exists)
+fn check_existence(path: &PathBuf, opts: &Input, ctx: &Context) -> Result<bool, Error> {
+    if opts.upload.skip_duplicates {
+        let fauth = opts.endpoint.to_file_auth(ctx);
+        let hash = digest::digest_file_sha256(path).context(DigestFile { path })?;
+        let exists = ctx.client.file_exists(hash, &fauth).context(HttpClient)?;
+        Ok(exists.exists)
     } else {
         Ok(false)
     }
-}
-
-fn send_file_form(
-    form: Form,
-    url: &str,
-    args: &Input,
-    cfg: &CmdArgs,
-) -> Result<BasicResult, Error> {
-    let client = create_client(&url, &args.endpoint, cfg)?;
-    client
-        .multipart(form)
-        .send()
-        .and_then(|r| r.error_for_status())
-        .context(Http { url })?
-        .json::<BasicResult>()
-        .context(ReadResponse)
 }
 
 // TODO use clap to solve this!
@@ -409,21 +327,8 @@ fn check_flags(args: &Input) -> Result<(), Error> {
     Ok(())
 }
 
-fn create_client(url: &str, opts: &EndpointOpts, args: &CmdArgs) -> Result<RequestBuilder, Error> {
-    if opts.get_source_id(args.cfg).is_none() && !opts.integration {
-        let token = login::session_token(args).context(Login)?;
-        Ok(args.client.post(url).header(DOCSPELL_AUTH, token))
-    } else {
-        let mut c = args.client.post(url);
-        c = opts.apply(c);
-        Ok(c)
-    }
-}
-
 //////////////////////////////////////////////////////////////////////////////
 /// Helper types
-
-const APP_JSON: &'static str = "application/json";
 
 mod matching {
     use super::*;
