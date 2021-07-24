@@ -28,6 +28,8 @@ jobs:
           override: true
           default: true
 
+      - run: rustup component add clippy
+
       - name: Show version information (Rust, cargo, GCC)
         shell: bash
         run: |
@@ -37,6 +39,12 @@ jobs:
           rustup default
           cargo -V
           rustc -V
+
+      - name: Run clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
 
       - name: Tests
         run: ./run-tests.sh
