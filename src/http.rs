@@ -357,7 +357,7 @@ impl Client {
     ) -> Result<BasicResult, Error> {
         let url = match file_auth {
             FileAuth::Source { id } => {
-                format!("{}/api/v1/open/item/{}", self.base_url, id,)
+                format!("{}/api/v1/open/upload/item/{}", self.base_url, id,)
             }
             FileAuth::Integration(IntegrationData { collective, .. }) => format!(
                 "{}/api/v1/open/integration/item/{}",

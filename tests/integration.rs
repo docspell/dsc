@@ -1,7 +1,7 @@
 mod common;
 use crate::common::{mk_cmd, Result};
 use assert_cmd::prelude::*;
-use dsc::types::{BasicResult, SearchResult, SourceAndTags, Summary};
+use dsc::http::payload::{BasicResult, SearchResult, SourceAndTags, Summary};
 use std::process::Command;
 
 #[test]
