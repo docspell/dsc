@@ -4,11 +4,35 @@
 //! implements the endpoints as described
 //! [here](https://docspell.org/openapi/docspell-openapi.html).
 //!
-//! ## Session handling
+//! # Usage
+//!
+//! ```rust
+//! let client = dsc::http::Client::new("http://localhost:7880");
+//! println!("{:?}", client.version());
+//! ```
+//!
+//! For multiple requests, it is recommended to reuse one client to
+//! benefit from connection pooling used in the underlying
+//! [`reqwest::blocking::Client`].
+//!
+//! # Authentication
 //!
 //! The `login` method can be used to perform a login. The returned
 //! session is stored in the user's home directory and used for all
 //! secured requests where no explicit token is supplied.
+//!
+//! When dealing with files (upload or check if a file exists),
+//! besides a valid session, a [source
+//! id](https://docspell.org/docs/webapp/uploading/#anonymous-upload)
+//! or the [integration
+//! endpoint](https://docspell.org/docs/api/upload/#integration-endpoint)
+//! can be used.
+//!
+//! # Admin
+//!
+//! There are some commands that require the [admin
+//! secret](https://docspell.org/docs/configure/#admin-endpoint) from
+//! Docspells configuration file.
 
 pub mod payload;
 mod session;
@@ -31,6 +55,7 @@ use snafu::{ResultExt, Snafu};
 
 const APP_JSON: &str = "application/json";
 
+/// The errors cases.
 #[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("An error was received from: {}!", url))]
@@ -64,6 +89,15 @@ pub enum Error {
     },
 }
 
+/// The docspell http client.
+///
+/// This wraps a `reqwest::blocking::Client` with methods
+/// corresponding to an api endpoint. The required parameter for
+/// construction is the base docspell url, something like
+/// `http://localhost:7880` that is used to base all urls on.
+///
+/// Note that this client handles the session token by storing it
+/// beneath the current user's home directory.
 pub struct Client {
     client: reqwest::blocking::Client,
     base_url: String,
@@ -531,6 +565,10 @@ impl FileAuth {
     }
 }
 
+/// Represents a response to a request to a binary file.
+///
+/// The methods allow to retrieve the filename from the response or
+/// copy the bytes somewhere.
 pub struct Download {
     pub id: String,
     pub url: String,
@@ -539,6 +577,8 @@ pub struct Download {
 }
 
 impl Download {
+    /// Get the filename from the responses `Content-Disposition`
+    /// header.
     pub fn get_filename(&self) -> Option<&str> {
         self.resp
             .headers()
@@ -547,6 +587,7 @@ impl Download {
             .and_then(util::filename_from_header)
     }
 
+    /// Copies the bytes from the response into the give writer.
     pub fn copy_to<W: ?Sized>(&mut self, w: &mut W) -> Result<u64, Error>
     where
         W: Write,
@@ -558,6 +599,10 @@ impl Download {
     }
 }
 
+/// A reference to an attachment.
+///
+/// It contains its id and name. With this information, use one of its
+/// methods to download the desired file.
 pub struct DownloadRef {
     pub id: String,
     pub name: String,
@@ -648,6 +693,7 @@ impl DownloadRef {
     }
 }
 
+/// An iterator over `DownloadRef` elements.
 pub struct Downloads {
     refs: Vec<DownloadRef>,
 }

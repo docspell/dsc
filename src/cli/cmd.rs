@@ -1,3 +1,14 @@
+//! Defines all commands of the cli.
+//!
+//! A command is defined by the trait [`Cmd`]. Besides the type it is
+//! defined on, it expects a [`Context`] argument which contains the
+//! configuration file, the common options and an instance of the
+//! [`crate::http::Client`].
+//!
+//! Each command defines its inputs via [clap](https://clap.rs) and
+//! implements for this type the `Cmd` trait. Each input type is
+//! referenced in the subcommand enum.
+
 pub mod admin;
 pub mod cleanup;
 pub mod download;
@@ -24,6 +35,9 @@ use crate::http::Client;
 use serde::Serialize;
 use snafu::Snafu;
 
+/// A command for the cli.
+///
+/// The [`Context`] argument is defined for all commands.
 pub trait Cmd {
     type CmdError;
 

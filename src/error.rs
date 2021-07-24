@@ -1,3 +1,5 @@
+//! Global error types.
+
 use crate::cli::cmd;
 use crate::config;
 use snafu::Snafu;

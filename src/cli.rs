@@ -1,3 +1,5 @@
+//! Defines the command line interface.
+
 pub mod cmd;
 pub mod opts;
 pub mod sink;
@@ -9,6 +11,7 @@ use clap::IntoApp;
 use self::cmd::{Cmd, CmdError, Context};
 use self::opts::{MainOpts, SubCommand};
 
+/// Given the config and arguments, runs the corresponding command.
 pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), CmdError> {
     let ctx = Context::new(&opts.common_opts, &cfg);
 

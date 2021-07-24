@@ -1,13 +1,17 @@
+//! Defines human readable table output for various types.
+
 use crate::cli::sink::{Error as SinkError, Sink};
 use crate::http::payload::*;
 use chrono::{DateTime, TimeZone, Utc};
 use prettytable::format::{FormatBuilder, LinePosition, LineSeparator};
 use prettytable::{cell, row, Table};
 
+/// A trait to format a data structure into a [`prettytable::Table`].
 pub trait AsTable {
     fn to_table(&self) -> Table;
 }
 
+/// Creates a new table with some default settings.
 pub fn mk_table() -> Table {
     let mut table = Table::new();
 
@@ -30,6 +34,8 @@ pub fn mk_table() -> Table {
     table
 }
 
+/// Formats a date given as a unix timestap or returns the empty
+/// string.
 pub fn format_date_opt(dtopt: &Option<i64>) -> String {
     match dtopt {
         Some(dt) => format_date(*dt),
@@ -37,11 +43,29 @@ pub fn format_date_opt(dtopt: &Option<i64>) -> String {
     }
 }
 
+/// Formats the date given as unix timestamp into "year-month-day".
 pub fn format_date(dt: i64) -> String {
     let secs = dt / 1000;
     let nsec: u32 = ((dt % 1000) * 1000) as u32;
     let dt: DateTime<Utc> = Utc.timestamp(secs, nsec);
     dt.format("%Y-%m-%d").to_string()
+}
+
+/// Combines two [`IdName`] objects by their name via a separator.
+/// Returns only one value if the other is empty or the empty string
+/// if both are not present.
+fn combine(opta: &Option<IdName>, optb: &Option<IdName>, sep: &str) -> String {
+    match (opta, optb) {
+        (Some(a), Some(b)) => format!("{}{}{}", a.name, sep, b.name),
+        (Some(a), None) => a.name.clone(),
+        (None, Some(b)) => b.name.clone(),
+        (None, None) => "".into(),
+    }
+}
+
+/// Returns the value in the option or the empty string.
+pub fn str_or_empty(opt: Option<&String>) -> &str {
+    opt.as_ref().map(|s| s.as_str()).unwrap_or("")
 }
 
 // --- impls for payloads
@@ -350,17 +374,3 @@ impl AsTable for SearchResult {
     }
 }
 impl Sink for SearchResult {}
-
-//TODO this shouldn't be here __solved
-fn combine(opta: &Option<IdName>, optb: &Option<IdName>, sep: &str) -> String {
-    match (opta, optb) {
-        (Some(a), Some(b)) => format!("{}{}{}", a.name, sep, b.name),
-        (Some(a), None) => a.name.clone(),
-        (None, Some(b)) => b.name.clone(),
-        (None, None) => "".into(),
-    }
-}
-//TODO this shouldn't be here (only used for creating tables) __solved?
-pub fn str_or_empty(opt: Option<&String>) -> &str {
-    opt.as_ref().map(|s| s.as_str()).unwrap_or("")
-}

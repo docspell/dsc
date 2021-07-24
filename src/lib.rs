@@ -1,7 +1,5 @@
-//! Provides a library to use Docspell.
+//! Provides a library and command line interface to Docspell.
 //!
-//! The `http` module contains a client to Docspell. This is used in
-//! the `cli` module to provide commands.
 
 pub mod cli;
 pub mod config;
@@ -17,6 +15,7 @@ use config::DsConfig;
 use error::Result;
 use std::path::PathBuf;
 
+/// Reads the program arguments into the `MainOpts` data structure.
 pub fn read_args() -> MainOpts {
     log::debug!("Parsing command line options…");
     let m = MainOpts::parse();
@@ -25,12 +24,18 @@ pub fn read_args() -> MainOpts {
     m
 }
 
+/// Reads the config file.
+///
+/// If the file is not given, it is searched in the default location.
+/// If the file is given, it is used without a fallback.
 pub fn read_config(file: &Option<PathBuf>) -> Result<DsConfig> {
     let f = DsConfig::read(file.as_ref())?;
     log::debug!("Config: {:?}", f);
     Ok(f)
 }
 
+/// The main method: reads arguments and config file and executes the
+/// corresponding command.
 pub fn execute() -> Result<()> {
     let opts = read_args();
     let cfg = read_config(&opts.config)?;

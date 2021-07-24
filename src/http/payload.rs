@@ -1,3 +1,5 @@
+//! Defines payloads for requests and responses and their `De/Serialize` instances.
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

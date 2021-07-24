@@ -1,3 +1,5 @@
+//! Defines all options and commands for the cli via [clap](https://clap.rs).
+
 use super::cmd::*;
 use crate::{
     config::DsConfig,
@@ -33,6 +35,10 @@ pub struct MainOpts {
     pub subcmd: SubCommand,
 }
 
+/// Options that are applicable to all (or most) commands.
+///
+/// They are defined for the main command, before the subcommand is
+/// defined.
 #[derive(Clap, Debug)]
 pub struct CommonOpts {
     /// Be more verbose when logging.
@@ -60,6 +66,7 @@ pub struct CommonOpts {
     pub session: Option<String>,
 }
 
+/// All subcommands.
 #[derive(Clap, Debug)]
 pub enum SubCommand {
     /// Write the default config to the file system and exit.
@@ -138,6 +145,7 @@ pub enum SubCommand {
     Admin(admin::Input),
 }
 
+/// The format for presenting the results.
 #[derive(ArgEnum, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Format {
     Json,
@@ -146,6 +154,10 @@ pub enum Format {
     Tabular,
 }
 
+/// Shared options regarding file uploads or file existence checks.
+///
+/// Uploads can be done via a source id, the integration endpoint or a
+/// valid session.
 #[derive(Clap, Debug, Clone)]
 #[clap(group = ArgGroup::new("int"))]
 #[clap(group = ArgGroup::new("g_source"))]
@@ -209,6 +221,10 @@ impl EndpointOpts {
     }
 }
 
+/// A generic name + value structure.
+///
+/// Used for parsing two arguments from a single string. Values must
+/// be separated by a colon `:`.
 #[derive(Debug, Clone)]
 pub struct NameVal {
     pub name: String,
@@ -229,6 +245,7 @@ impl std::str::FromStr for NameVal {
     }
 }
 
+/// The direction of an item in docspell.
 #[derive(ArgEnum, Debug, Clone)]
 pub enum Direction {
     In,
@@ -243,6 +260,7 @@ impl Direction {
     }
 }
 
+/// Shared options used for uploading.
 #[derive(Clap, Debug, Clone)]
 pub struct UploadMeta {
     /// Specify the direction of the item.
@@ -272,6 +290,7 @@ pub struct UploadMeta {
     pub language: Option<String>,
 }
 
+/// Shared options for specifying what to do with a file.
 #[derive(Clap, Debug, Clone)]
 #[clap(group = ArgGroup::new("file-action"))]
 pub struct FileAction {

@@ -1,9 +1,12 @@
+//! Module for reading the configuration file.
+
 use crate::cli::opts::Format;
 use serde::{Deserialize, Serialize};
 use snafu::{ResultExt, Snafu};
 use std::default;
 use std::path::{Path, PathBuf};
 
+/// Defines the contents of the configuration file.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DsConfig {
     pub docspell_url: String,
@@ -15,6 +18,7 @@ pub struct DsConfig {
     pub pdf_viewer: Vec<String>,
 }
 
+/// Error states when reading and writing the config file.
 #[derive(Debug, Snafu)]
 pub enum ConfigError {
     #[snafu(display("Unable to read config file {}: {}", path.display(), source))]
@@ -56,6 +60,13 @@ impl default::Default for DsConfig {
 }
 
 impl DsConfig {
+    /// Reads the configuration file.
+    ///
+    /// If the argument provides a config file, this is read. If not,
+    /// the env variable `DSC_CONFIG` is used to lookup the
+    /// configuration file. If this env variable is not set, the
+    /// default location is used (which is ~/.config/dsc/config.toml`
+    /// on linuxes).
     pub fn read(file: Option<&PathBuf>) -> Result<DsConfig, ConfigError> {
         if let Some(cfg_file) = &file {
             log::debug!(
@@ -92,10 +103,14 @@ impl DsConfig {
         }
     }
 
+    /// Write the default configuration to the default config file.
+    /// The file must not yet exist.
     pub fn write_default_file() -> Result<PathBuf, ConfigError> {
         DsConfig::default().write_default()
     }
 
+    /// Write this configuration to the default location. If the
+    /// already file exists, a error is returned.
     pub fn write_default(&self) -> Result<PathBuf, ConfigError> {
         let mut dir = config_dir()?;
         dir.push("dsc");
