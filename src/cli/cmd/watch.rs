@@ -1,19 +1,17 @@
+use clap::{Clap, ValueHint};
+use notify::{DebouncedEvent, RecursiveMode, Watcher};
+use snafu::{ResultExt, Snafu};
+use std::sync::mpsc;
 use std::{
     path::{PathBuf, StripPrefixError},
     time::Duration,
 };
 
-use crate::{
-    cmd::{Cmd, CmdArgs, CmdError},
-    opts::{EndpointOpts, FileAction, UploadMeta},
-    types::BasicResult,
-};
-use clap::{Clap, ValueHint};
-use notify::{DebouncedEvent, RecursiveMode, Watcher};
-use snafu::{ResultExt, Snafu};
-use std::sync::mpsc;
+use super::{upload, Cmd, Context};
+use crate::cli::opts::{EndpointOpts, FileAction, UploadMeta};
+use crate::http::payload::BasicResult;
 
-use super::upload;
+use crate::util::file;
 
 /// Watches a directory and uploads files to docspell.
 ///
@@ -67,11 +65,17 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
+    #[snafu(display("Uploading failed: {}!", source))]
+    Upload { source: upload::Error },
+
+    #[snafu(display("Error creating hash for '{}': {}", path.display(), source))]
+    DigestFile {
+        source: std::io::Error,
+        path: PathBuf,
+    },
+
     #[snafu(display("Not a directory: {}!", path.display()))]
     NotADirectory { path: PathBuf },
-
-    #[snafu(display("Error uploading: {}", source))]
-    Upload { source: upload::Error },
 
     #[snafu(display("Error while watching: {}", source))]
     Watch { source: notify::Error },
@@ -87,13 +91,15 @@ pub enum Error {
 }
 
 impl Cmd for Input {
-    fn exec(&self, args: &CmdArgs) -> Result<(), CmdError> {
-        watch_directories(self, args).map_err(|source| CmdError::Watch { source })?;
+    type CmdError = Error;
+
+    fn exec(&self, ctx: &Context) -> Result<(), Error> {
+        watch_directories(self, ctx)?;
         Ok(())
     }
 }
 
-pub fn watch_directories(opts: &Input, args: &CmdArgs) -> Result<(), Error> {
+pub fn watch_directories(opts: &Input, ctx: &Context) -> Result<(), Error> {
     check_is_dir(&opts.dirs)?;
     let mode = if opts.recursive {
         RecursiveMode::Recursive
@@ -110,7 +116,7 @@ pub fn watch_directories(opts: &Input, args: &CmdArgs) -> Result<(), Error> {
     eprintln!("Press Ctrl-C to quit.");
     loop {
         match rx.recv() {
-            Ok(event) => event_act(event, opts, args)?,
+            Ok(event) => event_act(event, opts, ctx)?,
             Err(e) => return Err(Error::Event { source: e }),
         }
     }
@@ -125,12 +131,12 @@ fn check_is_dir(dirs: &Vec<PathBuf>) -> Result<(), Error> {
     Ok(())
 }
 
-fn event_act(event: DebouncedEvent, opts: &Input, args: &CmdArgs) -> Result<(), Error> {
+fn event_act(event: DebouncedEvent, opts: &Input, ctx: &Context) -> Result<(), Error> {
     log::info!("Event: {:?}", event);
     match event {
-        DebouncedEvent::Create(path) => upload_and_report(path, opts, args)?,
-        DebouncedEvent::Write(path) => upload_and_report(path, opts, args)?,
-        DebouncedEvent::Chmod(path) => upload_and_report(path, opts, args)?,
+        DebouncedEvent::Create(path) => upload_and_report(path, opts, ctx)?,
+        DebouncedEvent::Write(path) => upload_and_report(path, opts, ctx)?,
+        DebouncedEvent::Chmod(path) => upload_and_report(path, opts, ctx)?,
         DebouncedEvent::Error(err, path_opt) => {
             log::error!("Debounce event error for path {:?}: {}", path_opt, err);
             return Err(Error::Watch { source: err });
@@ -140,10 +146,10 @@ fn event_act(event: DebouncedEvent, opts: &Input, args: &CmdArgs) -> Result<(), 
     Ok(())
 }
 
-fn upload_and_report(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<(), Error> {
+fn upload_and_report(path: PathBuf, opts: &Input, ctx: &Context) -> Result<(), Error> {
     eprintln!("------------------------------------------------------------------------------");
     eprintln!("Got: {}", path.display());
-    let result = upload_file(path, opts, args)?;
+    let result = upload_file(path, opts, ctx)?;
     if result.success {
         if opts.dry_run {
             eprintln!("Dry run. Would upload now.");
@@ -157,7 +163,7 @@ fn upload_and_report(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<(), 
     Ok(())
 }
 
-fn upload_file(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<BasicResult, Error> {
+fn upload_file(path: PathBuf, opts: &Input, ctx: &Context) -> Result<BasicResult, Error> {
     let mut ep = opts.endpoint.clone();
     if let Some(cid) = find_collective(&path, &opts.dirs, &opts.endpoint)? {
         ep.collective = Some(cid);
@@ -175,28 +181,21 @@ fn upload_file(path: PathBuf, opts: &Input, args: &CmdArgs) -> Result<BasicResul
         dry_run: opts.dry_run,
         files: vec![path],
     };
-    upload::upload_files(data, args).context(Upload)
+    upload::upload_files(data, ctx).context(Upload)
 }
 
-//TODO move to some better place
 pub fn find_collective(
     path: &PathBuf,
     dirs: &Vec<PathBuf>,
     opts: &EndpointOpts,
 ) -> Result<Option<String>, Error> {
     if opts.integration && opts.collective.is_none() {
-        let file = path.canonicalize().unwrap();
-        for dir in dirs {
-            let can_dir = dir.canonicalize().unwrap();
-            log::debug!("Check prefix {} -> {}", can_dir.display(), file.display());
-            if file.starts_with(&can_dir) {
-                let rest = file.strip_prefix(&can_dir).context(FindCollective)?;
-                let coll = rest.iter().next();
-                log::debug!("Found collective: {:?}", &coll);
-                return Ok(coll.and_then(|s| s.to_str()).map(|s| s.to_string()));
-            }
+        let cid = file::collective_from_subdir(path, dirs).context(FindCollective)?;
+        if cid.is_none() {
+            Err(Error::NoCollective { path: path.clone() })
+        } else {
+            Ok(cid)
         }
-        Err(Error::NoCollective { path: path.clone() })
     } else {
         Ok(None)
     }

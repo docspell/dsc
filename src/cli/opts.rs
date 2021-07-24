@@ -1,19 +1,4 @@
-use super::cmd::admin;
-use super::cmd::cleanup;
-use super::cmd::download;
-use super::cmd::file_exists;
-use super::cmd::geninvite;
-use super::cmd::item;
-use super::cmd::logout;
-use super::cmd::register;
-use super::cmd::search;
-use super::cmd::search_summary;
-use super::cmd::source;
-use super::cmd::upload;
-use super::cmd::view;
-use super::cmd::{generate_completions, version};
-use super::cmd::{login, Context};
-// use crate::cmd::watch;
+use super::cmd::*;
 use crate::{
     config::DsConfig,
     http::{FileAuth, IntegrationAuth, IntegrationData},
@@ -88,9 +73,10 @@ pub enum SubCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     GenerateCompletions(generate_completions::Input),
 
-    // #[clap(setting = AppSettings::ColoredHelp)]
-    // #[clap(version)]
-    // Watch(watch::Input),
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    Watch(watch::Input),
+
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Version(version::Input),

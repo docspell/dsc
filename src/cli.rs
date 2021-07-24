@@ -23,7 +23,7 @@ pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), CmdError> {
             input.print_completions(&mut app);
         }
         SubCommand::Item(input) => input.exec(&ctx)?,
-        // SubCommand::Watch(input) => input.exec(&args)?,
+        SubCommand::Watch(input) => input.exec(&ctx)?,
         SubCommand::Version(input) => input.exec(&ctx)?,
         SubCommand::Login(input) => input.exec(&ctx)?,
         SubCommand::Logout(input) => input.exec(&ctx)?,

@@ -14,7 +14,7 @@ pub mod source;
 pub mod upload;
 pub mod version;
 pub mod view;
-// pub mod watch;
+pub mod watch;
 
 use super::opts::Format;
 use super::sink::{Error as SinkError, Sink};
@@ -76,9 +76,7 @@ fn docspell_url(opts: &CommonOpts, cfg: &DsConfig) -> String {
 
 #[derive(Debug, Snafu)]
 pub enum CmdError {
-    // Watch {
-    //     source: watch::Error,
-    // },
+    Watch { source: watch::Error },
     Upload { source: upload::Error },
     Admin { source: admin::Error },
     Cleanup { source: cleanup::Error },
@@ -176,5 +174,10 @@ impl From<cleanup::Error> for CmdError {
 impl From<upload::Error> for CmdError {
     fn from(source: upload::Error) -> Self {
         CmdError::Upload { source }
+    }
+}
+impl From<watch::Error> for CmdError {
+    fn from(source: watch::Error) -> Self {
+        CmdError::Watch { source }
     }
 }

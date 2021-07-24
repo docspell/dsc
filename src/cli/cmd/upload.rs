@@ -142,7 +142,7 @@ impl Cmd for Input {
     }
 }
 
-fn upload_files(args: &Input, ctx: &Context) -> Result<BasicResult, Error> {
+pub fn upload_files(args: &Input, ctx: &Context) -> Result<BasicResult, Error> {
     check_flags(args)?;
     let matcher = matching::Matcher::new(args)?;
 
