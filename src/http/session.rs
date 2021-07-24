@@ -1,3 +1,13 @@
+//! Provides helpers to handle docspell "sessions".
+//!
+//! Docspell returns an authentication token for a login via account +
+//! password. This token must be used for all secured endpoints.
+//!
+//! This token is stored on disk and also refreshed if it is almost
+//! expired.
+//!
+//! This is for internal use only.
+
 use snafu::{ResultExt, Snafu};
 use std::{path::PathBuf, time::Duration};
 

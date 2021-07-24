@@ -1,5 +1,9 @@
+//! A http client for Docspell.
+//!
+//! This provides a http client to Docspell based on reqwest.
+
 pub mod payload;
-pub mod session;
+mod session;
 mod util;
 
 use std::io::Write;
@@ -37,6 +41,8 @@ pub struct Client {
 }
 
 impl Client {
+    /// Create a new client by providing the base url to docspell. For
+    /// example: `http://localhost:7880`.
     pub fn new<S: Into<String>>(docspell_url: S) -> Client {
         Client {
             client: reqwest::blocking::Client::new(),

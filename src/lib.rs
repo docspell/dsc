@@ -1,3 +1,8 @@
+//! Provides a library to use Docspell.
+//!
+//! The `http` module contains a client to Docspell. This is used in
+//! the `cli` module to provide commands.
+
 pub mod cli;
 pub mod config;
 pub mod error;
