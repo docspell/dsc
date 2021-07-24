@@ -2,7 +2,7 @@ use dsc::error::{Error, Result};
 use std::env;
 use std::process;
 
-const LOG_LEVEL: &'static str = "RUST_LOG";
+const LOG_LEVEL: &str = "RUST_LOG";
 
 fn main() {
     let error_style = console::Style::new().red().bright();
@@ -32,7 +32,8 @@ fn execute() -> Result<()> {
     if remove_env {
         env::remove_var(LOG_LEVEL);
     }
-    result
+    result?;
+    Ok(())
 }
 
 fn set_log_level(level: &str) -> bool {
