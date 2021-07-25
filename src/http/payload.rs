@@ -314,6 +314,12 @@ impl CustomField {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct CustomFieldValue {
+    pub field: String,
+    pub value: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Highlight {
     pub name: String,
     pub lines: Vec<String>,

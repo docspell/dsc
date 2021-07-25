@@ -390,6 +390,58 @@ impl Client {
             .context(SerializeResp)
     }
 
+    /// Sets the field to the specfified value for the given item.
+    pub fn set_field<S: Into<String>>(
+        &self,
+        token: &Option<String>,
+        id: S,
+        fvalue: &CustomFieldValue,
+    ) -> Result<BasicResult, Error> {
+        let id_s = id.into();
+        let item_id = self
+            .complete_item_id(token, id_s.as_ref())?
+            .ok_or_else(|| Error::ItemNotFound { id: id_s })?;
+
+        let url = &format!("{}/api/v1/sec/item/{}/customfield", self.base_url, item_id);
+        let token = session::session_token(token, self).context(Session)?;
+        self.client
+            .put(url)
+            .header(DOCSPELL_AUTH, token)
+            .json(fvalue)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<BasicResult>()
+            .context(SerializeResp)
+    }
+
+    /// Removes the field from the given item.
+    pub fn remove_field<S: Into<String>>(
+        &self,
+        token: &Option<String>,
+        id: S,
+        field: &String,
+    ) -> Result<BasicResult, Error> {
+        let id_s = id.into();
+        let item_id = self
+            .complete_item_id(token, id_s.as_ref())?
+            .ok_or_else(|| Error::ItemNotFound { id: id_s })?;
+
+        let url = &format!(
+            "{}/api/v1/sec/item/{}/customfield/{}",
+            self.base_url, item_id, field
+        );
+        let token = session::session_token(token, self).context(Session)?;
+        self.client
+            .delete(url)
+            .header(DOCSPELL_AUTH, token)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<BasicResult>()
+            .context(SerializeResp)
+    }
+
     /// Given a search query, returns an iterator over all attachments
     /// of the results. The attachments can be downloaded by calling
     /// the corresponding functions on the iterators elements.

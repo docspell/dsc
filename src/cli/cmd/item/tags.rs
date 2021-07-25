@@ -6,7 +6,7 @@ use crate::cli::sink::Error as SinkError;
 use crate::http::payload::{BasicResult, StringList};
 use crate::http::Error as HttpError;
 
-/// List all sources for your collective
+/// Add or remove tags for an item.
 #[derive(Clap, Debug)]
 #[clap(group = ArgGroup::new("action"))]
 pub struct Input {
@@ -58,9 +58,6 @@ pub enum Error {
 
     #[snafu(display("Error writing data: {}", source))]
     WriteResult { source: SinkError },
-
-    #[snafu(display("The item was not found"))]
-    ItemNotFound,
 
     #[snafu(display("No action given!"))]
     NoAction,
