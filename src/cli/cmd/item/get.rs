@@ -6,7 +6,7 @@ use crate::cli::sink::Error as SinkError;
 use crate::http::payload::ItemDetail;
 use crate::http::Error as HttpError;
 
-/// List all sources for your collective
+/// Gets details about one item.
 #[derive(Clap, Debug)]
 pub struct Input {
     /// The item id (can be abbreviated to a prefix)
