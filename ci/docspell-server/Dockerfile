@@ -1,4 +1,4 @@
-FROM docspell/restserver:latest
+FROM docspell/restserver:nightly
 
 COPY ./docspell-0.24.0-dump-h2-1.24.0-2021-07-13-2307.sql /opt/h2-dump.sql
 RUN java -cp /opt/docspell-restserver/lib/com.h2database.h2* \

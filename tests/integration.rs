@@ -1,8 +1,23 @@
 mod common;
 use crate::common::{mk_cmd, Result};
 use assert_cmd::prelude::*;
-use dsc::http::payload::{BasicResult, SearchResult, SourceAndTags, Summary};
+use dsc::http::payload::{BasicResult, ItemDetail, SearchResult, SourceAndTags, Summary};
 use std::process::Command;
+
+const ITEM_ID1: &str = "2wKtSUVt3Kj-mAmexmm1jFe-BU6aY6PN4vo-5cpaDD2EyRm";
+const ITEM_ID2: &str = "J4wAkg3jxt5-7QaYXD1WTmF-gq4kGaS89RP-DnPyUwa77fK";
+
+fn basic_result(success: bool, msg: &str) -> BasicResult {
+    BasicResult {
+        success,
+        message: msg.into(),
+    }
+}
+
+fn basic_result_json(success: bool, msg: &str) -> String {
+    let res = basic_result(success, msg);
+    serde_json::to_string(&res).unwrap()
+}
 
 #[test]
 fn dsc_help() -> Result<()> {
@@ -39,7 +54,7 @@ fn remote_upload_web() -> Result<()> {
     let assert = cmd.arg("upload").arg("README.md").assert();
     assert
         .success()
-        .stdout("{\"success\":true,\"message\":\"Files submitted.\"}");
+        .stdout(basic_result_json(true, "Files submitted."));
     Ok(())
 }
 
@@ -59,7 +74,7 @@ fn remote_upload_int_endpoint() -> Result<()> {
         .assert();
     assert
         .success()
-        .stdout("{\"success\":true,\"message\":\"Files submitted.\"}");
+        .stdout(basic_result_json(true, "Files submitted."));
     Ok(())
 }
 
@@ -232,11 +247,142 @@ fn remote_download_zip() -> Result<()> {
     Ok(())
 }
 
-// #[test]
-// fn remote_admin_convert_all_pdfs() -> Result<()> {
-//     let mut cmd = mk_cmd()?;
-//     let out = cmd.arg("admin").arg("convert-all-pdfs").assert();
+#[test]
+fn remote_admin_convert_all_pdfs() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let out = cmd.arg("admin").arg("convert-all-pdfs").assert();
 
-//     out.success().stderr("").stdout("");
-//     Ok(())
-// }
+    out.success()
+        .stderr("")
+        .stdout(basic_result_json(true, "Convert all PDFs task submitted"));
+    Ok(())
+}
+
+#[test]
+fn remote_item_get() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let out = cmd.arg("item").arg("get").arg(&ITEM_ID2[0..7]).output()?;
+    let item: ItemDetail = serde_json::from_slice(out.stdout.as_slice())?;
+    out.assert().success().stderr("");
+
+    assert_eq!(item.name, "wordpress-pdf-invoice-plugin-sample.pdf");
+
+    let tag_names: Vec<String> = item.tags.into_iter().map(|t| t.name).collect();
+    assert_eq!(tag_names, vec!["Invoice", "Todo"]);
+    Ok(())
+}
+
+#[test]
+fn remote_item_tags_add() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let out = cmd
+        .arg("item")
+        .arg("tags")
+        .arg("--id")
+        .arg(ITEM_ID1)
+        .arg("--add")
+        .arg("todo")
+        .assert();
+
+    out.success()
+        .stderr("")
+        .stdout(basic_result_json(true, "Tags linked"));
+
+    remote_item_tags_remove()?;
+    Ok(())
+}
+fn remote_item_tags_remove() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let out = cmd
+        .arg("item")
+        .arg("tags")
+        .arg("--id")
+        .arg(ITEM_ID1)
+        .arg("--remove")
+        .arg("todo")
+        .assert();
+
+    out.success()
+        .stderr("")
+        .stdout(basic_result_json(true, "Tags removed"));
+    Ok(())
+}
+
+#[test]
+fn remote_item_tags_replace() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let out = cmd
+        .arg("item")
+        .arg("tags")
+        .arg("--id")
+        .arg(ITEM_ID1)
+        .arg("--replace")
+        .arg("invitation")
+        .assert();
+
+    out.success()
+        .stderr("")
+        .stdout(basic_result_json(true, "Tags updated"));
+    Ok(())
+}
+
+#[test]
+fn remote_item_fields_set() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let out = cmd
+        .arg("item")
+        .arg("fields")
+        .arg("--id")
+        .arg(&ITEM_ID1[0..7])
+        .arg("--name")
+        .arg("eur")
+        .arg("--set")
+        .arg("12.50")
+        .assert();
+
+    out.success().stderr("").stdout(basic_result_json(
+        true,
+        "Custom field value set successfully.",
+    ));
+
+    remote_item_fields_remove()?;
+    Ok(())
+}
+fn remote_item_fields_remove() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let out = cmd
+        .arg("item")
+        .arg("fields")
+        .arg("--id")
+        .arg(ITEM_ID1)
+        .arg("--name")
+        .arg("eur")
+        .arg("--remove")
+        .assert();
+
+    out.success()
+        .stderr("")
+        .stdout(basic_result_json(true, "Custom field value removed."));
+    Ok(())
+}
+
+#[test]
+fn remote_item_fields_set_bad_value() -> Result<()> {
+    let mut cmd = mk_cmd()?;
+    let out = cmd
+        .arg("item")
+        .arg("fields")
+        .arg("--id")
+        .arg(ITEM_ID1)
+        .arg("--name")
+        .arg("eur")
+        .arg("--set")
+        .arg("xyz")
+        .assert();
+
+    out.success().stderr("").stdout(basic_result_json(
+        false,
+        "The value is invalid: Could not parse decimal value from: xyz",
+    ));
+    Ok(())
+}
