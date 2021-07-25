@@ -9,7 +9,7 @@ use crate::http::Error as HttpError;
 /// List all sources for your collective
 #[derive(Clap, Debug)]
 pub struct Input {
-    /// The item id (can be abbreviated)
+    /// The item id (can be abbreviated to a prefix)
     pub id: String,
 }
 
@@ -20,9 +20,6 @@ pub enum Error {
 
     #[snafu(display("Error writing data: {}", source))]
     WriteResult { source: SinkError },
-
-    #[snafu(display("Could not query the complete id: {}", source))]
-    IdSearch { source: HttpError },
 
     #[snafu(display("The item was not found"))]
     ItemNotFound,
