@@ -54,6 +54,7 @@ use reqwest::StatusCode;
 use snafu::{ResultExt, Snafu};
 
 const APP_JSON: &str = "application/json";
+const ID_LEN: usize = 47;
 
 /// The errors cases.
 #[derive(Debug, Snafu)]
@@ -87,6 +88,12 @@ pub enum Error {
         source: std::io::Error,
         path: PathBuf,
     },
+
+    #[snafu(display("No item found for: {}", id))]
+    ItemNotFound { id: String },
+
+    #[snafu(display("Item id not unique: {}", id))]
+    ItemNotUnique { id: String },
 }
 
 /// The docspell http client.
@@ -107,9 +114,11 @@ impl Client {
     /// Create a new client by providing the base url to docspell. For
     /// example: `http://localhost:7880`.
     pub fn new<S: Into<String>>(docspell_url: S) -> Client {
+        let url = docspell_url.into();
+        log::info!("Create docspell client for: {}", url);
         Client {
             client: reqwest::blocking::Client::new(),
-            base_url: docspell_url.into(),
+            base_url: url,
         }
     }
 
@@ -241,7 +250,9 @@ impl Client {
             .context(SerializeResp)
     }
 
-    /// Get all item details. The item is identified by its id.
+    /// Get all item details. The item is identified by its id. The id
+    /// may be a prefix only, in this case another request is used to
+    /// find the complete id.
     ///
     /// If `token` is specified, it is used to authenticate. Otherwise
     /// a stored session is used.
@@ -250,23 +261,28 @@ impl Client {
         token: &Option<String>,
         id: S,
     ) -> Result<Option<ItemDetail>, Error> {
-        let url = &format!("{}/api/v1/sec/item/{}", self.base_url, id.into());
-        let token = session::session_token(token, self).context(Session)?;
-        let resp = self
-            .client
-            .get(url)
-            .header(DOCSPELL_AUTH, token)
-            .send()
-            .context(Http { url })?;
+        let item_id = self.complete_item_id(token, id.into().as_ref())?;
+        if let Some(iid) = item_id {
+            let url = &format!("{}/api/v1/sec/item/{}", self.base_url, iid);
+            let token = session::session_token(token, self).context(Session)?;
+            let resp = self
+                .client
+                .get(url)
+                .header(DOCSPELL_AUTH, token)
+                .send()
+                .context(Http { url })?;
 
-        if resp.status() == StatusCode::NOT_FOUND {
-            Ok(None)
+            if resp.status() == StatusCode::NOT_FOUND {
+                Ok(None)
+            } else {
+                resp.error_for_status()
+                    .context(Http { url })?
+                    .json::<ItemDetail>()
+                    .context(SerializeResp)
+                    .map(Some)
+            }
         } else {
-            resp.error_for_status()
-                .context(Http { url })?
-                .json::<ItemDetail>()
-                .context(SerializeResp)
-                .map(Some)
+            Ok(None)
         }
     }
 
@@ -513,6 +529,43 @@ impl Client {
             .context(Http { url })?
             .json::<ResetPasswordResp>()
             .context(SerializeResp)
+    }
+
+    /// Search for a unique item given a partial id.
+    fn complete_item_id(
+        &self,
+        token: &Option<String>,
+        partial_id: &str,
+    ) -> Result<Option<String>, Error> {
+        if partial_id.len() < ID_LEN {
+            log::debug!(
+                "Item id '{}' is not complete, searching for the item via a query",
+                partial_id
+            );
+            let req = SearchReq {
+                offset: 0,
+                limit: 2,
+                with_details: false,
+                query: format!("id:{}*", partial_id),
+            };
+            self.search(&token, &req)
+                .and_then(|r| Self::find_id(partial_id, &r))
+        } else {
+            Ok(Some(partial_id.into()))
+        }
+    }
+
+    /// Find the single item id or return an error
+    fn find_id(id: &str, results: &SearchResult) -> Result<Option<String>, Error> {
+        match results.groups.len() {
+            0 => Ok(None),
+            1 => match results.groups[0].items.len() {
+                0 => Ok(None),
+                1 => Ok(Some(results.groups[0].items[0].id.clone())),
+                _ => Err(Error::ItemNotUnique { id: id.into() }),
+            },
+            _ => Err(Error::ItemNotUnique { id: id.into() }),
+        }
     }
 }
 
