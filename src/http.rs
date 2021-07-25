@@ -59,19 +59,19 @@ const ID_LEN: usize = 47;
 /// The errors cases.
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("An error was received from: {}!", url))]
+    #[snafu(display("An error was received from {}: {}", url, source))]
     Http { source: reqwest::Error, url: String },
 
-    #[snafu(display("An error parsing mime '{}': {}!", raw, source))]
+    #[snafu(display("An error parsing mime '{}': {}", raw, source))]
     Mime { source: reqwest::Error, raw: String },
 
     #[snafu(display("Session error: {}", source))]
     Session { source: self::session::Error },
 
-    #[snafu(display("An error occured serializing the response!"))]
+    #[snafu(display("An error occured serializing the response"))]
     SerializeResp { source: reqwest::Error },
 
-    #[snafu(display("An error occured serializing the request!"))]
+    #[snafu(display("An error occured serializing the request"))]
     SerializeReq { source: serde_json::Error },
 
     #[snafu(display("Login failed!"))]
@@ -250,6 +250,22 @@ impl Client {
             .context(SerializeResp)
     }
 
+    /// Lists all tags. The `query` argument may be a query for a
+    /// name, which can contain the `*` wildcard at beginning or end.
+    pub fn list_tags(&self, token: &Option<String>, query: &str) -> Result<TagList, Error> {
+        let url = &format!("{}/api/v1/sec/tag", self.base_url);
+        let token = session::session_token(token, self).context(Session)?;
+        self.client
+            .get(url)
+            .header(DOCSPELL_AUTH, token)
+            .query(&[("q", query)])
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<TagList>()
+            .context(SerializeResp)
+    }
+
     /// Get all item details. The item is identified by its id. The id
     /// may be a prefix only, in this case another request is used to
     /// find the complete id.
@@ -284,6 +300,94 @@ impl Client {
         } else {
             Ok(None)
         }
+    }
+
+    /// Adds the give tags to the item with the given id. The id may
+    /// be given as a prefix, then another request is used to find the
+    /// complete id.
+    ///
+    /// Tags can be given via their ids or names. They must exist or
+    /// are ignored otherwise.
+    pub fn link_tags<S: Into<String>>(
+        &self,
+        token: &Option<String>,
+        id: S,
+        tags: &StringList,
+    ) -> Result<BasicResult, Error> {
+        let id_s = id.into();
+        let item_id = self
+            .complete_item_id(token, id_s.as_ref())?
+            .ok_or_else(|| Error::ItemNotFound { id: id_s })?;
+
+        let url = &format!("{}/api/v1/sec/item/{}/taglink", self.base_url, item_id);
+        let token = session::session_token(token, self).context(Session)?;
+        self.client
+            .put(url)
+            .header(DOCSPELL_AUTH, token)
+            .json(tags)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<BasicResult>()
+            .context(SerializeResp)
+    }
+
+    /// Replaces the given tags on the item with the given id. The id
+    /// may be given abbreviated as a prefix, then another request is
+    /// used to find the complete id.
+    ///
+    /// Tags can be given via their names or ids.
+    pub fn set_tags<S: Into<String>>(
+        &self,
+        token: &Option<String>,
+        id: S,
+        tags: &StringList,
+    ) -> Result<BasicResult, Error> {
+        let id_s = id.into();
+        let item_id = self
+            .complete_item_id(token, id_s.as_ref())?
+            .ok_or_else(|| Error::ItemNotFound { id: id_s })?;
+
+        let url = &format!("{}/api/v1/sec/item/{}/tags", self.base_url, item_id);
+        let token = session::session_token(token, self).context(Session)?;
+        self.client
+            .put(url)
+            .header(DOCSPELL_AUTH, token)
+            .json(tags)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<BasicResult>()
+            .context(SerializeResp)
+    }
+
+    /// Removes the given tags on the item with the given id. The id
+    /// may be given abbreviated as a prefix, then another request is
+    /// used to find the complete id.
+    ///
+    /// Tags can be given via their names or ids.
+    pub fn remove_tags<S: Into<String>>(
+        &self,
+        token: &Option<String>,
+        id: S,
+        tags: &StringList,
+    ) -> Result<BasicResult, Error> {
+        let id_s = id.into();
+        let item_id = self
+            .complete_item_id(token, id_s.as_ref())?
+            .ok_or_else(|| Error::ItemNotFound { id: id_s })?;
+
+        let url = &format!("{}/api/v1/sec/item/{}/tagsremove", self.base_url, item_id);
+        let token = session::session_token(token, self).context(Session)?;
+        self.client
+            .post(url)
+            .header(DOCSPELL_AUTH, token)
+            .json(tags)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<BasicResult>()
+            .context(SerializeResp)
     }
 
     /// Given a search query, returns an iterator over all attachments

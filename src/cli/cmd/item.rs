@@ -1,4 +1,5 @@
 pub mod get;
+pub mod tags;
 
 use clap::{AppSettings, Clap};
 use snafu::{ResultExt, Snafu};
@@ -17,11 +18,16 @@ pub enum ItemCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Get(get::Input),
+
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
+    Tags(tags::Input),
 }
 
 #[derive(Debug, Snafu)]
 pub enum Error {
     Get { source: get::Error },
+    Tags { source: tags::Error },
 }
 
 impl Cmd for Input {
@@ -30,6 +36,7 @@ impl Cmd for Input {
     fn exec(&self, ctx: &Context) -> Result<(), Error> {
         match &self.subcmd {
             ItemCommand::Get(input) => input.exec(ctx).context(Get),
+            ItemCommand::Tags(input) => input.exec(ctx).context(Tags),
         }
     }
 }
