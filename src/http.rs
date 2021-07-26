@@ -68,10 +68,10 @@ pub enum Error {
     #[snafu(display("Session error: {}", source))]
     Session { source: self::session::Error },
 
-    #[snafu(display("An error occured serializing the response"))]
+    #[snafu(display("An error occured serializing the response: {}", source))]
     SerializeResp { source: reqwest::Error },
 
-    #[snafu(display("An error occured serializing the request"))]
+    #[snafu(display("An error occured serializing the request: {}", source))]
     SerializeReq { source: serde_json::Error },
 
     #[snafu(display("Login failed!"))]
@@ -272,12 +272,12 @@ impl Client {
     ///
     /// If `token` is specified, it is used to authenticate. Otherwise
     /// a stored session is used.
-    pub fn get_item<S: Into<String>>(
+    pub fn get_item<S: AsRef<str>>(
         &self,
         token: &Option<String>,
         id: S,
     ) -> Result<Option<ItemDetail>, Error> {
-        let item_id = self.complete_item_id(token, id.into().as_ref())?;
+        let item_id = self.complete_item_id(token, id.as_ref())?;
         if let Some(iid) = item_id {
             let url = &format!("{}/api/v1/sec/item/{}", self.base_url, iid);
             let token = session::session_token(token, self).context(Session)?;
@@ -434,7 +434,23 @@ impl Client {
         req: &SearchReq,
     ) -> Result<Downloads, Error> {
         let results = self.search(token, req)?;
-        Ok(Downloads::new(&results))
+        Ok(Downloads::from_results(&results))
+    }
+
+    /// Return an iterator over the attachments of the given item.
+    /// This just calls `get_item` and returns an iterator over its
+    /// attachments.
+    pub fn download_attachments<S: AsRef<str>>(
+        &self,
+        token: &Option<String>,
+        id: S,
+    ) -> Result<Downloads, Error> {
+        let item = self.get_item(token, &id).and_then(|r| {
+            r.ok_or(Error::ItemNotFound {
+                id: id.as_ref().to_string(),
+            })
+        })?;
+        Ok(Downloads::from_item_detail(&item))
     }
 
     /// Checks if the integration endpoint is enabled for the given collective.
@@ -831,6 +847,10 @@ pub struct DownloadRef {
     pub name: String,
 }
 impl DownloadRef {
+    fn from(idname: IdName) -> DownloadRef {
+        DownloadRef::new(idname.id, idname.name)
+    }
+
     fn new<S: Into<String>>(id: S, name: S) -> DownloadRef {
         DownloadRef {
             id: id.into(),
@@ -922,13 +942,31 @@ pub struct Downloads {
 }
 
 impl Downloads {
-    fn new(results: &SearchResult) -> Downloads {
+    pub fn from_item(item: &Item) -> Downloads {
+        let refs: Vec<DownloadRef> = item
+            .attachments
+            .iter()
+            .map(|a| DownloadRef::from(a.to_idname()))
+            .collect();
+        Downloads { refs }
+    }
+
+    pub fn from_item_detail(item: &ItemDetail) -> Downloads {
+        let refs: Vec<DownloadRef> = item
+            .attachments
+            .iter()
+            .map(|a| DownloadRef::from(a.to_idname()))
+            .collect();
+        Downloads { refs }
+    }
+
+    pub fn from_results(results: &SearchResult) -> Downloads {
         let refs: Vec<DownloadRef> = results
             .groups
             .iter()
             .flat_map(|g| g.items.iter())
             .flat_map(|i| i.attachments.iter())
-            .map(|a| DownloadRef::new(&a.id, &a.name.as_ref().unwrap_or(&format!("{}.pdf", &a.id))))
+            .map(|a| DownloadRef::from(a.to_idname()))
             .collect();
 
         Downloads { refs }

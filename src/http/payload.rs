@@ -41,6 +41,14 @@ pub struct Attachment {
     #[serde(default)]
     pub converted: bool,
 }
+impl Attachment {
+    pub fn to_idname(&self) -> IdName {
+        IdName {
+            id: self.id.clone(),
+            name: self.name.clone().unwrap_or_else(|| self.id.clone()),
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
@@ -219,7 +227,7 @@ pub struct Tag {
     pub created: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct IdName {
     pub id: String,
     pub name: String,
@@ -290,16 +298,25 @@ pub struct Summary {
     pub folder_stats: Vec<FolderStats>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Attach {
     pub id: String,
     pub position: u32,
     pub name: Option<String>,
     #[serde(alias = "pageCount")]
-    pub page_count: u32,
+    pub page_count: Option<u32>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+impl Attach {
+    pub fn to_idname(&self) -> IdName {
+        IdName {
+            id: self.id.clone(),
+            name: self.name.clone().unwrap_or_else(|| self.id.clone()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CustomField {
     pub id: String,
     pub name: String,
@@ -319,7 +336,7 @@ pub struct CustomFieldValue {
     pub value: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Highlight {
     pub name: String,
     pub lines: Vec<String>,
@@ -362,7 +379,7 @@ pub struct SearchResult {
     pub groups: Vec<Group>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SearchReq {
     pub offset: u32,
     pub limit: u32,

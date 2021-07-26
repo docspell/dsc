@@ -12,6 +12,7 @@
 pub mod admin;
 pub mod cleanup;
 pub mod download;
+pub mod export;
 pub mod file_exists;
 pub mod generate_completions;
 pub mod geninvite;
@@ -90,6 +91,7 @@ fn docspell_url(opts: &CommonOpts, cfg: &DsConfig) -> String {
 
 #[derive(Debug, Snafu)]
 pub enum CmdError {
+    Export { source: export::Error },
     Watch { source: watch::Error },
     Upload { source: upload::Error },
     Admin { source: admin::Error },
@@ -193,5 +195,10 @@ impl From<upload::Error> for CmdError {
 impl From<watch::Error> for CmdError {
     fn from(source: watch::Error) -> Self {
         CmdError::Watch { source }
+    }
+}
+impl From<export::Error> for CmdError {
+    fn from(source: export::Error) -> Self {
+        CmdError::Export { source }
     }
 }

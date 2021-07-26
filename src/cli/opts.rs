@@ -142,6 +142,10 @@ pub enum SubCommand {
 
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
+    Export(export::Input),
+
+    #[clap(setting = AppSettings::ColoredHelp)]
+    #[clap(version)]
     Admin(admin::Input),
 }
 
