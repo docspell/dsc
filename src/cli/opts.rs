@@ -158,10 +158,10 @@ pub enum Format {
     Tabular,
 }
 
-/// Shared options regarding file uploads or file existence checks.
-///
-/// Uploads can be done via a source id, the integration endpoint or a
-/// valid session.
+// Shared options regarding file uploads or file existence checks.
+//
+// Uploads can be done via a source id, the integration endpoint or a
+// valid session.
 #[derive(Clap, Debug, Clone)]
 #[clap(group = ArgGroup::new("int"))]
 #[clap(group = ArgGroup::new("g_source"))]
@@ -264,7 +264,7 @@ impl Direction {
     }
 }
 
-/// Shared options used for uploading.
+// Shared options used for uploading.
 #[derive(Clap, Debug, Clone)]
 pub struct UploadMeta {
     /// Specify the direction of the item.
@@ -294,7 +294,7 @@ pub struct UploadMeta {
     pub language: Option<String>,
 }
 
-/// Shared options for specifying what to do with a file.
+// Shared options for specifying what to do with a file.
 #[derive(Clap, Debug, Clone)]
 #[clap(group = ArgGroup::new("file-action"))]
 pub struct FileAction {
