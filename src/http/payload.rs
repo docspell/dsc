@@ -41,6 +41,14 @@ pub struct Attachment {
     #[serde(default)]
     pub converted: bool,
 }
+impl Attachment {
+    pub fn to_idname(&self) -> IdName {
+        IdName {
+            id: self.id.clone(),
+            name: self.name.clone().unwrap_or_else(|| self.id.clone()),
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
@@ -297,6 +305,15 @@ pub struct Attach {
     pub name: Option<String>,
     #[serde(alias = "pageCount")]
     pub page_count: u32,
+}
+
+impl Attach {
+    pub fn to_idname(&self) -> IdName {
+        IdName {
+            id: self.id.clone(),
+            name: self.name.clone().unwrap_or_else(|| self.id.clone()),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
