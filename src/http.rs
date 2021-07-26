@@ -317,7 +317,7 @@ impl Client {
         let id_s = id.into();
         let item_id = self
             .complete_item_id(token, id_s.as_ref())?
-            .ok_or_else(|| Error::ItemNotFound { id: id_s })?;
+            .ok_or(Error::ItemNotFound { id: id_s })?;
 
         let url = &format!("{}/api/v1/sec/item/{}/taglink", self.base_url, item_id);
         let token = session::session_token(token, self).context(Session)?;
@@ -346,7 +346,7 @@ impl Client {
         let id_s = id.into();
         let item_id = self
             .complete_item_id(token, id_s.as_ref())?
-            .ok_or_else(|| Error::ItemNotFound { id: id_s })?;
+            .ok_or(Error::ItemNotFound { id: id_s })?;
 
         let url = &format!("{}/api/v1/sec/item/{}/tags", self.base_url, item_id);
         let token = session::session_token(token, self).context(Session)?;
@@ -375,7 +375,7 @@ impl Client {
         let id_s = id.into();
         let item_id = self
             .complete_item_id(token, id_s.as_ref())?
-            .ok_or_else(|| Error::ItemNotFound { id: id_s })?;
+            .ok_or(Error::ItemNotFound { id: id_s })?;
 
         let url = &format!("{}/api/v1/sec/item/{}/tagsremove", self.base_url, item_id);
         let token = session::session_token(token, self).context(Session)?;
@@ -400,7 +400,7 @@ impl Client {
         let id_s = id.into();
         let item_id = self
             .complete_item_id(token, id_s.as_ref())?
-            .ok_or_else(|| Error::ItemNotFound { id: id_s })?;
+            .ok_or(Error::ItemNotFound { id: id_s })?;
 
         let url = &format!("{}/api/v1/sec/item/{}/customfield", self.base_url, item_id);
         let token = session::session_token(token, self).context(Session)?;
@@ -420,12 +420,12 @@ impl Client {
         &self,
         token: &Option<String>,
         id: S,
-        field: &String,
+        field: &str,
     ) -> Result<BasicResult, Error> {
         let id_s = id.into();
         let item_id = self
             .complete_item_id(token, id_s.as_ref())?
-            .ok_or_else(|| Error::ItemNotFound { id: id_s })?;
+            .ok_or(Error::ItemNotFound { id: id_s })?;
 
         let url = &format!(
             "{}/api/v1/sec/item/{}/customfield/{}",

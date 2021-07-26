@@ -70,14 +70,9 @@ impl Cmd for Input {
     }
 }
 
-fn set_field(
-    name: &String,
-    value: String,
-    id: &String,
-    ctx: &Context,
-) -> Result<BasicResult, Error> {
+fn set_field(name: &str, value: String, id: &str, ctx: &Context) -> Result<BasicResult, Error> {
     let fvalue = CustomFieldValue {
-        field: name.clone(),
+        field: name.to_string(),
         value,
     };
     ctx.client
