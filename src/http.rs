@@ -308,17 +308,13 @@ impl Client {
     ///
     /// Tags can be given via their ids or names. They must exist or
     /// are ignored otherwise.
-    pub fn link_tags<S: Into<String>>(
+    pub fn link_tags<S: AsRef<str>>(
         &self,
         token: &Option<String>,
         id: S,
         tags: &StringList,
     ) -> Result<BasicResult, Error> {
-        let id_s = id.into();
-        let item_id = self
-            .complete_item_id(token, id_s.as_ref())?
-            .ok_or(Error::ItemNotFound { id: id_s })?;
-
+        let item_id = self.require_item_id(token, id)?;
         let url = &format!("{}/api/v1/sec/item/{}/taglink", self.base_url, item_id);
         let token = session::session_token(token, self).context(Session)?;
         self.client
@@ -337,17 +333,13 @@ impl Client {
     /// used to find the complete id.
     ///
     /// Tags can be given via their names or ids.
-    pub fn set_tags<S: Into<String>>(
+    pub fn set_tags<S: AsRef<str>>(
         &self,
         token: &Option<String>,
         id: S,
         tags: &StringList,
     ) -> Result<BasicResult, Error> {
-        let id_s = id.into();
-        let item_id = self
-            .complete_item_id(token, id_s.as_ref())?
-            .ok_or(Error::ItemNotFound { id: id_s })?;
-
+        let item_id = self.require_item_id(token, id)?;
         let url = &format!("{}/api/v1/sec/item/{}/tags", self.base_url, item_id);
         let token = session::session_token(token, self).context(Session)?;
         self.client
@@ -366,17 +358,13 @@ impl Client {
     /// used to find the complete id.
     ///
     /// Tags can be given via their names or ids.
-    pub fn remove_tags<S: Into<String>>(
+    pub fn remove_tags<S: AsRef<str>>(
         &self,
         token: &Option<String>,
         id: S,
         tags: &StringList,
     ) -> Result<BasicResult, Error> {
-        let id_s = id.into();
-        let item_id = self
-            .complete_item_id(token, id_s.as_ref())?
-            .ok_or(Error::ItemNotFound { id: id_s })?;
-
+        let item_id = self.require_item_id(token, id)?;
         let url = &format!("{}/api/v1/sec/item/{}/tagsremove", self.base_url, item_id);
         let token = session::session_token(token, self).context(Session)?;
         self.client
@@ -391,17 +379,13 @@ impl Client {
     }
 
     /// Sets the field to the specfified value for the given item.
-    pub fn set_field<S: Into<String>>(
+    pub fn set_field<S: AsRef<str>>(
         &self,
         token: &Option<String>,
         id: S,
         fvalue: &CustomFieldValue,
     ) -> Result<BasicResult, Error> {
-        let id_s = id.into();
-        let item_id = self
-            .complete_item_id(token, id_s.as_ref())?
-            .ok_or(Error::ItemNotFound { id: id_s })?;
-
+        let item_id = self.require_item_id(token, id)?;
         let url = &format!("{}/api/v1/sec/item/{}/customfield", self.base_url, item_id);
         let token = session::session_token(token, self).context(Session)?;
         self.client
@@ -416,17 +400,13 @@ impl Client {
     }
 
     /// Removes the field from the given item.
-    pub fn remove_field<S: Into<String>>(
+    pub fn remove_field<S: AsRef<str>>(
         &self,
         token: &Option<String>,
         id: S,
         field: &str,
     ) -> Result<BasicResult, Error> {
-        let id_s = id.into();
-        let item_id = self
-            .complete_item_id(token, id_s.as_ref())?
-            .ok_or(Error::ItemNotFound { id: id_s })?;
-
+        let item_id = self.require_item_id(token, id)?;
         let url = &format!(
             "{}/api/v1/sec/item/{}/customfield/{}",
             self.base_url, item_id, field
@@ -685,6 +665,20 @@ impl Client {
             .context(Http { url })?
             .json::<ResetPasswordResp>()
             .context(SerializeResp)
+    }
+
+    // --- Helpers
+
+    fn require_item_id<S: AsRef<str>>(
+        &self,
+        token: &Option<String>,
+        partial_id: S,
+    ) -> Result<String, Error> {
+        let id_s: &str = partial_id.as_ref();
+        self.complete_item_id(token, id_s)?
+            .ok_or(Error::ItemNotFound {
+                id: id_s.to_string(),
+            })
     }
 
     /// Search for a unique item given a partial id.
