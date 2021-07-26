@@ -68,10 +68,10 @@ pub enum Error {
     #[snafu(display("Session error: {}", source))]
     Session { source: self::session::Error },
 
-    #[snafu(display("An error occured serializing the response"))]
+    #[snafu(display("An error occured serializing the response: {}", source))]
     SerializeResp { source: reqwest::Error },
 
-    #[snafu(display("An error occured serializing the request"))]
+    #[snafu(display("An error occured serializing the request: {}", source))]
     SerializeReq { source: serde_json::Error },
 
     #[snafu(display("Login failed!"))]

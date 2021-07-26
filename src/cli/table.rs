@@ -45,10 +45,16 @@ pub fn format_date_opt(dtopt: &Option<i64>) -> String {
 
 /// Formats the date given as unix timestamp into "year-month-day".
 pub fn format_date(dt: i64) -> String {
+    format_date_by(dt, "%Y-%m-%d")
+}
+
+/// Formats the date given as unix timestamp using the given pattern
+/// string, like "year-month-day".
+pub fn format_date_by(dt: i64, pattern: &str) -> String {
     let secs = dt / 1000;
     let nsec: u32 = ((dt % 1000) * 1000) as u32;
     let dt: DateTime<Utc> = Utc.timestamp(secs, nsec);
-    dt.format("%Y-%m-%d").to_string()
+    dt.format(pattern).to_string()
 }
 
 /// Combines two [`IdName`] objects by their name via a separator.
@@ -114,6 +120,51 @@ impl AsTable for ItemDetail {
     }
 }
 impl Sink for ItemDetail {}
+
+impl AsTable for Item {
+    fn to_table(&self) -> Table {
+        let mut table = mk_table();
+        table.set_titles(row![bFg =>
+            "id",
+            "name",
+            "state",
+            "date",
+            "due",
+            "correspondent",
+            "concerning",
+            "folder",
+            "tags",
+            "fields",
+            "files"
+        ]);
+
+        let tag_list: Vec<String> = self.tags.iter().map(|t| t.name.clone()).collect();
+        let field_list: Vec<String> = self
+            .customfields
+            .iter()
+            .map(|f| format!("{} {}", f.name_or_label(), f.value))
+            .collect();
+        table.add_row(row![
+            self.id[0..8],
+            self.name,
+            self.state,
+            format_date(self.date),
+            self.due_date.map(format_date).unwrap_or_else(|| "".into()),
+            combine(&self.corr_org, &self.corr_person, "/"),
+            combine(&self.conc_person, &self.conc_equip, "/"),
+            self.folder
+                .as_ref()
+                .map(|a| a.name.as_str())
+                .unwrap_or_else(|| ""),
+            tag_list.join(", "),
+            field_list.join(", "),
+            self.attachments.len(),
+        ]);
+
+        table
+    }
+}
+impl Sink for Item {}
 
 impl AsTable for ResetPasswordResp {
     fn to_table(&self) -> Table {

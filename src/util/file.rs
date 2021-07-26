@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::cli::opts::FileAction;
+use std::io;
 
 /// Puts `suffix` in the filename before the extension.
 pub fn splice_name(fname: &str, suffix: &i32) -> String {
@@ -45,6 +46,20 @@ pub fn collective_from_subdir(
         }
     }
     Ok(None)
+}
+
+pub fn safe_filename(name: &str) -> String {
+    name.replace("/", "-")
+}
+
+#[cfg(windows)]
+pub fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Result<()> {
+    std::os::windows::fs::symlink_dir(original, link)
+}
+
+#[cfg(unix)]
+pub fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Result<()> {
+    std::os::unix::fs::symlink(original, link)
 }
 
 #[derive(Debug, Clone)]

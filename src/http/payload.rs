@@ -227,7 +227,7 @@ pub struct Tag {
     pub created: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct IdName {
     pub id: String,
     pub name: String,
@@ -298,13 +298,13 @@ pub struct Summary {
     pub folder_stats: Vec<FolderStats>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Attach {
     pub id: String,
     pub position: u32,
     pub name: Option<String>,
     #[serde(alias = "pageCount")]
-    pub page_count: u32,
+    pub page_count: Option<u32>,
 }
 
 impl Attach {
@@ -316,7 +316,7 @@ impl Attach {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CustomField {
     pub id: String,
     pub name: String,
@@ -336,7 +336,7 @@ pub struct CustomFieldValue {
     pub value: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Highlight {
     pub name: String,
     pub lines: Vec<String>,
@@ -379,7 +379,7 @@ pub struct SearchResult {
     pub groups: Vec<Group>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SearchReq {
     pub offset: u32,
     pub limit: u32,
