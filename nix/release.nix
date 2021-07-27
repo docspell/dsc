@@ -33,14 +33,14 @@ rustPlatform.buildRustPackage rec {
     let
       cleanSrcFilter = name: type:
         let basename = baseNameOf (toString name); in
-        type != "directory" || basename != "target";
+        type != "directory" || (basename != "target" && basename != "nix");
       cleanSrc = src: lib.cleanSourceWith {
         filter = cleanSrcFilter;
         inherit src;
       };
     in cleanSrc ../.;
 
-  cargoSha256 = "17as74042ilc0a9vlx7pw1nm21lp5bgxh670a1rvylg0xlaxgd0w";
+  cargoSha256 = "1d7vqxc9grbj975b8nljlrfc59ad17m5jww82sw7nhmbkdmc9ab5";
 
   # only unit tests can be run
   checkPhase = ''
