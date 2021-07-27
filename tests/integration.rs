@@ -2,7 +2,7 @@ mod common;
 use crate::common::{mk_cmd, Result};
 use assert_cmd::prelude::*;
 use dsc::http::payload::{BasicResult, ItemDetail, SearchResult, SourceAndTags, Summary};
-use std::process::Command;
+use std::{io::Write, path::Path, process::Command};
 
 const ITEM_ID1: &str = "2wKtSUVt3Kj-mAmexmm1jFe-BU6aY6PN4vo-5cpaDD2EyRm";
 const ITEM_ID2: &str = "J4wAkg3jxt5-7QaYXD1WTmF-gq4kGaS89RP-DnPyUwa77fK";
@@ -55,6 +55,25 @@ fn remote_upload_web() -> Result<()> {
     assert
         .success()
         .stdout(basic_result_json(true, "Files submitted."));
+    Ok(())
+}
+
+#[test]
+fn remote_upload_single_delete() -> Result<()> {
+    let testname = "hello.txt";
+    let testpath = Path::new(testname);
+    let mut testfile = std::fs::File::create(&testpath)?;
+    writeln!(&mut testfile, "hello world!")?;
+
+    assert!(testpath.exists());
+
+    let mut cmd = mk_cmd()?;
+    let assert = cmd.arg("upload").arg("--delete").arg("hello.txt").assert();
+    assert
+        .success()
+        .stdout(basic_result_json(true, "Files submitted."));
+
+    assert!(!testpath.exists());
     Ok(())
 }
 

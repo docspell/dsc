@@ -287,9 +287,16 @@ fn upload_single(
     if !opts.dry_run {
         if !files.is_empty() {
             eprintln!("Sending request …");
-            ctx.client
+            let result = ctx
+                .client
                 .upload_files(&fauth, meta, &files)
-                .context(HttpClient)
+                .context(HttpClient)?;
+            if result.success {
+                for path in &files {
+                    apply_file_action(&path, None, opts)?;
+                }
+            }
+            Ok(result)
         } else {
             Ok(BasicResult {
                 success: true,
