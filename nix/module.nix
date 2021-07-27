@@ -37,7 +37,7 @@ in {
         description = "Run in verbose mode";
       };
 
-      deleteFiles = mkOption {
+      delete-files = mkOption {
         type = types.bool;
         default = false;
         description = "Whether to delete successfully uploaded files.";
@@ -107,7 +107,7 @@ in {
     systemd.user.services.dsc-watch =
     let
       args = (if cfg.recursive then ["-r"] else []) ++
-             (if cfg.deleteFiles then ["--delete"] else []) ++
+             (if cfg.delete-files then ["--delete"] else []) ++
              (if cfg.integration-endpoint.enabled then [ "-i" ] else []) ++
              (if cfg.integration-endpoint.header != ""
               then
@@ -119,6 +119,12 @@ in {
                 [ "--basic" "'${cfg.integration-endpoint.user}'" ]
               else
                 []) ++
+             (if cfg.include-filter != null then
+               [ "--matches" "'${toString cfg.include-filter}'"]
+              else []) ++
+             (if cfg.exclude-filter != null then
+               [ "--not-matches" "'${toString cfg.exclude-filter}'"]
+              else []) ++
              (if cfg.source-id != null then [ "--source" "'${cfg.source-id}'" ] else []);
 
       cmd = "${pkgs.dsc}/bin/dsc " +

@@ -33,7 +33,7 @@ rustPlatform.buildRustPackage rec {
     let
       cleanSrcFilter = name: type:
         let basename = baseNameOf (toString name); in
-        type != "directory" || (basename != "target" && basename != "nix");
+        type != "directory" || (basename != "target" && basename != "nix" && basename != "tests");
       cleanSrc = src: lib.cleanSourceWith {
         filter = cleanSrcFilter;
         inherit src;

@@ -32,6 +32,7 @@ in
   services.dsc-watch = {
     enable = true;
     verbose = false;
+    delete-files = true;
     docspell-url = "http://localhost:7880";
     integration-endpoint = {
       enabled = true;
