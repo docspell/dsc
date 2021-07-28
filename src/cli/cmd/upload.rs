@@ -211,6 +211,7 @@ fn upload_traverse(
     ctx: &Context,
     matcher: &matching::Matcher,
 ) -> Result<BasicResult, Error> {
+    log::debug!("Upload by traversing directory");
     let mut counter = 0;
     let fauth = opts.endpoint.to_file_auth(ctx);
     for path in &opts.files {
@@ -223,7 +224,7 @@ fn upload_traverse(
                     if !opts.dry_run {
                         let res = ctx
                             .client
-                            .upload_files(&fauth, meta, &[path.as_path()])
+                            .upload_files(&fauth, meta, &[child.as_path()])
                             .context(HttpClient)?;
                         if res.success {
                             apply_file_action(&child, Some(&path), opts)?;
@@ -272,13 +273,14 @@ fn upload_single(
     ctx: &Context,
     matcher: matching::Matcher,
 ) -> Result<BasicResult, Error> {
+    log::debug!("Upload using a single request");
     let fauth = opts.endpoint.to_file_auth(ctx);
     let mut files: Vec<&Path> = Vec::new();
     for path in &opts.files {
         if matcher.is_included(path) {
             let exists = check_existence(path, opts, ctx)?;
             if !exists {
-                eprintln!("Adding to request: {}", path.display());
+                eprintln!("Adding to single request: {}", path.display());
                 if !opts.dry_run {
                     files.push(path);
                 }

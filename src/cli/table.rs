@@ -179,15 +179,12 @@ impl Sink for ResetPasswordResp {}
 impl AsTable for AuthResp {
     fn to_table(&self) -> Table {
         let mut table = mk_table();
-        table.set_titles(
-            row![bFg => "success", "collective", "user", "message", "token", "valid (ms)"],
-        );
+        table.set_titles(row![bFg => "success", "collective", "user", "message", "valid (ms)"]);
         table.add_row(row![
             self.success,
             self.collective,
             self.user,
             self.message,
-            str_or_empty(self.token.as_ref()),
             self.valid_ms
         ]);
         table
