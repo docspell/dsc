@@ -221,10 +221,13 @@ fn upload_traverse(
                     eprintln!("Uploading {}", child.display());
                     counter += 1;
                     if !opts.dry_run {
-                        ctx.client
+                        let res = ctx
+                            .client
                             .upload_files(&fauth, meta, &[path.as_path()])
                             .context(HttpClient)?;
-                        apply_file_action(&child, Some(&path), opts)?;
+                        if res.success {
+                            apply_file_action(&child, Some(&path), opts)?;
+                        }
                     }
                 } else {
                     file_exists_message(&child);
@@ -237,10 +240,13 @@ fn upload_traverse(
                 eprintln!("Uploading file {}", path.display());
                 counter += 1;
                 if !opts.dry_run {
-                    ctx.client
+                    let res = ctx
+                        .client
                         .upload_files(&fauth, meta, &[path.as_path()])
                         .context(HttpClient)?;
-                    apply_file_action(&path, None, opts)?;
+                    if res.success {
+                        apply_file_action(&path, None, opts)?;
+                    }
                 }
             } else {
                 file_exists_message(path);
@@ -278,6 +284,7 @@ fn upload_single(
                 }
             } else {
                 file_exists_message(path);
+                apply_file_action(&path, None, opts)?;
             }
         } else {
             eprintln!("Skip '{}', doesn't match given pattern(s)", path.display());
