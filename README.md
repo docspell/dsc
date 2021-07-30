@@ -148,17 +148,6 @@ nix-env -if https://github.com/docspell/dsc/archive/refs/tags/v$version.tar.gz
 ```
 where `$version` is the current version, like 0.2.0.
 
-----
-
-NOTE: due to a bug, currently you need to use a specific commit in
-order to build the latest release. :/ So it is:
-
-```
-nix-env -if https://github.com/docspell/dsc/archive/95551754e02ac6d9e029720ac08566cb9ca71304.tar.gz
-```
-
-This is fixed for the next release….
-
 
 ## Examples
 
