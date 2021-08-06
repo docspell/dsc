@@ -116,11 +116,11 @@ fn cleanup(args: &Input, ctx: &Context) -> Result<u32, Error> {
             for child in glob::glob(&pattern).context(Pattern)? {
                 let cf = child.context(Glob)?;
                 if cf.is_file() {
-                    counter += cleanup_and_report(&cf, Some(&file), args, ctx)?;
+                    counter += cleanup_and_report(&cf, Some(file), args, ctx)?;
                 }
             }
         } else {
-            counter += cleanup_and_report(&file, None, args, ctx)?;
+            counter += cleanup_and_report(file, None, args, ctx)?;
         }
     }
     Ok(counter)
@@ -133,7 +133,7 @@ fn cleanup_and_report(
     ctx: &Context,
 ) -> Result<u32, Error> {
     eprintln!("Check file: {}", file.display());
-    let exists = check_file_exists(&file, root, &args.endpoint, ctx)?;
+    let exists = check_file_exists(file, root, &args.endpoint, ctx)?;
     log::debug!("Checking file: {} (exists: {})", file.display(), exists);
     if exists {
         eprint!(" - exists: ");

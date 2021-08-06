@@ -50,7 +50,7 @@ impl Cmd for Input {
         let mut results = Vec::with_capacity(self.files.capacity());
         for file in &self.files {
             if file.is_file() {
-                let result = check_file(&file, &self.endpoint, ctx)?;
+                let result = check_file(file, &self.endpoint, ctx)?;
                 results.push(result);
             } else {
                 log::debug!("Ignoring directory: {}", file.display());

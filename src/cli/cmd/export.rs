@@ -201,7 +201,7 @@ fn export_item(item: &Item, overwrite: bool, item_dir: &Path, ctx: &Context) -> 
     if !file_dir.exists() {
         std::fs::create_dir_all(&file_dir).context(CreateFile)?;
     }
-    let dl = Downloads::from_item(&item);
+    let dl = Downloads::from_item(item);
     for attach in dl {
         log::debug!("Saving attachment: {}/{}", attach.id, attach.name);
         let orig = attach
