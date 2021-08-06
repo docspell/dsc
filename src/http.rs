@@ -714,7 +714,7 @@ impl Client {
                 with_details: false,
                 query: format!("id:{}*", partial_id),
             };
-            self.search(&token, &req)
+            self.search(token, &req)
                 .and_then(|r| Self::find_id(partial_id, &r))
         } else {
             Ok(Some(partial_id.into()))

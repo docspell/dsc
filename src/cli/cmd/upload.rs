@@ -216,7 +216,7 @@ fn upload_traverse(
     let fauth = opts.endpoint.to_file_auth(ctx);
     for path in &opts.files {
         if path.is_dir() {
-            for child in matcher.traverse(&path)? {
+            for child in matcher.traverse(path)? {
                 let exists = check_existence(&child, opts, ctx)?;
                 if !exists {
                     eprintln!("Uploading {}", child.display());
@@ -227,15 +227,15 @@ fn upload_traverse(
                             .upload_files(&fauth, meta, &[child.as_path()])
                             .context(HttpClient)?;
                         if res.success {
-                            apply_file_action(&child, Some(&path), opts)?;
+                            apply_file_action(&child, Some(path), opts)?;
                         }
                     }
                 } else {
                     file_exists_message(&child);
-                    apply_file_action(&child, Some(&path), opts)?;
+                    apply_file_action(&child, Some(path), opts)?;
                 }
             }
-        } else if matcher.is_included(&path) {
+        } else if matcher.is_included(path) {
             let exists = check_existence(path, opts, ctx)?;
             if !exists {
                 eprintln!("Uploading file {}", path.display());
@@ -246,12 +246,12 @@ fn upload_traverse(
                         .upload_files(&fauth, meta, &[path.as_path()])
                         .context(HttpClient)?;
                     if res.success {
-                        apply_file_action(&path, None, opts)?;
+                        apply_file_action(path, None, opts)?;
                     }
                 }
             } else {
                 file_exists_message(path);
-                apply_file_action(&path, None, opts)?;
+                apply_file_action(path, None, opts)?;
             }
         }
     }
@@ -286,7 +286,7 @@ fn upload_single(
                 }
             } else {
                 file_exists_message(path);
-                apply_file_action(&path, None, opts)?;
+                apply_file_action(path, None, opts)?;
             }
         } else {
             eprintln!("Skip '{}', doesn't match given pattern(s)", path.display());
@@ -302,7 +302,7 @@ fn upload_single(
                 .context(HttpClient)?;
             if result.success {
                 for path in &files {
-                    apply_file_action(&path, None, opts)?;
+                    apply_file_action(path, None, opts)?;
                 }
             }
             Ok(result)
@@ -363,7 +363,7 @@ mod matching {
                 pattern: args.matches.clone(),
             })?;
             let exclude = match &args.not_matches {
-                Some(nm) => Some(glob::Pattern::new(&nm).context(BadGlobPattern {
+                Some(nm) => Some(glob::Pattern::new(nm).context(BadGlobPattern {
                     pattern: nm.to_string(),
                 })?),
                 None => None,

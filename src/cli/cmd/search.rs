@@ -32,7 +32,7 @@ impl Cmd for Input {
     type CmdError = Error;
 
     fn exec(&self, ctx: &Context) -> Result<(), Error> {
-        let result = search(&self, ctx)?;
+        let result = search(self, ctx)?;
         ctx.write_result(result).context(WriteResult)?;
         Ok(())
     }

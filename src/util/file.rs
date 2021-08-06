@@ -79,7 +79,7 @@ impl FileAction {
             Some(target) => Self::move_file(file, root, target).map(FileActionResult::Moved),
             None => {
                 if self.delete {
-                    Self::delete_file(&file, root)
+                    Self::delete_file(file, root)
                         .map(|_| FileActionResult::Deleted(file.to_path_buf()))
                 } else {
                     Ok(FileActionResult::Nothing)
