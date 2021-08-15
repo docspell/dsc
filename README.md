@@ -1,7 +1,7 @@
 [![Integration-Tests](https://github.com/docspell/dsc/actions/workflows/int_test.yml/badge.svg)](https://github.com/docspell/dsc/actions/workflows/int_test.yml)
 [![License](https://img.shields.io/github/license/docspell/dsc.svg?style=flat&color=steelblue)](https://github.com/docspell/dsc/blob/master/LICENSE.txt)
 [![Chat](https://img.shields.io/gitter/room/eikek/docspell?style=flat&color=steelblue&logo=gitter)](https://gitter.im/eikek/docspell)
-
+[![Docker Pulls](https://img.shields.io/docker/pulls/docspell/dsc?color=steelblue&style=flat&logo=docker)](https://hub.docker.com/u/docspell/dsc)
 
 # docspell cli
 
