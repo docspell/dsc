@@ -8,6 +8,9 @@ homepage = "https://docspell.org"
 license = "GPLv3"
 repository = "https://github.com/docspell/dsc"
 build = "build.rs"
+keywords = [ "docspell", "cli" ]
+categories = [ "command-line-utilities" ]
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
