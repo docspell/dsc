@@ -83,6 +83,8 @@ jobs:
           rustup default
           cargo -V
           rustc -V
+      - name: Check format
+        run: cargo fmt -- --check
       - name: Build
         uses: actions-rs/cargo@v1
         with:

@@ -90,7 +90,7 @@ id or the integration endpoint instead of being authenticated.
 Install [nix](https://nixos.org/download.html#nix-quick-install) and
 run `nix-shell` in the source root. This installs required rust tools.
 Alternatively, the rust tool chain can be setup with
-[rustup](https://rustup.rs/).
+[rustup](https://rustup.rs/). Currently, dsc requires rust >= 1.54.0.
 
 Building the binary for your platform (The second line strips the
 binary of debug symbols):
