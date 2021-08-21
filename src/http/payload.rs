@@ -98,6 +98,9 @@ pub struct UploadMeta {
     #[serde(alias = "fileFilter", rename(serialize = "fileFilter"))]
     pub file_filter: Option<String>,
     pub language: Option<String>,
+
+    #[serde(alias = "attachmentsOnly", rename(serialize = "attachmentsOnly"))]
+    pub attachments_only: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

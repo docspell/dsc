@@ -292,6 +292,11 @@ pub struct UploadMeta {
     /// Specify the language of the document.
     #[clap(long, short)]
     pub language: Option<String>,
+
+    /// Discard the the mail body and only import the attachments.
+    /// Only applicable when e-mail files are uploaded.
+    #[clap(long)]
+    pub attachments_only: bool,
 }
 
 // Shared options for specifying what to do with a file.
