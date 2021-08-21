@@ -5,6 +5,7 @@ use std::path::{Display, Path, PathBuf};
 use super::{Cmd, Context};
 use crate::http::payload::SearchReq;
 use crate::{
+    cli::opts::SearchMode,
     http::{Downloads, Error as HttpError},
     util::dupes::Dupes,
 };
@@ -23,6 +24,9 @@ use crate::{
 pub struct Input {
     /// The query string. See https://docspell.org/docs/query/
     query: String,
+
+    #[clap(flatten)]
+    pub search_mode: SearchMode,
 
     /// Limit the number of results.
     #[clap(short, long, default_value = "60")]
@@ -116,6 +120,7 @@ impl Cmd for Input {
             limit: self.limit,
             with_details: true,
             query: self.query.clone(),
+            search_mode: self.search_mode.to_mode(),
         };
         let attachs = ctx
             .client

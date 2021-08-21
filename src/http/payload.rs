@@ -389,4 +389,23 @@ pub struct SearchReq {
     #[serde(alias = "withDetails")]
     pub with_details: bool,
     pub query: String,
+    #[serde(alias = "searchMode", rename(serialize = "searchMode"))]
+    pub search_mode: SearchMode,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum SearchMode {
+    Normal,
+    Trashed,
+    All,
+}
+
+impl SearchMode {
+    pub fn as_str(&self) -> &str {
+        match self {
+            SearchMode::All => "all",
+            SearchMode::Trashed => "trashed",
+            SearchMode::Normal => "normal",
+        }
+    }
 }
