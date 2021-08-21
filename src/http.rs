@@ -203,6 +203,7 @@ impl Client {
                 ("offset", &req.offset.to_string()),
                 ("withDetails", &req.with_details.to_string()),
                 ("q", &req.query),
+                ("searchMode", &req.search_mode.as_str().to_string()),
             ])
             .send()
             .and_then(|r| r.error_for_status())
@@ -277,7 +278,7 @@ impl Client {
         token: &Option<String>,
         id: S,
     ) -> Result<Option<ItemDetail>, Error> {
-        let item_id = self.complete_item_id(token, id.as_ref())?;
+        let item_id = self.complete_item_id(token, id.as_ref(), SearchMode::All)?;
         if let Some(iid) = item_id {
             let url = &format!("{}/api/v1/sec/item/{}", self.base_url, iid);
             let token = session::session_token(token, self).context(Session)?;
@@ -314,7 +315,7 @@ impl Client {
         id: S,
         tags: &StringList,
     ) -> Result<BasicResult, Error> {
-        let item_id = self.require_item_id(token, id)?;
+        let item_id = self.require_item_id(token, id, SearchMode::All)?;
         let url = &format!("{}/api/v1/sec/item/{}/taglink", self.base_url, item_id);
         let token = session::session_token(token, self).context(Session)?;
         self.client
@@ -339,7 +340,7 @@ impl Client {
         id: S,
         tags: &StringList,
     ) -> Result<BasicResult, Error> {
-        let item_id = self.require_item_id(token, id)?;
+        let item_id = self.require_item_id(token, id, SearchMode::All)?;
         let url = &format!("{}/api/v1/sec/item/{}/tags", self.base_url, item_id);
         let token = session::session_token(token, self).context(Session)?;
         self.client
@@ -364,7 +365,7 @@ impl Client {
         id: S,
         tags: &StringList,
     ) -> Result<BasicResult, Error> {
-        let item_id = self.require_item_id(token, id)?;
+        let item_id = self.require_item_id(token, id, SearchMode::All)?;
         let url = &format!("{}/api/v1/sec/item/{}/tagsremove", self.base_url, item_id);
         let token = session::session_token(token, self).context(Session)?;
         self.client
@@ -385,7 +386,7 @@ impl Client {
         id: S,
         fvalue: &CustomFieldValue,
     ) -> Result<BasicResult, Error> {
-        let item_id = self.require_item_id(token, id)?;
+        let item_id = self.require_item_id(token, id, SearchMode::All)?;
         let url = &format!("{}/api/v1/sec/item/{}/customfield", self.base_url, item_id);
         let token = session::session_token(token, self).context(Session)?;
         self.client
@@ -406,7 +407,7 @@ impl Client {
         id: S,
         field: &str,
     ) -> Result<BasicResult, Error> {
-        let item_id = self.require_item_id(token, id)?;
+        let item_id = self.require_item_id(token, id, SearchMode::All)?;
         let url = &format!(
             "{}/api/v1/sec/item/{}/customfield/{}",
             self.base_url, item_id, field
@@ -689,9 +690,10 @@ impl Client {
         &self,
         token: &Option<String>,
         partial_id: S,
+        search_mode: SearchMode,
     ) -> Result<String, Error> {
         let id_s: &str = partial_id.as_ref();
-        self.complete_item_id(token, id_s)?
+        self.complete_item_id(token, id_s, search_mode)?
             .ok_or(Error::ItemNotFound {
                 id: id_s.to_string(),
             })
@@ -702,6 +704,7 @@ impl Client {
         &self,
         token: &Option<String>,
         partial_id: &str,
+        search_mode: SearchMode,
     ) -> Result<Option<String>, Error> {
         if partial_id.len() < ID_LEN {
             log::debug!(
@@ -713,6 +716,7 @@ impl Client {
                 limit: 2,
                 with_details: false,
                 query: format!("id:{}*", partial_id),
+                search_mode,
             };
             self.search(token, &req)
                 .and_then(|r| Self::find_id(partial_id, &r))

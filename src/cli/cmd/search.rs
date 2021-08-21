@@ -2,6 +2,7 @@ use clap::Clap;
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
+use crate::cli::opts::SearchMode;
 use crate::cli::sink::Error as SinkError;
 use crate::http::payload::{SearchReq, SearchResult};
 use crate::http::Error as HttpError;
@@ -14,6 +15,9 @@ use crate::http::Error as HttpError;
 pub struct Input {
     /// The query string. See https://docspell.org/docs/query/
     pub query: String,
+
+    #[clap(flatten)]
+    pub search_mode: SearchMode,
 
     /// Do not fetch details to each item in the result
     #[clap(long = "no-details", parse(from_flag = std::ops::Not::not))]
@@ -53,6 +57,7 @@ fn search(opts: &Input, ctx: &Context) -> Result<SearchResult, Error> {
         offset: opts.offset,
         with_details: opts.with_details,
         query: opts.query.clone(),
+        search_mode: opts.search_mode.to_mode(),
     };
 
     ctx.client

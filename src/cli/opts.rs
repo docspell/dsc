@@ -3,6 +3,7 @@
 use super::cmd::*;
 use crate::{
     config::DsConfig,
+    http::payload,
     http::{FileAuth, IntegrationAuth, IntegrationData},
 };
 use clap::{AppSettings, ArgEnum, ArgGroup, Clap, ValueHint};
@@ -292,6 +293,11 @@ pub struct UploadMeta {
     /// Specify the language of the document.
     #[clap(long, short)]
     pub language: Option<String>,
+
+    /// Discard the the mail body and only import the attachments.
+    /// Only applicable when e-mail files are uploaded.
+    #[clap(long)]
+    pub attachments_only: bool,
 }
 
 // Shared options for specifying what to do with a file.
@@ -306,4 +312,28 @@ pub struct FileAction {
     /// structure is retained in the target folder.
     #[clap(long = "move", group = "file-action", value_hint = ValueHint::DirPath)]
     pub move_to: Option<PathBuf>,
+}
+
+#[derive(Clap, Debug, Clone)]
+#[clap(group = ArgGroup::new("search-mode"))]
+pub struct SearchMode {
+    /// Search in trashed items, too.
+    #[clap(long, group = "search-mode")]
+    pub all: bool,
+
+    /// Search only in trashed items.
+    #[clap(long, group = "search-mode")]
+    pub trashed_only: bool,
+}
+
+impl SearchMode {
+    pub fn to_mode(&self) -> payload::SearchMode {
+        if self.all {
+            payload::SearchMode::All
+        } else if self.trashed_only {
+            payload::SearchMode::Trashed
+        } else {
+            payload::SearchMode::Normal
+        }
+    }
 }

@@ -7,6 +7,7 @@ use std::{
 };
 
 use super::{Cmd, Context};
+use crate::cli::opts::SearchMode;
 use crate::http::payload::SearchReq;
 use crate::http::DownloadRef;
 use crate::http::Error as HttpError;
@@ -24,6 +25,9 @@ use crate::http::Error as HttpError;
 pub struct Input {
     /// The query string. See https://docspell.org/docs/query/
     query: String,
+
+    #[clap(flatten)]
+    pub search_mode: SearchMode,
 
     /// Limit the number of results.
     #[clap(short, long, default_value = "60")]
@@ -76,6 +80,7 @@ pub fn view_all(opts: &Input, ctx: &Context, parent: &Path) -> Result<(), Error>
         offset: opts.offset,
         limit: opts.limit,
         with_details: true,
+        search_mode: opts.search_mode.to_mode(),
     };
     let result = ctx
         .client

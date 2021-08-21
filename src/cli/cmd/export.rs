@@ -6,7 +6,7 @@ use super::{Cmd, Context};
 use crate::cli::opts::Format;
 use crate::cli::sink::Error as SinkError;
 use crate::cli::table::format_date_by;
-use crate::http::payload::{Item, SearchReq};
+use crate::http::payload::{Item, SearchMode, SearchReq};
 use crate::http::{Downloads, Error as HttpError};
 use crate::util::file;
 
@@ -108,6 +108,7 @@ impl Cmd for Input {
             limit: self.limit,
             with_details: true,
             query: self.query.clone().unwrap_or_else(|| "".into()),
+            search_mode: SearchMode::Normal,
         };
 
         let mut counter = 0;
