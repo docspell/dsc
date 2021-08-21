@@ -18,10 +18,9 @@ pkgs.mkShell {
 #      arm.pkg-config
     ];
   buildInputs = with pkgs;
-    [ rustfmt
-      clippy
-      cargo
-      pkgs.latest.rustChannels.stable.rust
+    [ pkgs.latest.rustChannels.stable.rust
+      pkgs.latest.rustChannels.stable.cargo
+      rustfmt
     ];
   PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
 #  RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
