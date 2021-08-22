@@ -4,16 +4,18 @@ in
 
 { lib
 , stdenv
-, rustPlatform
 , pkg-config
 , fetchgit
 , openssl
 , installShellFiles
 , git
 , binutils-unwrapped
+, callPackage
 , version ? fromCargo
 }:
-
+let
+  rustPlatform = callPackage ./rust-platform.nix {};
+in
 rustPlatform.buildRustPackage rec {
 
   pname = "dsc";
@@ -40,7 +42,7 @@ rustPlatform.buildRustPackage rec {
       };
     in cleanSrc ../.;
 
-  cargoSha256 = "0zs2g07lg3vqgy9mci6m87hg0jkvyc4vmsij76rnqj95p1nhkghb";
+  cargoSha256 = "18zs9ff3dp1n5g3r4z4x5l7cgs7cd6bx1hvrk9cd4cb11s9qcfnb";
 
   # only unit tests can be run
   checkPhase = ''
