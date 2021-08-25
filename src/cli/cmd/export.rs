@@ -145,7 +145,6 @@ fn export(req: &SearchReq, opts: &Input, ctx: &Context) -> Result<usize, Error> 
         .context(HttpClient)?;
     let mut item_counter = 0;
     let items = opts.target.join("items");
-    let items_rel = std::path::Path::new("../../items");
     let by_date = opts.target.join("by_date");
     let by_tag = opts.target.join("by_tag");
     let by_folder = opts.target.join("by_folder");
@@ -156,22 +155,21 @@ fn export(req: &SearchReq, opts: &Input, ctx: &Context) -> Result<usize, Error> 
             let item_dir = items.join(&item.id[0..2]).join(&item.id);
             export_item(&item, opts.overwrite, &item_dir, ctx)?;
 
-            let item_dir_rel = items_rel.join(&item.id[0..2]).join(&item.id);
             if opts.date_links {
                 let link_dir = by_date.join(format_date_by(item.date, "%Y-%m"));
-                make_links(&item, opts.overwrite, &item_dir_rel, &link_dir)?;
+                make_links(&item, opts.overwrite, &item_dir, &link_dir)?;
             }
             if opts.correspondent_links {
                 let corr_opt = item.corr_org.as_ref().or_else(|| item.corr_person.as_ref());
                 if let Some(corr) = corr_opt {
                     let link_dir = by_corr.join(file::safe_filename(&corr.name));
-                    make_links(&item, opts.overwrite, &item_dir_rel, &link_dir)?;
+                    make_links(&item, opts.overwrite, &item_dir, &link_dir)?;
                 }
             }
             if opts.tag_links {
                 for tag in &item.tags {
                     let link_dir = by_tag.join(file::safe_filename(&tag.name));
-                    make_links(&item, opts.overwrite, &item_dir_rel, &link_dir)?;
+                    make_links(&item, opts.overwrite, &item_dir, &link_dir)?;
                 }
             }
             if opts.folder_links {
@@ -181,11 +179,7 @@ fn export(req: &SearchReq, opts: &Input, ctx: &Context) -> Result<usize, Error> 
                     .map(|f| file::safe_filepath(&f.name, &opts.folder_delimiter));
                 if let Some(folder_name) = folder_opt {
                     let link_dir = by_folder.join(folder_name);
-                    let item_dir_rel = pathdiff::diff_paths(&items, &link_dir)
-                        .unwrap()
-                        .join(&item.id[0..2])
-                        .join(&item.id);
-                    make_links(&item, opts.overwrite, &item_dir_rel, &link_dir)?;
+                    make_links(&item, opts.overwrite, &item_dir, &link_dir)?;
                 }
             }
             export_message(item, ctx)?;
@@ -279,8 +273,10 @@ fn make_links(
         );
         std::fs::remove_file(&link_name).context(DeleteFile)?;
     }
-    if link_name.read_link().is_err() {
-        file::symlink(link_target, link_name).context(Symlink)?;
+    // Use exists() instead of read_link() here, in an attempt to fix broken links
+    if !link_name.exists() {
+        let rel_link_target = pathdiff::diff_paths(&link_target, &link_name_path).unwrap();
+        file::symlink(rel_link_target, link_name).context(Symlink)?;
     } else {
         log::debug!("Skip existing link: {}", link_target.display());
     }
