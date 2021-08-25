@@ -259,22 +259,30 @@ fn export_item(item: &Item, overwrite: bool, item_dir: &Path, ctx: &Context) -> 
     Ok(())
 }
 
-fn make_links(item: &Item, overwrite: bool, item_dir: &Path, link_dir: &Path) -> Result<(), Error> {
-    if !link_dir.exists() {
-        std::fs::create_dir_all(&link_dir).context(CreateFile)?;
+fn make_links(
+    item: &Item,
+    overwrite: bool,
+    link_target: &Path,
+    link_name_path: &Path,
+) -> Result<(), Error> {
+    if !link_name_path.exists() {
+        std::fs::create_dir_all(&link_name_path).context(CreateFile)?;
     }
-    let link_target = link_dir.join(&item.id);
-    if link_target.exists() && overwrite {
+    // Append the item's id as link name on the link's path.
+    let link_name = link_name_path.join(&item.id);
+    // Use read_link() instead of exists(), because the latter traverses links and instead
+    // checks whether the link-target exists.
+    if link_name.read_link().is_ok() && overwrite {
         log::debug!(
-            "Removing date link target {}, due to overwrite=true",
+            "Removing link name {}, due to overwrite=true",
             link_target.display()
         );
-        std::fs::remove_file(&link_target).context(DeleteFile)?;
+        std::fs::remove_file(&link_name).context(DeleteFile)?;
     }
-    if !link_target.exists() {
-        file::symlink(item_dir, link_target).context(Symlink)?;
+    if link_name.read_link().is_err() {
+        file::symlink(link_target, link_name).context(Symlink)?;
     } else {
-        log::debug!("Skip existing date link: {}", link_target.display());
+        log::debug!("Skip existing link: {}", link_target.display());
     }
     Ok(())
 }
