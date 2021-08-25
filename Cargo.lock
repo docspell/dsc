@@ -393,6 +393,7 @@ dependencies = [
  "log",
  "notify",
  "openssl",
+ "pathdiff",
  "predicates",
  "prettytable-rs",
  "reqwest",
@@ -1277,6 +1278,12 @@ name = "os_str_bytes"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6acbef58a60fe69ab50510a55bc8cdd4d6cf2283d27ad338f54cb52747a9cf2d"
+
+[[package]]
+name = "pathdiff"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "877630b3de15c0b64cc52f659345724fbf6bdad9bd9566699fc53688f3c34a34"
 
 [[package]]
 name = "percent-encoding"

@@ -61,10 +61,22 @@ pub struct Input {
     #[clap(long)]
     tag_links: bool,
 
+    /// Create symlinks by folder. This may not work on some
+    /// file systems.
+    #[clap(long)]
+    folder_links: bool,
+
     /// Create symlinks by correspondent. This may not work on some
     /// file systems.
     #[clap(long)]
     correspondent_links: bool,
+
+    /// If your Folder-names contain a custom delimiter used to represent
+    /// flat hierarchy (e.g. "Financial/Invoices"), the delimiter you set
+    /// with this option is used to split the Folder name into a path, which
+    /// is then created on the file-system when using the folder-links export.
+    #[clap(long)]
+    folder_delimiter: Option<String>,
 
     /// Download everything into this directory.
     #[clap(short, long)]
@@ -136,6 +148,7 @@ fn export(req: &SearchReq, opts: &Input, ctx: &Context) -> Result<usize, Error> 
     let items_rel = std::path::Path::new("../../items");
     let by_date = opts.target.join("by_date");
     let by_tag = opts.target.join("by_tag");
+    let by_folder = opts.target.join("by_folder");
     let by_corr = opts.target.join("by_correspondent");
     for g in results.groups {
         for item in g.items {
@@ -158,6 +171,20 @@ fn export(req: &SearchReq, opts: &Input, ctx: &Context) -> Result<usize, Error> 
             if opts.tag_links {
                 for tag in &item.tags {
                     let link_dir = by_tag.join(file::safe_filename(&tag.name));
+                    make_links(&item, opts.overwrite, &item_dir_rel, &link_dir)?;
+                }
+            }
+            if opts.folder_links {
+                let folder_opt = item
+                    .folder
+                    .as_ref()
+                    .map(|f| file::safe_filepath(&f.name, &opts.folder_delimiter));
+                if let Some(folder_name) = folder_opt {
+                    let link_dir = by_folder.join(folder_name);
+                    let item_dir_rel = pathdiff::diff_paths(&items, &link_dir)
+                        .unwrap()
+                        .join(&item.id[0..2])
+                        .join(&item.id);
                     make_links(&item, opts.overwrite, &item_dir_rel, &link_dir)?;
                 }
             }
