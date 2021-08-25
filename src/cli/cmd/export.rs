@@ -61,10 +61,22 @@ pub struct Input {
     #[clap(long)]
     tag_links: bool,
 
+    /// Create symlinks by folder. This may not work on some
+    /// file systems.
+    #[clap(long)]
+    folder_links: bool,
+
     /// Create symlinks by correspondent. This may not work on some
     /// file systems.
     #[clap(long)]
     correspondent_links: bool,
+
+    /// If your Folder-names contain a custom delimiter used to represent
+    /// flat hierarchy (e.g. "Financial/Invoices"), the delimiter you set
+    /// with this option is used to split the Folder name into a path, which
+    /// is then created on the file-system when using the folder-links export.
+    #[clap(long)]
+    folder_delimiter: Option<String>,
 
     /// Download everything into this directory.
     #[clap(short, long)]
@@ -133,9 +145,9 @@ fn export(req: &SearchReq, opts: &Input, ctx: &Context) -> Result<usize, Error> 
         .context(HttpClient)?;
     let mut item_counter = 0;
     let items = opts.target.join("items");
-    let items_rel = std::path::Path::new("../../items");
     let by_date = opts.target.join("by_date");
     let by_tag = opts.target.join("by_tag");
+    let by_folder = opts.target.join("by_folder");
     let by_corr = opts.target.join("by_correspondent");
     for g in results.groups {
         for item in g.items {
@@ -143,22 +155,31 @@ fn export(req: &SearchReq, opts: &Input, ctx: &Context) -> Result<usize, Error> 
             let item_dir = items.join(&item.id[0..2]).join(&item.id);
             export_item(&item, opts.overwrite, &item_dir, ctx)?;
 
-            let item_dir_rel = items_rel.join(&item.id[0..2]).join(&item.id);
             if opts.date_links {
                 let link_dir = by_date.join(format_date_by(item.date, "%Y-%m"));
-                make_links(&item, opts.overwrite, &item_dir_rel, &link_dir)?;
+                make_links(&item, opts.overwrite, &item_dir, &link_dir)?;
             }
             if opts.correspondent_links {
                 let corr_opt = item.corr_org.as_ref().or_else(|| item.corr_person.as_ref());
                 if let Some(corr) = corr_opt {
                     let link_dir = by_corr.join(file::safe_filename(&corr.name));
-                    make_links(&item, opts.overwrite, &item_dir_rel, &link_dir)?;
+                    make_links(&item, opts.overwrite, &item_dir, &link_dir)?;
                 }
             }
             if opts.tag_links {
                 for tag in &item.tags {
                     let link_dir = by_tag.join(file::safe_filename(&tag.name));
-                    make_links(&item, opts.overwrite, &item_dir_rel, &link_dir)?;
+                    make_links(&item, opts.overwrite, &item_dir, &link_dir)?;
+                }
+            }
+            if opts.folder_links {
+                let folder_opt = item
+                    .folder
+                    .as_ref()
+                    .map(|f| file::safe_filepath(&f.name, &opts.folder_delimiter));
+                if let Some(folder_name) = folder_opt {
+                    let link_dir = by_folder.join(folder_name);
+                    make_links(&item, opts.overwrite, &item_dir, &link_dir)?;
                 }
             }
             export_message(item, ctx)?;
@@ -232,22 +253,32 @@ fn export_item(item: &Item, overwrite: bool, item_dir: &Path, ctx: &Context) -> 
     Ok(())
 }
 
-fn make_links(item: &Item, overwrite: bool, item_dir: &Path, link_dir: &Path) -> Result<(), Error> {
-    if !link_dir.exists() {
-        std::fs::create_dir_all(&link_dir).context(CreateFile)?;
+fn make_links(
+    item: &Item,
+    overwrite: bool,
+    link_target: &Path,
+    link_name_path: &Path,
+) -> Result<(), Error> {
+    if !link_name_path.exists() {
+        std::fs::create_dir_all(&link_name_path).context(CreateFile)?;
     }
-    let link_target = link_dir.join(&item.id);
-    if link_target.exists() && overwrite {
+    // Append the item's id as link name on the link's path.
+    let link_name = link_name_path.join(&item.id);
+    // Use read_link() instead of exists(), because the latter traverses links and instead
+    // checks whether the link-target exists.
+    if link_name.read_link().is_ok() && overwrite {
         log::debug!(
-            "Removing date link target {}, due to overwrite=true",
+            "Removing link name {}, due to overwrite=true",
             link_target.display()
         );
-        std::fs::remove_file(&link_target).context(DeleteFile)?;
+        std::fs::remove_file(&link_name).context(DeleteFile)?;
     }
-    if !link_target.exists() {
-        file::symlink(item_dir, link_target).context(Symlink)?;
+    // Use exists() instead of read_link() here, in an attempt to fix broken links
+    if !link_name.exists() {
+        let rel_link_target = pathdiff::diff_paths(&link_target, &link_name_path).unwrap();
+        file::symlink(rel_link_target, link_name).context(Symlink)?;
     } else {
-        log::debug!("Skip existing date link: {}", link_target.display());
+        log::debug!("Skip existing link: {}", link_target.display());
     }
     Ok(())
 }

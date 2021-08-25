@@ -52,6 +52,14 @@ pub fn safe_filename(name: &str) -> String {
     name.replace("/", "-")
 }
 
+pub fn safe_filepath(name: &str, path_delimiter: &Option<String>) -> String {
+    let path_segments: Vec<String> = match path_delimiter {
+        Some(delimiter) => name.split(delimiter).map(safe_filename).collect(),
+        None => vec![safe_filename(name)],
+    };
+    return path_segments.join("/");
+}
+
 #[cfg(windows)]
 pub fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Result<()> {
     std::os::windows::fs::symlink_dir(original, link)
