@@ -2,3 +2,5 @@
 result
 /local
 *.qcow2
+
+.vscode
