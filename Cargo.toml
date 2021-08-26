@@ -38,6 +38,7 @@ snafu = { version = "0.6" }
 toml = { version = "0.5" }
 zip = { version = "0.5" }
 pathdiff = "0.2"
+sanitize-filename = "0.3"
 
 [target.'cfg(unix)'.dependencies]
 file-locker = { version = "1.0" }

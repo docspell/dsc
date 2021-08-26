@@ -1,4 +1,4 @@
-use clap::{ArgGroup, Clap};
+use clap::{ArgEnum, ArgGroup, Clap};
 use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
 
@@ -9,6 +9,19 @@ use crate::cli::table::format_date_by;
 use crate::http::payload::{Item, SearchMode, SearchReq};
 use crate::http::{Downloads, Error as HttpError};
 use crate::util::file;
+
+#[derive(ArgEnum, Clone, Copy, Debug)]
+pub enum LinkNaming {
+    /// Name links to items after the items' id.
+    Id,
+    // Name links to items after the items' sanitized name.
+    Name,
+}
+impl Default for LinkNaming {
+    fn default() -> Self {
+        LinkNaming::Id
+    }
+}
 
 /// Exports data for a query.
 ///
@@ -50,6 +63,11 @@ pub struct Input {
     /// skipped if there is already a file with the same name present.
     #[clap(long)]
     overwrite: bool,
+
+    /// Specify after which of an items' property the links to it
+    /// should be named. (Defaults to id)
+    #[clap(long, arg_enum)]
+    link_naming: Option<LinkNaming>,
 
     /// Creates symlinks by item date. This may not work on some file
     /// systems.
@@ -157,19 +175,19 @@ fn export(req: &SearchReq, opts: &Input, ctx: &Context) -> Result<usize, Error> 
 
             if opts.date_links {
                 let link_dir = by_date.join(format_date_by(item.date, "%Y-%m"));
-                make_links(&item, opts.overwrite, &item_dir, &link_dir)?;
+                make_links(&item, opts, &item_dir, &link_dir)?;
             }
             if opts.correspondent_links {
                 let corr_opt = item.corr_org.as_ref().or_else(|| item.corr_person.as_ref());
                 if let Some(corr) = corr_opt {
                     let link_dir = by_corr.join(file::safe_filename(&corr.name));
-                    make_links(&item, opts.overwrite, &item_dir, &link_dir)?;
+                    make_links(&item, opts, &item_dir, &link_dir)?;
                 }
             }
             if opts.tag_links {
                 for tag in &item.tags {
                     let link_dir = by_tag.join(file::safe_filename(&tag.name));
-                    make_links(&item, opts.overwrite, &item_dir, &link_dir)?;
+                    make_links(&item, opts, &item_dir, &link_dir)?;
                 }
             }
             if opts.folder_links {
@@ -179,7 +197,7 @@ fn export(req: &SearchReq, opts: &Input, ctx: &Context) -> Result<usize, Error> 
                     .map(|f| file::safe_filepath(&f.name, &opts.folder_delimiter));
                 if let Some(folder_name) = folder_opt {
                     let link_dir = by_folder.join(folder_name);
-                    make_links(&item, opts.overwrite, &item_dir, &link_dir)?;
+                    make_links(&item, opts, &item_dir, &link_dir)?;
                 }
             }
             export_message(item, ctx)?;
@@ -255,27 +273,50 @@ fn export_item(item: &Item, overwrite: bool, item_dir: &Path, ctx: &Context) -> 
 
 fn make_links(
     item: &Item,
-    overwrite: bool,
+    opts: &Input,
     link_target: &Path,
     link_name_path: &Path,
 ) -> Result<(), Error> {
     if !link_name_path.exists() {
         std::fs::create_dir_all(&link_name_path).context(CreateFile)?;
     }
+    let link_filename = match opts.link_naming.unwrap_or_default() {
+        LinkNaming::Id => item.id.clone(),
+        LinkNaming::Name => file::safe_filename(&item.name),
+    };
+
+    let rel_link_target = pathdiff::diff_paths(&link_target, &link_name_path).unwrap();
     // Append the item's id as link name on the link's path.
-    let link_name = link_name_path.join(&item.id);
-    // Use read_link() instead of exists(), because the latter traverses links and instead
-    // checks whether the link-target exists.
-    if link_name.read_link().is_ok() && overwrite {
-        log::debug!(
-            "Removing link name {}, due to overwrite=true",
-            link_target.display()
-        );
-        std::fs::remove_file(&link_name).context(DeleteFile)?;
-    }
-    // Use exists() instead of read_link() here, in an attempt to fix broken links
-    if !link_name.exists() {
-        let rel_link_target = pathdiff::diff_paths(&link_target, &link_name_path).unwrap();
+    let mut link_name = link_name_path.join(&link_filename);
+    let mut collision_counter = 1;
+    let create_link = loop {
+        // Use read_link() instead of exists(), because the latter traverses links and instead
+        // checks whether the link-target exists.
+        let link_data = link_name.read_link();
+        match link_data {
+            // A link with this name already exists.
+            Ok(link_data) => {
+                if link_data == rel_link_target {
+                    // This link is pointing to the item we want to create a link for
+                    // skip depending on whether the "overwrite" property is set
+                    break opts.overwrite;
+                } else {
+                    // this is simply a name collision (same name, different document).
+                    // append a number to the name, to remove conflict, then try again
+                    log::debug!("Found name collision for: \"{}\"", link_name.display());
+                    link_name =
+                        link_name_path.join(format!("{} ({})", link_filename, collision_counter));
+                    collision_counter += 1;
+                }
+            }
+            // Link does not yet exist, all good, we can have a go
+            _ => {
+                break true;
+            }
+        }
+    };
+
+    if create_link {
         file::symlink(rel_link_target, link_name).context(Symlink)?;
     } else {
         log::debug!("Skip existing link: {}", link_target.display());
