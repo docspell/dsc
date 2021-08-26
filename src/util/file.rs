@@ -48,9 +48,7 @@ pub fn collective_from_subdir(
     Ok(None)
 }
 
-pub fn safe_filename(name: &str) -> String {
-    name.replace("/", "-")
-}
+pub use sanitize_filename::sanitize as safe_filename;
 
 pub fn safe_filepath(name: &str, path_delimiter: &Option<String>) -> String {
     let path_segments: Vec<String> = match path_delimiter {
