@@ -64,16 +64,16 @@ in {
               description = "Whether to upload to the integration endpoint.";
             };
             header = mkOption {
-              type = types.str;
-              default = "";
+              type = types.nullOr types.str;
+              default = null;
               description = ''
                 The `header:value` string matching the configured header-name
                  and value for the integration endpoint.
               '';
             };
             basic = mkOption {
-              type = types.str;
-              default = "";
+              type = types.nullOr types.str;
+              default = null;
               description = ''
                 The `user:password` string matching the configured user and password
                 for the integration endpoint. Since both are separated by a colon, the
@@ -84,8 +84,8 @@ in {
         });
         default = {
           enabled = false;
-          header = "";
-          user = "";
+          header = null;
+          basic = null;
         };
         description = "Settings for using the integration endpoint.";
       };
@@ -116,7 +116,7 @@ in {
                 []) ++
              (if cfg.integration-endpoint.basic != ""
               then
-                [ "--basic" "'${cfg.integration-endpoint.user}'" ]
+                [ "--basic" "'${cfg.integration-endpoint.basic}'" ]
               else
                 []) ++
              (if cfg.include-filter != null then
