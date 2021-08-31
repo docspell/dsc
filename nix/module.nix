@@ -13,6 +13,12 @@ in {
         description = "Whether to enable dsc watch directory service.";
       };
 
+      package = mkOption {
+        default = pkgs.dsc;
+        description = "Package that provides the dsc binary.";
+        type = types.package;
+      };
+
       docspell-url = mkOption {
         type = types.str;
         example = "http://localhost:7880";
@@ -127,7 +133,7 @@ in {
               else []) ++
              (if cfg.source-id != null then [ "--source" "'${cfg.source-id}'" ] else []);
 
-      cmd = "${pkgs.dsc}/bin/dsc " +
+      cmd = "${cfg.package}/bin/dsc " +
             "-d '${cfg.docspell-url}'" +
             (if cfg.verbose then " -vv " else "") +
             " watch "+
