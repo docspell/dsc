@@ -72,6 +72,14 @@ pub fn store_session(resp: &AuthResp) -> Result<(), Error> {
     }
 }
 
+/// Loads the session token from the session file created by the
+/// `login` command.
+pub fn session_token_from_file() -> Result<String, Error> {
+    let file = get_token_file().map_err(|_err| Error::NotLoggedIn)?;
+    let resp = read_token_file(&file)?;
+    get_token(&resp)
+}
+
 /// Loads the session token from defined places. Uses in this order:
 /// the option `--session`, the env variable `DSC_SESSION` or the
 /// sesion file created by the `login` command.

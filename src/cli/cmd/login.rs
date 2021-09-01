@@ -7,6 +7,7 @@ use crate::util::pass;
 
 use clap::{ArgGroup, Clap, ValueHint};
 use snafu::{ResultExt, Snafu};
+use std::io::Write;
 
 /// Performs a login given user credentials.
 ///
@@ -66,7 +67,12 @@ pub enum Error {
 impl Cmd for Input {
     type CmdError = Error;
     fn exec(&self, ctx: &Context) -> Result<(), Error> {
-        let result = login(self, ctx)?;
+        let mut result = login(self, ctx)?;
+        if result.require_second_factor {
+            log::info!("Account has two-factor auth enabled. Sending otp now.");
+            result = login_otp(ctx)?;
+        }
+
         ctx.write_result(result).context(WriteResult)?;
         Ok(())
     }
@@ -79,6 +85,14 @@ pub fn login(opts: &Input, ctx: &Context) -> Result<AuthResp, Error> {
         remember_me: false,
     };
     ctx.client.login(&body).context(HttpClient)
+}
+
+pub fn login_otp(ctx: &Context) -> Result<AuthResp, Error> {
+    print!("Authentication code: ");
+    std::io::stdout().flush().context(PassEntry)?;
+    let mut otp: String = String::new();
+    std::io::stdin().read_line(&mut otp).context(PassEntry)?;
+    ctx.client.login_otp(otp.trim()).context(HttpClient)
 }
 
 fn get_password(opts: &Input, ctx: &Context) -> Result<String, Error> {
