@@ -74,11 +74,21 @@ pub struct AuthRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct SecondFactor {
+    pub token: String,
+    pub otp: String,
+    #[serde(alias = "rememberMe", rename(serialize = "rememberMe"))]
+    pub remember_me: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AuthResp {
     pub collective: String,
     pub user: String,
     pub success: bool,
     pub message: String,
+    #[serde(alias = "requireSecondFactor")]
+    pub require_second_factor: bool,
     pub token: Option<String>,
     #[serde(alias = "validMs")]
     pub valid_ms: u64,

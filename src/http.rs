@@ -138,12 +138,50 @@ impl Client {
     ///
     /// This token is stored in the filesystem and will be used as a
     /// fallback if no specific token is supplied.
+    ///
+    /// If the account is configured for two-factor authentication,
+    /// the next call must be to send the confirmation code together
+    /// with the token returned here.
     pub fn login(&self, req: &AuthRequest) -> Result<AuthResp, Error> {
         let url = &format!("{}/api/v1/open/auth/login", self.base_url);
         let result = self
             .client
             .post(url)
             .json(req)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<AuthResp>()
+            .context(SerializeResp)?;
+
+        if result.success {
+            session::store_session(&result).context(Session)?;
+            Ok(result)
+        } else {
+            log::debug!("Login result: {:?}", result);
+            Err(Error::LoginFailed)
+        }
+    }
+
+    /// Login to Docspell returning the session token that must be
+    /// used with all secured requests. This is providing the second
+    /// factor.
+    ///
+    /// This token is stored in the filesystem and will be used as a
+    /// fallback if no specific token is supplied.
+    pub fn login_otp(&self, otp: &str) -> Result<AuthResp, Error> {
+        let url = &format!("{}/api/v1/open/auth/two-factor", self.base_url);
+        let token = session::session_token_from_file().context(Session)?;
+        let req = SecondFactor {
+            otp: otp.to_string(),
+            token,
+            remember_me: false,
+        };
+        log::debug!("Sending second factor: {:?}", req);
+        let result = self
+            .client
+            .post(url)
+            .json(&req)
             .send()
             .and_then(|r| r.error_for_status())
             .context(Http { url })?
