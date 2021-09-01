@@ -63,7 +63,7 @@ pub fn safe_filepath(name: &str, path_delimiter: &Option<String>) -> String {
         Some(delimiter) => name.split(delimiter).map(safe_filename).collect(),
         None => vec![safe_filename(name)],
     };
-    return path_segments.join("/");
+    path_segments.join("/")
 }
 
 #[cfg(windows)]
