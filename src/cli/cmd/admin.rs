@@ -1,4 +1,5 @@
 pub mod convert_all_pdfs;
+pub mod disable_2fa;
 pub mod generate_previews;
 pub mod recreate_index;
 pub mod reset_password;
@@ -29,6 +30,7 @@ pub enum Error {
     RecreateIndex { source: recreate_index::Error },
     ResetPassword { source: reset_password::Error },
     ConvertAllPdfs { source: convert_all_pdfs::Error },
+    Disable2FA { source: disable_2fa::Error },
 }
 
 #[derive(Clap, Debug)]
@@ -48,6 +50,10 @@ pub enum AdminCommand {
     #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     ConvertAllPdfs(convert_all_pdfs::Input),
+
+    #[clap(setting = AppSettings::ColoredHelp, name= "disable-2fa")]
+    #[clap(version)]
+    Disable2FA(disable_2fa::Input),
 }
 
 impl Cmd for Input {
@@ -59,6 +65,7 @@ impl Cmd for Input {
             AdminCommand::RecreateIndex(input) => input.exec(self, ctx).context(RecreateIndex),
             AdminCommand::ResetPassword(input) => input.exec(self, ctx).context(ResetPassword),
             AdminCommand::ConvertAllPdfs(input) => input.exec(self, ctx).context(ConvertAllPdfs),
+            AdminCommand::Disable2FA(input) => input.exec(self, ctx).context(Disable2FA),
         }
     }
 }

@@ -722,6 +722,23 @@ impl Client {
             .context(SerializeResp)
     }
 
+    pub fn admin_reset_otp<S: Into<String>>(
+        &self,
+        admin_secret: S,
+        account: &Account,
+    ) -> Result<BasicResult, Error> {
+        let url = &format!("{}/api/v1/admin/user/otp/resetOTP", self.base_url);
+        self.client
+            .post(url)
+            .header(DOCSPELL_ADMIN, admin_secret.into())
+            .json(&account)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(Http { url })?
+            .json::<BasicResult>()
+            .context(SerializeResp)
+    }
+
     // --- Helpers
 
     fn require_item_id<S: AsRef<str>>(
