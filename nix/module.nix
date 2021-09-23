@@ -115,12 +115,12 @@ in {
       args = (if cfg.recursive then ["-r"] else []) ++
              (if cfg.delete-files then ["--delete"] else []) ++
              (if cfg.integration-endpoint.enabled then [ "-i" ] else []) ++
-             (if cfg.integration-endpoint.header != ""
+             (if cfg.integration-endpoint.header != null
               then
                 [ "--header" "'${cfg.integration-endpoint.header}'" ]
               else
                 []) ++
-             (if cfg.integration-endpoint.basic != ""
+             (if cfg.integration-endpoint.basic != null
               then
                 [ "--basic" "'${cfg.integration-endpoint.basic}'" ]
               else
