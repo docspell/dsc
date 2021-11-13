@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
@@ -6,7 +6,7 @@ use crate::cli::sink::Error as SinkError;
 use crate::http::Error as HttpError;
 
 /// Performs a search and prints a summary of the results.
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Parser, std::fmt::Debug)]
 pub struct Input {
     /// The query string. See https://docspell.org/docs/query/
     query: String,

@@ -1,4 +1,4 @@
-use clap::{Clap, ValueHint};
+use clap::{Parser, ValueHint};
 use snafu::{ResultExt, Snafu};
 
 use super::AdminCmd;
@@ -8,7 +8,7 @@ use crate::http::payload::{Account, ResetPasswordResp};
 use crate::http::Error as HttpError;
 
 /// Resets the password of the given account.
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Parser, std::fmt::Debug)]
 pub struct Input {
     #[clap(long, short, value_hint = ValueHint::Username)]
     pub account: String,

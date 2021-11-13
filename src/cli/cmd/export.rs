@@ -1,4 +1,4 @@
-use clap::{ArgEnum, ArgGroup, Clap};
+use clap::{ArgEnum, ArgGroup, Parser};
 use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
 
@@ -43,7 +43,7 @@ impl Default for LinkNaming {
 ///
 /// The `--*-links` options can be used to create a symlink tree based
 /// on some metadata, like tags, correspondents or item date.
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Parser, std::fmt::Debug)]
 #[clap(group = ArgGroup::new("kind"))]
 pub struct Input {
     /// Limit the number of results.

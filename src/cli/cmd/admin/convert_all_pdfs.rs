@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use snafu::{ResultExt, Snafu};
 
 use super::AdminCmd;
@@ -8,7 +8,7 @@ use crate::http::Error as HttpError;
 
 /// Submits a task to convert all pdfs via the configured tool (by
 /// default ocrmypdf).
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Parser, std::fmt::Debug)]
 pub struct Input {}
 
 impl AdminCmd for Input {

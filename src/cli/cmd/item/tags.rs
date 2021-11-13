@@ -1,4 +1,4 @@
-use clap::{ArgGroup, Clap};
+use clap::{ArgGroup, Parser};
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
@@ -7,7 +7,7 @@ use crate::http::payload::{BasicResult, StringList};
 use crate::http::Error as HttpError;
 
 /// Add or remove tags for an item.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 #[clap(group = ArgGroup::new("action"))]
 pub struct Input {
     /// The item id (can be abbreviated to a prefix)

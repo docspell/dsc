@@ -1,4 +1,4 @@
-use clap::{ArgGroup, Clap};
+use clap::{ArgGroup, Parser};
 use dialoguer::Confirm;
 use snafu::{ResultExt, Snafu};
 use std::{
@@ -20,7 +20,7 @@ use crate::http::Error as HttpError;
 ///
 /// Use the `search-summary` command with the same query to get an
 /// idea how much is being downloaded. This is an interactive command.
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Parser, std::fmt::Debug)]
 #[clap(group = ArgGroup::new("kind"))]
 pub struct Input {
     /// The query string. See https://docspell.org/docs/query/

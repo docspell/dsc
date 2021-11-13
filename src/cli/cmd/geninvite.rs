@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
@@ -10,7 +10,7 @@ use crate::http::Error as HttpError;
 ///
 /// The password can be found in the config file of the Docspell
 /// server.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub struct Input {
     #[clap(long, short)]
     password: String,

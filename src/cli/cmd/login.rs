@@ -5,7 +5,7 @@ use crate::http::Error as HttpError;
 
 use crate::util::pass;
 
-use clap::{ArgGroup, Clap, ValueHint};
+use clap::{ArgGroup, Parser, ValueHint};
 use snafu::{ResultExt, Snafu};
 use std::io::Write;
 
@@ -18,7 +18,7 @@ use std::io::Write;
 /// It is also possible to specfiy a session token instead. When a
 /// session token is given via options or env variable, the session
 /// file is not updated (no filesystem access occurs).
-#[derive(Clap, Debug, PartialEq)]
+#[derive(Parser, Debug, PartialEq)]
 #[clap(group = ArgGroup::new("pass"))]
 pub struct Input {
     /// The account name. If not given here, it is looked up in the

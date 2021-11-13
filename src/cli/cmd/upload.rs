@@ -1,4 +1,4 @@
-use clap::{ArgGroup, Clap, ValueHint};
+use clap::{ArgGroup, Parser, ValueHint};
 use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
 
@@ -31,7 +31,7 @@ use crate::util::file::FileActionResult;
 /// are not yet in Docspell and then deletes them.
 ///
 /// For glob patterns, see https://docs.rs/glob/0.3.0/glob/struct.Pattern.html
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 #[clap(group = ArgGroup::new("g_multiple"))]
 pub struct Input {
     #[clap(flatten)]

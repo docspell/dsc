@@ -1,4 +1,4 @@
-use clap::{ArgEnum, ArgGroup, Clap};
+use clap::{ArgEnum, ArgGroup, Parser};
 use snafu::{ResultExt, Snafu};
 use std::path::{Display, Path, PathBuf};
 
@@ -19,7 +19,7 @@ use crate::{
 ///
 /// Use the `search-summary` command with the same query to get an
 /// idea how much is being downloaded.
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Parser, std::fmt::Debug)]
 #[clap(group = ArgGroup::new("kind"))]
 pub struct Input {
     /// The query string. See https://docspell.org/docs/query/
@@ -83,7 +83,7 @@ impl Input {
     }
 }
 
-#[derive(ArgEnum, Debug, PartialEq, Eq)]
+#[derive(ArgEnum, Clone, Debug, PartialEq, Eq)]
 pub enum DupeMode {
     Skip,
     Rename,

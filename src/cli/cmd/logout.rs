@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
@@ -7,7 +7,7 @@ use crate::http::payload::BasicResult;
 use crate::http::Error as HttpError;
 
 /// Removes the credentials file
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub struct Input {}
 
 #[derive(Debug, Snafu)]

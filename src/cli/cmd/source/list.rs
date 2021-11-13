@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
@@ -7,7 +7,7 @@ use crate::http::payload::SourceAndTags;
 use crate::http::Error as HttpError;
 
 /// List all sources for your collective
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Parser, std::fmt::Debug)]
 pub struct Input {
     /// Filter sources that start by the given name
     #[clap(long)]
