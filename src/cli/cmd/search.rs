@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
@@ -11,7 +11,7 @@ use crate::http::Error as HttpError;
 ///
 /// Documents are searched via a query. The query syntax is described
 /// here: https://docspell.org/docs/query/
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Parser, std::fmt::Debug)]
 pub struct Input {
     /// The query string. See https://docspell.org/docs/query/
     pub query: String,

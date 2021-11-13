@@ -1,4 +1,4 @@
-use clap::{Clap, ValueHint};
+use clap::{Parser, ValueHint};
 use notify::{DebouncedEvent, RecursiveMode, Watcher};
 use snafu::{ResultExt, Snafu};
 use std::{path::Path, sync::mpsc};
@@ -25,7 +25,7 @@ use crate::util::file;
 /// On some filesystems, this command may not work (e.g. networking
 /// file systems like NFS or SAMBA). You may use the `upload` command
 /// then in combination with the `--poll` option.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub struct Input {
     /// Wether to watch directories recursively or not.
     #[clap(long, short)]

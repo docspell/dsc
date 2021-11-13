@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
 
@@ -23,7 +23,7 @@ use crate::{cli::sink::Error as SinkError, http::payload::BasicResult};
 /// When using the integration endpoint and a collective is not
 /// specified, it will be guessed from the first subdirectory of the
 /// directory that is specified.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub struct Input {
     #[clap(flatten)]
     pub endpoint: EndpointOpts,

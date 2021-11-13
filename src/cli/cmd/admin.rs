@@ -4,7 +4,7 @@ pub mod generate_previews;
 pub mod recreate_index;
 pub mod reset_password;
 
-use clap::{AppSettings, Clap};
+use clap::Parser;
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
@@ -13,7 +13,7 @@ use super::{Cmd, Context};
 ///
 /// These commands require the admin secret from the server config
 /// file.
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Parser, std::fmt::Debug)]
 pub struct Input {
     /// This secret is required to access them. If not given here, it
     /// is taken from the config file.
@@ -33,25 +33,21 @@ pub enum Error {
     Disable2FA { source: disable_2fa::Error },
 }
 
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub enum AdminCommand {
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     GeneratePreviews(generate_previews::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     RecreateIndex(recreate_index::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     ResetPassword(reset_password::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     ConvertAllPdfs(convert_all_pdfs::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp, name= "disable-2fa")]
+    #[clap(name = "disable-2fa")]
     #[clap(version)]
     Disable2FA(disable_2fa::Input),
 }

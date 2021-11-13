@@ -6,7 +6,7 @@ use crate::{
     http::payload,
     http::{FileAuth, IntegrationAuth, IntegrationData},
 };
-use clap::{AppSettings, ArgEnum, ArgGroup, Clap, ValueHint};
+use clap::{ArgEnum, ArgGroup, Parser, ValueHint};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -15,9 +15,8 @@ use std::path::PathBuf;
 ///
 /// This CLI is mostly a wrapper around the docspell remote api. For
 /// more information, see https://docspell.org/docs/api.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 #[clap(name = "dsc", version)]
-#[clap(setting = AppSettings::ColoredHelp)]
 pub struct MainOpts {
     /// This can specify a path to a config file to load. It is
     /// expected to be in TOML format. If not given, the default
@@ -40,7 +39,7 @@ pub struct MainOpts {
 ///
 /// They are defined for the main command, before the subcommand is
 /// defined.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub struct CommonOpts {
     /// Be more verbose when logging.
     #[clap(short, long, parse(from_occurrences))]
@@ -68,84 +67,65 @@ pub struct CommonOpts {
 }
 
 /// All subcommands.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub enum SubCommand {
     /// Write the default config to the file system and exit.
     ///
     /// The location depends on the OS and is shown after writing.
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     WriteDefaultConfig,
 
     /// Write completions for some shells to stdout.
-    #[clap(setting = AppSettings::ColoredHelp)]
     GenerateCompletions(generate_completions::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Watch(watch::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Version(version::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Login(login::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Logout(logout::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Search(search::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version, alias = "summary")]
     SearchSummary(search_summary::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     FileExists(file_exists::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     GenInvite(geninvite::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Register(register::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Source(source::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Item(item::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version, alias = "up")]
     Upload(upload::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Download(download::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     View(view::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Cleanup(cleanup::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Export(export::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Admin(admin::Input),
 }
@@ -163,7 +143,7 @@ pub enum Format {
 //
 // Uploads can be done via a source id, the integration endpoint or a
 // valid session.
-#[derive(Clap, Debug, Clone)]
+#[derive(Parser, Debug, Clone)]
 #[clap(group = ArgGroup::new("int"))]
 #[clap(group = ArgGroup::new("g_source"))]
 pub struct EndpointOpts {
@@ -266,7 +246,7 @@ impl Direction {
 }
 
 // Shared options used for uploading.
-#[derive(Clap, Debug, Clone)]
+#[derive(Parser, Debug, Clone)]
 pub struct UploadMeta {
     /// Specify the direction of the item.
     #[clap(long, arg_enum)]
@@ -301,7 +281,7 @@ pub struct UploadMeta {
 }
 
 // Shared options for specifying what to do with a file.
-#[derive(Clap, Debug, Clone)]
+#[derive(Parser, Debug, Clone)]
 #[clap(group = ArgGroup::new("file-action"))]
 pub struct FileAction {
     /// Deletes the file.
@@ -314,7 +294,7 @@ pub struct FileAction {
     pub move_to: Option<PathBuf>,
 }
 
-#[derive(Clap, Debug, Clone)]
+#[derive(Parser, Debug, Clone)]
 #[clap(group = ArgGroup::new("search-mode"))]
 pub struct SearchMode {
     /// Search in trashed items, too.

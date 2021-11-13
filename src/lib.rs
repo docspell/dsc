@@ -9,7 +9,7 @@ mod util;
 
 pub use cli::execute_cmd;
 
-use clap::Clap;
+use clap::Parser;
 use cli::opts::MainOpts;
 use config::DsConfig;
 use error::Result;

@@ -1,4 +1,4 @@
-use clap::{Clap, ValueHint};
+use clap::{Parser, ValueHint};
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
@@ -7,7 +7,7 @@ use crate::http::payload::Registration;
 use crate::http::Error as HttpError;
 
 /// Register a new account at Docspell.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub struct Input {
     /// The collective name to use. If unsure, use the same as login.
     #[clap(long, short, value_hint = ValueHint::Username)]

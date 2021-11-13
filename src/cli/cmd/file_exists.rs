@@ -1,4 +1,4 @@
-use clap::{Clap, ValueHint};
+use clap::{Parser, ValueHint};
 use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
 
@@ -15,7 +15,7 @@ use super::{Cmd, Context};
 /// To check a file, an authenticated user is required, a source id or
 /// the secret to the integration endpoint. The latter allows to check
 /// across collectives.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub struct Input {
     #[clap(flatten)]
     pub endpoint: EndpointOpts,

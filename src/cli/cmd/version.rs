@@ -2,7 +2,7 @@ use crate::cli::sink::Sink;
 use crate::cli::table::AsTable;
 use crate::http::payload::{BuildInfo, VersionInfo};
 use crate::http::Error as HttpError;
-use clap::Clap;
+use clap::Parser;
 use prettytable::{cell, row, Table};
 use serde::Serialize;
 use snafu::{ResultExt, Snafu};
@@ -14,7 +14,7 @@ use crate::cli::sink::Error as SinkError;
 ///
 /// Queries the server for its version information and prints more
 /// version details about this client.
-#[derive(Clap, Debug, PartialEq)]
+#[derive(Parser, Debug, PartialEq)]
 pub struct Input {}
 
 #[derive(Debug, Snafu)]

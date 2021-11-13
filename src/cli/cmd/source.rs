@@ -1,20 +1,19 @@
 pub mod list;
 
-use clap::{AppSettings, Clap};
+use clap::Parser;
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
 
 /// Manage source urls for uploading files.
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Parser, std::fmt::Debug)]
 pub struct Input {
     #[clap(subcommand)]
     pub subcmd: SourceCommand,
 }
 
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub enum SourceCommand {
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     List(list::Input),
 }

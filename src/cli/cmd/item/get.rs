@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
@@ -7,7 +7,7 @@ use crate::http::payload::ItemDetail;
 use crate::http::Error as HttpError;
 
 /// Gets details about one item.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub struct Input {
     /// The item id (can be abbreviated to a prefix)
     pub id: String,

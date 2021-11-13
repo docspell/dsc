@@ -2,29 +2,26 @@ pub mod fields;
 pub mod get;
 pub mod tags;
 
-use clap::{AppSettings, Clap};
+use clap::Parser;
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
 
 /// Manage items.
-#[derive(Clap, std::fmt::Debug)]
+#[derive(Parser, std::fmt::Debug)]
 pub struct Input {
     #[clap(subcommand)]
     pub subcmd: ItemCommand,
 }
 
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub enum ItemCommand {
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Get(get::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Tags(tags::Input),
 
-    #[clap(setting = AppSettings::ColoredHelp)]
     #[clap(version)]
     Fields(fields::Input),
 }

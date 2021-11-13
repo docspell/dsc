@@ -1,4 +1,4 @@
-use clap::{ArgGroup, Clap};
+use clap::{ArgGroup, Parser};
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
@@ -7,7 +7,7 @@ use crate::http::payload::{BasicResult, CustomFieldValue};
 use crate::http::Error as HttpError;
 
 /// Set or remove field values for an item.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 #[clap(group = ArgGroup::new("action"))]
 pub struct Input {
     /// The item id (can be abbreviated to a prefix)
