@@ -57,5 +57,5 @@ assert_cmd = "2.0"
 predicates = "2"
 
 [build-dependencies]
-vergen = "5"
+vergen = "6"
 #anyhow = "1"
