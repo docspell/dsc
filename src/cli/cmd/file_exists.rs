@@ -36,7 +36,7 @@ pub enum Error {
         path: PathBuf,
     },
 
-    #[snafu(display("An http error occurred: {}!", source))]
+    #[snafu(display("An http error occurred: {}", source))]
     HttpClient { source: HttpError },
 
     #[snafu(display("Error writing data: {}", source))]

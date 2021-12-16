@@ -74,7 +74,7 @@ pub enum Error {
     #[snafu(display("An error occured serializing the request: {}", source))]
     SerializeReq { source: serde_json::Error },
 
-    #[snafu(display("Login failed!"))]
+    #[snafu(display("Login failed"))]
     LoginFailed,
 
     #[snafu(display("Authentication failure for integration endpoint: {}", url))]

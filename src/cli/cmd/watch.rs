@@ -65,7 +65,7 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Uploading failed: {}!", source))]
+    #[snafu(display("Uploading failed: {}", source))]
     Upload { source: upload::Error },
 
     #[snafu(display("Error creating hash for '{}': {}", path.display(), source))]
@@ -74,7 +74,7 @@ pub enum Error {
         path: PathBuf,
     },
 
-    #[snafu(display("Not a directory: {}!", path.display()))]
+    #[snafu(display("Not a directory: {}", path.display()))]
     NotADirectory { path: PathBuf },
 
     #[snafu(display("Error while watching: {}", source))]

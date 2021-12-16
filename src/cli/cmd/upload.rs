@@ -86,7 +86,7 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("The collective is required, but was not specified!"))]
+    #[snafu(display("The collective is required, but was not specified"))]
     CollectiveNotGiven {},
 
     #[snafu(display("Unable to open file {}: {}", path.display(), source))]
@@ -113,7 +113,7 @@ pub enum Error {
         source: std::io::Error,
     },
 
-    #[snafu(display("An http error occurred: {}!", source))]
+    #[snafu(display("An http error occurred: {}", source))]
     HttpClient { source: HttpError },
 
     #[snafu(display("Error writing data: {}", source))]

@@ -44,7 +44,7 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("An http error occurred: {}!", source))]
+    #[snafu(display("An http error occurred: {}", source))]
     HttpClient { source: HttpError },
 
     #[snafu(display("Error creating a file. {}", source))]
@@ -53,7 +53,7 @@ pub enum Error {
     #[snafu(display("Error executing command: {}", source))]
     Exec { source: std::io::Error },
 
-    #[snafu(display("No pdf viewer defined in the config file!"))]
+    #[snafu(display("No pdf viewer defined in the config file"))]
     NoPdfViewer,
 
     #[snafu(display("Interaction with terminal failed: {}", source))]
