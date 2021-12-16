@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::cli::opts::FileAction;
+use snafu::{ResultExt, Snafu};
 use std::io;
 
 /// Puts `suffix` in the filename before the extension.
@@ -30,19 +31,40 @@ fn delete_parent_if_empty(file: &Path, root: Option<&PathBuf>) -> Result<(), std
     }
 }
 
+#[derive(Debug, Snafu)]
+pub enum CollectiveSubdirErr {
+    #[snafu(display("The collective could not be deduced for {}. Make sure there is a subdirectory with the name of the collective below {}", file.display(), dir.display()))]
+    NoSubdir { file: PathBuf, dir: PathBuf },
+
+    #[snafu(display("Could not strip path prefix: {}", source))]
+    StripPrefix { source: std::path::StripPrefixError },
+}
 pub fn collective_from_subdir(
     path: &Path,
     roots: &[PathBuf],
-) -> Result<Option<String>, std::path::StripPrefixError> {
+) -> Result<Option<String>, CollectiveSubdirErr> {
     let file = path.canonicalize().unwrap();
     for dir in roots {
         let can_dir = dir.canonicalize().unwrap();
         log::debug!("Check prefix {} -> {}", can_dir.display(), file.display());
         if file.starts_with(&can_dir) {
-            let rest = file.strip_prefix(&can_dir)?;
-            let coll = rest.iter().next();
-            log::debug!("Found collective: {:?}", &coll);
-            return Ok(coll.and_then(|s| s.to_str()).map(|s| s.to_string()));
+            let rest = file.strip_prefix(&can_dir).context(StripPrefix)?;
+            let mut components = rest.components();
+            let coll = components.next();
+            match components.next() {
+                Some(_) => {
+                    log::debug!("Found collective: {:?}", &coll);
+                    return Ok(coll
+                        .and_then(|s| s.as_os_str().to_str())
+                        .map(|s| s.to_string()));
+                }
+                None => {
+                    return Err(CollectiveSubdirErr::NoSubdir {
+                        file: file.clone(),
+                        dir: can_dir.clone(),
+                    })
+                }
+            }
         }
     }
     Ok(None)
