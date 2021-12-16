@@ -34,7 +34,7 @@ pub enum Error {
         path: PathBuf,
     },
 
-    #[snafu(display("No session file found!"))]
+    #[snafu(display("No session file found"))]
     NoSessionFile,
 
     #[snafu(display("Error storing session file at {}: {}", path.display(), source))]
@@ -43,7 +43,7 @@ pub enum Error {
         path: PathBuf,
     },
 
-    #[snafu(display("You are not logged in!"))]
+    #[snafu(display("You are not logged in"))]
     NotLoggedIn,
 
     #[snafu(display("Invalid authentication token: {}", token))]

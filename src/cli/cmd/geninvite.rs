@@ -31,7 +31,7 @@ impl Cmd for Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("An http error occurred: {}!", source))]
+    #[snafu(display("An http error occurred: {}", source))]
     HttpClient { source: HttpError },
 
     #[snafu(display("Error writing data: {}", source))]

@@ -2,25 +2,25 @@ use clap::{Parser, ValueHint};
 use notify::{DebouncedEvent, RecursiveMode, Watcher};
 use snafu::{ResultExt, Snafu};
 use std::{path::Path, sync::mpsc};
-use std::{
-    path::{PathBuf, StripPrefixError},
-    time::Duration,
-};
+use std::{path::PathBuf, time::Duration};
 
 use super::{upload, Cmd, Context};
-use crate::cli::opts::{EndpointOpts, FileAction, UploadMeta};
 use crate::http::payload::BasicResult;
+use crate::{
+    cli::opts::{EndpointOpts, FileAction, UploadMeta},
+    util::file::CollectiveSubdirErr,
+};
 
 use crate::util::file;
 
 /// Watches a directory and uploads files to docspell.
 ///
 /// It accepts the same authentication options as the `upload`
-/// command. If the integration endpoint is not used, each detected
-/// file is uploaded. When the integration endpoint is used (the `-i`
-/// option is supplied), the collective must be determined first to
-/// know where to upload the file. This is done by using the first
-/// subdirectory of the detected file.
+/// command.
+///
+/// When using the integration endpoint and a collective is not
+/// specified, it will be guessed from the first subdirectory of the
+/// directory that is specified.
 ///
 /// On some filesystems, this command may not work (e.g. networking
 /// file systems like NFS or SAMBA). You may use the `upload` command
@@ -65,7 +65,7 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Uploading failed: {}!", source))]
+    #[snafu(display("Uploading failed: {}", source))]
     Upload { source: upload::Error },
 
     #[snafu(display("Error creating hash for '{}': {}", path.display(), source))]
@@ -74,7 +74,7 @@ pub enum Error {
         path: PathBuf,
     },
 
-    #[snafu(display("Not a directory: {}!", path.display()))]
+    #[snafu(display("Not a directory: {}", path.display()))]
     NotADirectory { path: PathBuf },
 
     #[snafu(display("Error while watching: {}", source))]
@@ -84,7 +84,7 @@ pub enum Error {
     Event { source: mpsc::RecvError },
 
     #[snafu(display("Error finding collective: {}", source))]
-    FindCollective { source: StripPrefixError },
+    FindCollective { source: CollectiveSubdirErr },
 
     #[snafu(display("Could not find a collective for {}", path.display()))]
     NoCollective { path: PathBuf },

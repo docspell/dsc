@@ -39,7 +39,7 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("An http error occurred: {}!", source))]
+    #[snafu(display("An http error occurred: {}", source))]
     HttpClient { source: HttpError },
 
     #[snafu(display("Error received from server: {}", source))]
@@ -48,13 +48,13 @@ pub enum Error {
     #[snafu(display("Retrieving password using pass failed: {}", source))]
     PassEntry { source: std::io::Error },
 
-    #[snafu(display("No password provided!"))]
+    #[snafu(display("No password provided"))]
     NoPassword,
 
-    #[snafu(display("No account name provided!"))]
+    #[snafu(display("No account name provided"))]
     NoAccount,
 
-    #[snafu(display("Login failed!"))]
+    #[snafu(display("Login failed"))]
     LoginFailed,
 
     #[snafu(display("Invalid password (non-unicode) in environment variable"))]

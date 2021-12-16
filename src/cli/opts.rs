@@ -162,7 +162,8 @@ pub struct EndpointOpts {
     #[clap(long, short, group = "g_source")]
     pub integration: bool,
 
-    /// When using the integration endpoint, the collective is required.
+    /// When using the integration endpoint, the collective is
+    /// required.
     #[clap(long, short, value_hint = ValueHint::Username)]
     pub collective: Option<String>,
 

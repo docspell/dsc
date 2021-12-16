@@ -43,7 +43,7 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("An http error occurred: {}!", source))]
+    #[snafu(display("An http error occurred: {}", source))]
     HttpClient { source: HttpError },
 
     #[snafu(display("Error writing data: {}", source))]
@@ -58,13 +58,13 @@ pub enum Error {
     #[snafu(display("Cannot delete or move: {}", source))]
     FileActionError { source: std::io::Error },
 
-    #[snafu(display("No action given! Use --move or --delete."))]
+    #[snafu(display("No action given. Use --move or --delete."))]
     NoAction,
 
     #[snafu(display("A collective was not found and was not specified"))]
     NoCollective,
 
-    #[snafu(display("The target '{}' is not a directory!", path.display()))]
+    #[snafu(display("The target '{}' is not a directory", path.display()))]
     TargetNotDirectory { path: PathBuf },
 
     #[snafu(display("Calculating digest of file {} failed: {}", path.display(), source))]
