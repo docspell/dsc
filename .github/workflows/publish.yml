@@ -13,6 +13,7 @@ jobs:
       matrix:
         build:
         - aarch64
+        - aarch64-musl
         - armv7
         - i686
         - amd64-musl
@@ -20,6 +21,11 @@ jobs:
         - build: aarch64
           os: ubuntu-latest
           target: aarch64-unknown-linux-gnu
+          use-cross: true
+          features: "--no-default-features --features rustls"
+        - build: aarch64-musl
+          os: ubuntu-latest
+          target: aarch64-unknown-linux-musl
           use-cross: true
           features: "--no-default-features --features rustls"
         - build: armv7
@@ -49,6 +55,7 @@ jobs:
             arm-unknown-linux-gnueabihf) sudo apt-get -y update ; sudo apt-get -y install gcc-arm-linux-gnueabihf ;;
             armv7-unknown-linux-gnueabihf) sudo apt-get -y update ; sudo apt-get -y install gcc-arm-linux-gnueabihf ;;
             aarch64-unknown-linux-gnu) sudo apt-get -y update ; sudo apt-get -y install gcc-aarch64-linux-gnu ;;
+            aarch64-unknown-linux-musl) sudo apt-get -y update ; sudo apt-get -y install gcc-aarch64-linux-gnu ;;
           esac
 
       - name: Extract crate information
@@ -99,6 +106,7 @@ jobs:
             arm-unknown-linux-gnueabihf) STRIP="arm-linux-gnueabihf-strip" ;;
             armv7-unknown-linux-gnueabihf) STRIP="arm-linux-gnueabihf-strip" ;;
             aarch64-unknown-linux-gnu) STRIP="aarch64-linux-gnu-strip" ;;
+            aarch64-unknown-linux-musl) STRIP="aarch64-linux-gnu-strip" ;;
             *-pc-windows-msvc) STRIP="" ;;
           esac;
           # Setup paths
