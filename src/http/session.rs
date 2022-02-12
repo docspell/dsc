@@ -34,7 +34,7 @@ pub enum Error {
         path: PathBuf,
     },
 
-    #[snafu(display("No session file found"))]
+    #[snafu(display("No session file found. Please use the `login` command first."))]
     NoSessionFile,
 
     #[snafu(display("Error storing session file at {}: {}", path.display(), source))]
@@ -180,11 +180,15 @@ fn get_token_file() -> Result<PathBuf, Error> {
 }
 
 fn read_token_file(path: &Path) -> Result<AuthResp, Error> {
-    let _flock = acquire_lock(path, false)?;
+    if path.exists() {
+        let _flock = acquire_lock(path, false)?;
 
-    let cnt = std::fs::read_to_string(&path).context(ReadSessionFile { path })?;
-    let resp: AuthResp = serde_json::from_str(&cnt).context(SerializeSession)?;
-    Ok(resp)
+        let cnt = std::fs::read_to_string(&path).context(ReadSessionFile { path })?;
+        let resp: AuthResp = serde_json::from_str(&cnt).context(SerializeSession)?;
+        Ok(resp)
+    } else {
+        Err(Error::NoSessionFile)
+    }
 }
 
 fn write_token_file(resp: &AuthResp, path: &Path) -> Result<(), Error> {
