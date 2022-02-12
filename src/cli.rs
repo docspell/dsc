@@ -13,7 +13,7 @@ use self::opts::{MainOpts, SubCommand};
 
 /// Given the config and arguments, runs the corresponding command.
 pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), CmdError> {
-    let ctx = Context::new(&opts.common_opts, &cfg);
+    let ctx = Context::new(&opts.common_opts, &cfg)?;
 
     log::info!("Running command: {:?}", opts.subcmd);
     match &opts.subcmd {

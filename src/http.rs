@@ -7,7 +7,7 @@
 //! # Usage
 //!
 //! ```rust
-//! let client = dsc::http::Client::new("http://localhost:7880");
+//! let client = dsc::http::Client::new("http://localhost:7880").unwrap();
 //! println!("{:?}", client.version());
 //! ```
 //!
@@ -48,13 +48,14 @@ use self::payload::*;
 use self::util::{DOCSPELL_ADMIN, DOCSPELL_AUTH};
 use reqwest::blocking::{
     multipart::{Form, Part},
-    RequestBuilder, Response,
+    ClientBuilder, RequestBuilder, Response,
 };
 use reqwest::StatusCode;
 use snafu::{ResultExt, Snafu};
 
 const APP_JSON: &str = "application/json";
 const ID_LEN: usize = 47;
+const APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 
 /// The errors cases.
 #[derive(Debug, Snafu)]
@@ -64,6 +65,9 @@ pub enum Error {
 
     #[snafu(display("An error parsing mime '{}': {}", raw, source))]
     Mime { source: reqwest::Error, raw: String },
+
+    #[snafu(display("An error occurred creating the http client: {}", source))]
+    ClientCreate { source: reqwest::Error },
 
     #[snafu(display("Session error: {}", source))]
     Session { source: self::session::Error },
@@ -113,13 +117,17 @@ pub struct Client {
 impl Client {
     /// Create a new client by providing the base url to docspell. For
     /// example: `http://localhost:7880`.
-    pub fn new<S: Into<String>>(docspell_url: S) -> Client {
+    pub fn new<S: Into<String>>(docspell_url: S) -> Result<Client, Error> {
         let url = docspell_url.into();
         log::info!("Create docspell client for: {}", url);
-        Client {
-            client: reqwest::blocking::Client::new(),
+        let client = ClientBuilder::new()
+            .user_agent(APP_USER_AGENT)
+            .build()
+            .context(ClientCreate)?;
+        Ok(Client {
+            client,
             base_url: url,
-        }
+        })
     }
 
     /// Queries the Docspell server for its version and build information.

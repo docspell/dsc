@@ -10,10 +10,10 @@ use crate::http::Error as HttpError;
 /// Searches for documents and prints the results.
 ///
 /// Documents are searched via a query. The query syntax is described
-/// here: https://docspell.org/docs/query/
+/// here: <https://docspell.org/docs/query/>
 #[derive(Parser, std::fmt::Debug)]
 pub struct Input {
-    /// The query string. See https://docspell.org/docs/query/
+    /// The query string. See <https://docspell.org/docs/query/>
     pub query: String,
 
     #[clap(flatten)]

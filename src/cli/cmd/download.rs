@@ -22,7 +22,7 @@ use crate::{
 #[derive(Parser, std::fmt::Debug)]
 #[clap(group = ArgGroup::new("kind"))]
 pub struct Input {
-    /// The query string. See https://docspell.org/docs/query/
+    /// The query string. See <https://docspell.org/docs/query/>
     query: String,
 
     #[clap(flatten)]

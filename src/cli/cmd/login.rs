@@ -95,16 +95,31 @@ pub fn login_otp(ctx: &Context) -> Result<AuthResp, Error> {
     ctx.client.login_otp(otp.trim()).context(HttpClient)
 }
 
+/// Get the password in this order:
+/// * Check options for password or pass_entry
+/// * Check environment variable DSC_PASSWORD
+/// * Check config file
 fn get_password(opts: &Input, ctx: &Context) -> Result<String, Error> {
-    match ctx.pass_entry(&opts.pass_entry) {
-        Some(pe) => pass::pass_password(&pe).context(PassEntry),
-        None => match std::env::var_os(DSC_PASSWORD) {
+    if let Some(pe) = &opts.pass_entry {
+        log::debug!("Using given pass entry");
+        pass::pass_password(pe).context(PassEntry)
+    } else if let Some(pw) = &opts.password {
+        log::debug!("Using given plain password");
+        Ok(pw.clone())
+    } else {
+        match std::env::var_os(DSC_PASSWORD) {
             Some(pw) => {
-                log::debug!("Using password from environment variable");
+                log::debug!("Using password from environment variable.");
                 pw.into_string().map_err(|_os| Error::InvalidPasswordEnv)
             }
-            None => opts.password.clone().ok_or(Error::NoPassword),
-        },
+            None => match &ctx.cfg.pass_entry {
+                Some(pe) => {
+                    log::debug!("Using pass_entry from config file.");
+                    pass::pass_password(pe).context(PassEntry)
+                }
+                None => Err(Error::NoPassword),
+            },
+        }
     }
 }
 

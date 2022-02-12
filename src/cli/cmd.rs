@@ -32,9 +32,9 @@ use super::opts::Format;
 use super::sink::{Error as SinkError, Sink};
 use crate::cli::opts::CommonOpts;
 use crate::config::{ConfigError, DsConfig};
-use crate::http::Client;
+use crate::http::{self, Client};
 use serde::Serialize;
-use snafu::Snafu;
+use snafu::{ResultExt, Snafu};
 
 /// A command for the cli.
 ///
@@ -56,12 +56,9 @@ pub struct Context<'a> {
 }
 
 impl Context<'_> {
-    pub fn new<'a>(opts: &'a CommonOpts, cfg: &'a DsConfig) -> Context<'a> {
-        Context {
-            opts,
-            cfg,
-            client: Client::new(docspell_url(opts, cfg)),
-        }
+    pub fn new<'a>(opts: &'a CommonOpts, cfg: &'a DsConfig) -> Result<Context<'a>, CmdError> {
+        let client = Client::new(docspell_url(opts, cfg)).context(ContextCreate)?;
+        Ok(Context { opts, cfg, client })
     }
 
     fn base_url(&self) -> String {
@@ -76,10 +73,6 @@ impl Context<'_> {
     fn format(&self) -> Format {
         self.opts.format.unwrap_or(self.cfg.default_format)
     }
-
-    fn pass_entry(&self, given: &Option<String>) -> Option<String> {
-        given.clone().or_else(|| self.cfg.pass_entry.clone())
-    }
 }
 
 fn docspell_url(opts: &CommonOpts, cfg: &DsConfig) -> String {
@@ -91,6 +84,7 @@ fn docspell_url(opts: &CommonOpts, cfg: &DsConfig) -> String {
 
 #[derive(Debug, Snafu)]
 pub enum CmdError {
+    ContextCreate { source: http::Error },
     Export { source: export::Error },
     Watch { source: watch::Error },
     Upload { source: upload::Error },

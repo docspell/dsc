@@ -101,7 +101,7 @@ pub struct Input {
     target: PathBuf,
 
     /// The optional query string. If not given everything is
-    /// exported. See https://docspell.org/docs/query/
+    /// exported. See <https://docspell.org/docs/query/>
     query: Option<String>,
 }
 
