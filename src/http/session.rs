@@ -64,7 +64,7 @@ pub fn store_session(resp: &AuthResp) -> Result<(), Error> {
             if !dir.exists() {
                 log::debug!("Creating directory to store config at {:?}", dir.parent());
                 std::fs::create_dir_all(dir.parent().unwrap())
-                    .context(StoreSessionFile { path: dir.clone() })?;
+                    .context(StoreSessionFileSnafu { path: dir.clone() })?;
             }
             write_token_file(resp, &dir)
         }
@@ -124,7 +124,7 @@ pub fn session_token(token: &Option<String>, client: &Client) -> Result<String, 
 pub fn drop_session() -> Result<(), Error> {
     let path = get_token_file()?;
     if path.exists() {
-        std::fs::remove_file(&path).context(DeleteSessionFile { path })?;
+        std::fs::remove_file(&path).context(DeleteSessionFileSnafu { path })?;
     }
     Ok(())
 }
@@ -183,8 +183,8 @@ fn read_token_file(path: &Path) -> Result<AuthResp, Error> {
     if path.exists() {
         let _flock = acquire_lock(path, false)?;
 
-        let cnt = std::fs::read_to_string(&path).context(ReadSessionFile { path })?;
-        let resp: AuthResp = serde_json::from_str(&cnt).context(SerializeSession)?;
+        let cnt = std::fs::read_to_string(&path).context(ReadSessionFileSnafu { path })?;
+        let resp: AuthResp = serde_json::from_str(&cnt).context(SerializeSessionSnafu)?;
         Ok(resp)
     } else {
         Err(Error::NoSessionFile)
@@ -196,8 +196,8 @@ fn write_token_file(resp: &AuthResp, path: &Path) -> Result<(), Error> {
     match flock {
         Ok(_fl) => {
             log::debug!("Storing session to {}", path.display());
-            let cnt = serde_json::to_string(resp).context(SerializeSession)?;
-            std::fs::write(path, &cnt).context(StoreSessionFile { path })
+            let cnt = serde_json::to_string(resp).context(SerializeSessionSnafu)?;
+            std::fs::write(path, &cnt).context(StoreSessionFileSnafu { path })
         }
         Err(err) => {
             log::debug!(
@@ -231,14 +231,14 @@ fn acquire_lock(path: &Path, write: bool) -> Result<(), Error> {
             .writeable(true)
             .lock()
             .map(|_fl| ())
-            .context(StoreSessionFile { path })
+            .context(StoreSessionFileSnafu { path })
     } else {
         file_locker::FileLock::new(path)
             .blocking(true)
             .writeable(false)
             .lock()
             .map(|_fl| ())
-            .context(ReadSessionFile { path })
+            .context(ReadSessionFileSnafu { path })
     }
 }
 

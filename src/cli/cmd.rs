@@ -57,7 +57,7 @@ pub struct Context<'a> {
 
 impl Context<'_> {
     pub fn new<'a>(opts: &'a CommonOpts, cfg: &'a DsConfig) -> Result<Context<'a>, CmdError> {
-        let client = Client::new(docspell_url(opts, cfg)).context(ContextCreate)?;
+        let client = Client::new(docspell_url(opts, cfg)).context(ContextCreateSnafu)?;
         Ok(Context { opts, cfg, client })
     }
 

@@ -23,8 +23,8 @@ impl Cmd for Input {
         let req = GenInvite {
             password: self.password.clone(),
         };
-        let result = ctx.client.gen_invite(&req).context(HttpClient)?;
-        ctx.write_result(result).context(WriteResult)?;
+        let result = ctx.client.gen_invite(&req).context(HttpClientSnafu)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }

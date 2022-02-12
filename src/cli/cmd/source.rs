@@ -28,7 +28,7 @@ impl Cmd for Input {
 
     fn exec(&self, args: &Context) -> Result<(), Error> {
         match &self.subcmd {
-            SourceCommand::List(input) => input.exec(args).context(List),
+            SourceCommand::List(input) => input.exec(args).context(ListSnafu),
         }
     }
 }

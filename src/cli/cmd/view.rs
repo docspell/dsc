@@ -67,7 +67,7 @@ impl Cmd for Input {
         let parent = std::env::temp_dir().join("dsc-view");
 
         if !parent.exists() {
-            std::fs::create_dir_all(&parent).context(CreateFile)?;
+            std::fs::create_dir_all(&parent).context(CreateFileSnafu)?;
         }
 
         view_all(self, ctx, &parent)
@@ -85,7 +85,7 @@ pub fn view_all(opts: &Input, ctx: &Context, parent: &Path) -> Result<(), Error>
     let result = ctx
         .client
         .download_search(&ctx.opts.session, &req)
-        .context(HttpClient)?;
+        .context(HttpClientSnafu)?;
 
     let mut confirm = false;
     for dref in result {
@@ -116,7 +116,10 @@ pub fn view_all(opts: &Input, ctx: &Context, parent: &Path) -> Result<(), Error>
                     .collect::<Vec<String>>()
                     .join(" ")
             );
-            Command::new(tool).args(tool_args).output().context(Exec)?;
+            Command::new(tool)
+                .args(tool_args)
+                .output()
+                .context(ExecSnafu)?;
         } else {
             eprintln!(
                 "Skip attachment: {}/{}. There was no file!",
@@ -133,7 +136,7 @@ fn is_stop_viewing(opts: &Input) -> Result<bool, Error> {
         if let Some(answer) = Confirm::new()
             .with_prompt("Keep viewing?")
             .interact_opt()
-            .context(Interact)?
+            .context(InteractSnafu)?
         {
             return Ok(!answer);
         }
@@ -144,18 +147,18 @@ fn is_stop_viewing(opts: &Input) -> Result<bool, Error> {
 fn download(attach: &DownloadRef, ctx: &Context, parent: &Path) -> Result<Option<PathBuf>, Error> {
     let dlopt = attach
         .get(&ctx.client, &ctx.opts.session)
-        .context(HttpClient)?;
+        .context(HttpClientSnafu)?;
 
     let path = parent.join("view.pdf");
 
     if let Some(mut dl) = dlopt {
         if path.exists() {
-            std::fs::remove_file(&path).context(CreateFile)?;
+            std::fs::remove_file(&path).context(CreateFileSnafu)?;
         }
 
-        let file = std::fs::File::create(&path).context(CreateFile)?;
+        let file = std::fs::File::create(&path).context(CreateFileSnafu)?;
         let mut writer = std::io::BufWriter::new(file);
-        dl.copy_to(&mut writer).context(HttpClient)?;
+        dl.copy_to(&mut writer).context(HttpClientSnafu)?;
         Ok(Some(path))
     } else {
         Ok(None)

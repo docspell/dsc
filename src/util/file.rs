@@ -48,7 +48,7 @@ pub fn collective_from_subdir(
         let can_dir = dir.canonicalize().unwrap();
         log::debug!("Check prefix {} -> {}", can_dir.display(), file.display());
         if file.starts_with(&can_dir) {
-            let rest = file.strip_prefix(&can_dir).context(StripPrefix)?;
+            let rest = file.strip_prefix(&can_dir).context(StripPrefixSnafu)?;
             let mut components = rest.components();
             let coll = components.next();
             match components.next() {

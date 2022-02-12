@@ -84,7 +84,7 @@ impl Cmd for Input {
             success: true,
             message: format!("Cleaned up files: {}", result),
         })
-        .context(WriteResult)?;
+        .context(WriteResultSnafu)?;
         Ok(())
     }
 }
@@ -113,8 +113,8 @@ fn cleanup(args: &Input, ctx: &Context) -> Result<u32, Error> {
     for file in &args.files {
         if file.is_dir() {
             let pattern = file.join("**/*").display().to_string();
-            for child in glob::glob(&pattern).context(Pattern)? {
-                let cf = child.context(Glob)?;
+            for child in glob::glob(&pattern).context(PatternSnafu)? {
+                let cf = child.context(GlobSnafu)?;
                 if cf.is_file() {
                     counter += cleanup_and_report(&cf, Some(file), args, ctx)?;
                 }
@@ -138,7 +138,7 @@ fn cleanup_and_report(
     if exists {
         eprint!(" - exists: ");
         if !args.dry_run {
-            let res = args.action.execute(file, root).context(FileActionError)?;
+            let res = args.action.execute(file, root).context(FileActionSnafu)?;
             log::debug!("Action executed: {:?}", res);
             match res {
                 FileActionResult::Deleted(_p) => {
@@ -180,11 +180,11 @@ fn check_file_exists(
             ep.collective = Some(cid);
         }
     }
-    let hash = digest::digest_file_sha256(path).context(DigestFail { path })?;
+    let hash = digest::digest_file_sha256(path).context(DigestFailSnafu { path })?;
     let result = ctx
         .client
         .file_exists(hash, &opts.to_file_auth(ctx))
-        .context(HttpClient)?;
+        .context(HttpClientSnafu)?;
 
     Ok(result.exists)
 }

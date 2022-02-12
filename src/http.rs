@@ -123,7 +123,7 @@ impl Client {
         let client = ClientBuilder::new()
             .user_agent(APP_USER_AGENT)
             .build()
-            .context(ClientCreate)?;
+            .context(ClientCreateSnafu)?;
         Ok(Client {
             client,
             base_url: url,
@@ -136,9 +136,9 @@ impl Client {
         self.client
             .get(url)
             .send()
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<VersionInfo>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Login to Docspell returning the session token that must be
@@ -158,12 +158,12 @@ impl Client {
             .json(req)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<AuthResp>()
-            .context(SerializeResp)?;
+            .context(SerializeRespSnafu)?;
 
         if result.success {
-            session::store_session(&result).context(Session)?;
+            session::store_session(&result).context(SessionSnafu)?;
             Ok(result)
         } else {
             log::debug!("Login result: {:?}", result);
@@ -179,7 +179,7 @@ impl Client {
     /// fallback if no specific token is supplied.
     pub fn login_otp(&self, otp: &str) -> Result<AuthResp, Error> {
         let url = &format!("{}/api/v1/open/auth/two-factor", self.base_url);
-        let token = session::session_token_from_file().context(Session)?;
+        let token = session::session_token_from_file().context(SessionSnafu)?;
         let req = SecondFactor {
             otp: otp.to_string(),
             token,
@@ -192,12 +192,12 @@ impl Client {
             .json(&req)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<AuthResp>()
-            .context(SerializeResp)?;
+            .context(SerializeRespSnafu)?;
 
         if result.success {
-            session::store_session(&result).context(Session)?;
+            session::store_session(&result).context(SessionSnafu)?;
             Ok(result)
         } else {
             log::debug!("Login result: {:?}", result);
@@ -207,7 +207,7 @@ impl Client {
 
     /// Performs a logout by deleting the current session information.
     pub fn logout(&self) -> Result<(), Error> {
-        session::drop_session().context(Session)
+        session::drop_session().context(SessionSnafu)
     }
 
     /// Performs a login via a session token. It returns a new session
@@ -220,9 +220,9 @@ impl Client {
             .header(DOCSPELL_AUTH, token)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<AuthResp>()
-            .context(SerializeResp)?;
+            .context(SerializeRespSnafu)?;
 
         if result.success {
             Ok(result)
@@ -240,7 +240,7 @@ impl Client {
     /// a stored session is used.
     pub fn search(&self, token: &Option<String>, req: &SearchReq) -> Result<SearchResult, Error> {
         let url = &format!("{}/api/v1/sec/item/search", self.base_url);
-        let token = session::session_token(token, self).context(Session)?;
+        let token = session::session_token(token, self).context(SessionSnafu)?;
         self.client
             .get(url)
             .header(DOCSPELL_AUTH, token)
@@ -253,9 +253,9 @@ impl Client {
             ])
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<SearchResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Returns a summary for a given search query.
@@ -268,16 +268,16 @@ impl Client {
         query: S,
     ) -> Result<Summary, Error> {
         let url = &format!("{}/api/v1/sec/item/searchStats", self.base_url);
-        let token = session::session_token(token, self).context(Session)?;
+        let token = session::session_token(token, self).context(SessionSnafu)?;
         self.client
             .get(url)
             .header(DOCSPELL_AUTH, token)
             .query(&[("q", &query.into())])
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<Summary>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Lists all sources for the current user.
@@ -286,31 +286,31 @@ impl Client {
     /// a stored session is used.
     pub fn list_sources(&self, token: &Option<String>) -> Result<SourceList, Error> {
         let url = &format!("{}/api/v1/sec/source", self.base_url);
-        let token = session::session_token(token, self).context(Session)?;
+        let token = session::session_token(token, self).context(SessionSnafu)?;
         self.client
             .get(url)
             .header(DOCSPELL_AUTH, token)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<SourceList>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Lists all tags. The `query` argument may be a query for a
     /// name, which can contain the `*` wildcard at beginning or end.
     pub fn list_tags(&self, token: &Option<String>, query: &str) -> Result<TagList, Error> {
         let url = &format!("{}/api/v1/sec/tag", self.base_url);
-        let token = session::session_token(token, self).context(Session)?;
+        let token = session::session_token(token, self).context(SessionSnafu)?;
         self.client
             .get(url)
             .header(DOCSPELL_AUTH, token)
             .query(&[("q", query)])
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<TagList>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Get all item details. The item is identified by its id. The id
@@ -327,21 +327,21 @@ impl Client {
         let item_id = self.complete_item_id(token, id.as_ref(), SearchMode::All)?;
         if let Some(iid) = item_id {
             let url = &format!("{}/api/v1/sec/item/{}", self.base_url, iid);
-            let token = session::session_token(token, self).context(Session)?;
+            let token = session::session_token(token, self).context(SessionSnafu)?;
             let resp = self
                 .client
                 .get(url)
                 .header(DOCSPELL_AUTH, token)
                 .send()
-                .context(Http { url })?;
+                .context(HttpSnafu { url })?;
 
             if resp.status() == StatusCode::NOT_FOUND {
                 Ok(None)
             } else {
                 resp.error_for_status()
-                    .context(Http { url })?
+                    .context(HttpSnafu { url })?
                     .json::<ItemDetail>()
-                    .context(SerializeResp)
+                    .context(SerializeRespSnafu)
                     .map(Some)
             }
         } else {
@@ -363,16 +363,16 @@ impl Client {
     ) -> Result<BasicResult, Error> {
         let item_id = self.require_item_id(token, id, SearchMode::All)?;
         let url = &format!("{}/api/v1/sec/item/{}/taglink", self.base_url, item_id);
-        let token = session::session_token(token, self).context(Session)?;
+        let token = session::session_token(token, self).context(SessionSnafu)?;
         self.client
             .put(url)
             .header(DOCSPELL_AUTH, token)
             .json(tags)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<BasicResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Replaces the given tags on the item with the given id. The id
@@ -388,16 +388,16 @@ impl Client {
     ) -> Result<BasicResult, Error> {
         let item_id = self.require_item_id(token, id, SearchMode::All)?;
         let url = &format!("{}/api/v1/sec/item/{}/tags", self.base_url, item_id);
-        let token = session::session_token(token, self).context(Session)?;
+        let token = session::session_token(token, self).context(SessionSnafu)?;
         self.client
             .put(url)
             .header(DOCSPELL_AUTH, token)
             .json(tags)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<BasicResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Removes the given tags on the item with the given id. The id
@@ -413,16 +413,16 @@ impl Client {
     ) -> Result<BasicResult, Error> {
         let item_id = self.require_item_id(token, id, SearchMode::All)?;
         let url = &format!("{}/api/v1/sec/item/{}/tagsremove", self.base_url, item_id);
-        let token = session::session_token(token, self).context(Session)?;
+        let token = session::session_token(token, self).context(SessionSnafu)?;
         self.client
             .post(url)
             .header(DOCSPELL_AUTH, token)
             .json(tags)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<BasicResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Sets the field to the specfified value for the given item.
@@ -434,16 +434,16 @@ impl Client {
     ) -> Result<BasicResult, Error> {
         let item_id = self.require_item_id(token, id, SearchMode::All)?;
         let url = &format!("{}/api/v1/sec/item/{}/customfield", self.base_url, item_id);
-        let token = session::session_token(token, self).context(Session)?;
+        let token = session::session_token(token, self).context(SessionSnafu)?;
         self.client
             .put(url)
             .header(DOCSPELL_AUTH, token)
             .json(fvalue)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<BasicResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Removes the field from the given item.
@@ -458,15 +458,15 @@ impl Client {
             "{}/api/v1/sec/item/{}/customfield/{}",
             self.base_url, item_id, field
         );
-        let token = session::session_token(token, self).context(Session)?;
+        let token = session::session_token(token, self).context(SessionSnafu)?;
         self.client
             .delete(url)
             .header(DOCSPELL_AUTH, token)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<BasicResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Given a search query, returns an iterator over all attachments
@@ -512,14 +512,15 @@ impl Client {
             .auth
             .apply(rb)
             .send()
-            .context(Http { url: url.clone() })?;
+            .context(HttpSnafu { url: url.clone() })?;
         match resp.status() {
             StatusCode::NOT_FOUND => Ok(false),
             StatusCode::UNAUTHORIZED => Err(Error::IntEndpointAuth { url }),
             StatusCode::FORBIDDEN => Err(Error::IntEndpointAuth { url }),
             StatusCode::OK => Ok(true),
             code => {
-                resp.error_for_status().context(Http { url: url.clone() })?;
+                resp.error_for_status()
+                    .context(HttpSnafu { url: url.clone() })?;
                 Err(Error::UnexpectedStatus {
                     status: code.as_u16(),
                     url,
@@ -536,9 +537,9 @@ impl Client {
             .post(url)
             .json(req)
             .send()
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<InviteResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Registers a new account with Docspell.
@@ -550,9 +551,9 @@ impl Client {
             .json(req)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<BasicResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Checks if a file with give hash (sha256) exists in Docspell.
@@ -589,9 +590,9 @@ impl Client {
             .apply(self, rb)?
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<CheckFileResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Upload some files for processing.
@@ -620,16 +621,16 @@ impl Client {
             }
         };
 
-        let meta_json = serde_json::to_vec(&meta).context(SerializeReq)?;
+        let meta_json = serde_json::to_vec(&meta).context(SerializeReqSnafu)?;
         let meta_part = Part::bytes(meta_json)
             .mime_str(APP_JSON)
-            .context(Mime { raw: APP_JSON })?;
+            .context(MimeSnafu { raw: APP_JSON })?;
         let mut form = Form::new().part("meta", meta_part);
         for path in files {
             log::debug!("Adding to request: {}", path.display());
 
-            let fopen = File::open(path).context(OpenFile { path })?;
-            let len = fopen.metadata().context(OpenFile { path })?.len();
+            let fopen = File::open(path).context(OpenFileSnafu { path })?;
+            let len = fopen.metadata().context(OpenFileSnafu { path })?.len();
             let bufr = std::io::BufReader::new(fopen);
             let mut fpart = Part::reader_with_length(bufr, len);
             if let Some(fname) = path.file_name() {
@@ -644,9 +645,9 @@ impl Client {
             .multipart(form)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<BasicResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Submits a task on the Docspell server, that (re)generates all preview images.
@@ -667,9 +668,9 @@ impl Client {
             .header(DOCSPELL_ADMIN, admin_secret.into())
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<BasicResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Submits a task to re-create the entire fulltext index (across all collectives).
@@ -685,9 +686,9 @@ impl Client {
             .header(DOCSPELL_ADMIN, admin_secret.into())
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<BasicResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Submits a task to convert all (not yet converted) pdfs via the
@@ -705,9 +706,9 @@ impl Client {
             .header(DOCSPELL_ADMIN, admin_secret.into())
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<BasicResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     /// Resets the password for the given account.
@@ -725,9 +726,9 @@ impl Client {
             .json(&account)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<ResetPasswordResp>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     pub fn admin_reset_otp<S: Into<String>>(
@@ -742,9 +743,9 @@ impl Client {
             .json(&account)
             .send()
             .and_then(|r| r.error_for_status())
-            .context(Http { url })?
+            .context(HttpSnafu { url })?
             .json::<BasicResult>()
-            .context(SerializeResp)
+            .context(SerializeRespSnafu)
     }
 
     // --- Helpers
@@ -864,7 +865,7 @@ impl FileAuth {
             FileAuth::Source { .. } => Ok(rb),
             FileAuth::Integration(IntegrationData { auth, .. }) => Ok(auth.apply(rb)),
             FileAuth::Session { token } => {
-                let h = session::session_token(token, client).context(Session)?;
+                let h = session::session_token(token, client).context(SessionSnafu)?;
                 Ok(rb.header(DOCSPELL_AUTH, h))
             }
         }
@@ -899,7 +900,7 @@ impl Download {
         W: Write,
     {
         let resp = &mut self.resp;
-        resp.copy_to(w).context(Http {
+        resp.copy_to(w).context(HttpSnafu {
             url: self.url.clone(),
         })
     }
@@ -968,33 +969,33 @@ impl DownloadRef {
         token: &Option<String>,
         url: &str,
     ) -> Result<Option<Download>, Error> {
-        let token = session::session_token(token, client).context(Session)?;
+        let token = session::session_token(token, client).context(SessionSnafu)?;
         let resp = client
             .client
             .get(url)
             .header(DOCSPELL_AUTH, &token)
             .send()
-            .context(Http { url })?;
+            .context(HttpSnafu { url })?;
         if resp.status() == StatusCode::NOT_FOUND {
             Ok(None)
         } else {
             Ok(Some(Download {
                 id: self.id.clone(),
                 url: url.to_string(),
-                resp: resp.error_for_status().context(Http { url })?,
+                resp: resp.error_for_status().context(HttpSnafu { url })?,
                 name: self.name.clone(),
             }))
         }
     }
 
     fn head_file(&self, client: &Client, token: &Option<String>, url: &str) -> Result<bool, Error> {
-        let token = session::session_token(token, client).context(Session)?;
+        let token = session::session_token(token, client).context(SessionSnafu)?;
         let resp = client
             .client
             .head(url)
             .header(DOCSPELL_AUTH, &token)
             .send()
-            .context(Http { url })?;
+            .context(HttpSnafu { url })?;
         if resp.status() == StatusCode::NOT_FOUND {
             Ok(true)
         } else {

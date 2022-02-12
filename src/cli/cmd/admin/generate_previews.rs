@@ -17,7 +17,7 @@ impl AdminCmd for Input {
     fn exec(&self, admin_opts: &super::Input, ctx: &Context) -> Result<(), Error> {
         let result = generate_previews(admin_opts, ctx)?;
 
-        ctx.write_result(result).context(WriteResult)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }
@@ -38,5 +38,5 @@ pub fn generate_previews(admin_opts: &super::Input, ctx: &Context) -> Result<Bas
     let secret = super::get_secret(admin_opts, ctx).ok_or(Error::NoAdminSecret)?;
     ctx.client
         .admin_generate_previews(secret)
-        .context(HttpClient)
+        .context(HttpClientSnafu)
 }

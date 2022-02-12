@@ -46,9 +46,9 @@ impl Cmd for Input {
             .client
             .list_sources(&ctx.opts.session)
             .map(|r| r.items)
-            .context(HttpClient)?;
+            .context(HttpClientSnafu)?;
         let result = filter_sources(self, items);
-        ctx.write_result(result).context(WriteResult)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }

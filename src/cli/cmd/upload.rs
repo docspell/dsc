@@ -137,7 +137,7 @@ impl Cmd for Input {
 
     fn exec(&self, ctx: &Context) -> Result<(), Error> {
         let result = upload_files(self, ctx)?;
-        ctx.write_result(result).context(WriteResult)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }
@@ -192,7 +192,7 @@ fn apply_file_action(path: &Path, root: Option<&PathBuf>, opts: &Input) -> Resul
     let res = opts
         .action
         .execute(path, root)
-        .context(FileActionError { path })?;
+        .context(FileActionSnafu { path })?;
     match res {
         FileActionResult::Deleted(_p) => {
             eprintln!("Deleted file");
@@ -226,7 +226,7 @@ fn upload_traverse(
                         let res = ctx
                             .client
                             .upload_files(&fauth, meta, &[child.as_path()])
-                            .context(HttpClient)?;
+                            .context(HttpClientSnafu)?;
                         if res.success {
                             apply_file_action(&child, Some(path), opts)?;
                         }
@@ -245,7 +245,7 @@ fn upload_traverse(
                     let res = ctx
                         .client
                         .upload_files(&fauth, meta, &[path.as_path()])
-                        .context(HttpClient)?;
+                        .context(HttpClientSnafu)?;
                     if res.success {
                         apply_file_action(path, None, opts)?;
                     }
@@ -300,7 +300,7 @@ fn upload_single(
             let result = ctx
                 .client
                 .upload_files(&fauth, meta, &files)
-                .context(HttpClient)?;
+                .context(HttpClientSnafu)?;
             if result.success {
                 for path in &files {
                     apply_file_action(path, None, opts)?;
@@ -324,8 +324,11 @@ fn upload_single(
 fn check_existence(path: &Path, opts: &Input, ctx: &Context) -> Result<bool, Error> {
     if opts.upload.skip_duplicates {
         let fauth = opts.endpoint.to_file_auth(ctx);
-        let hash = digest::digest_file_sha256(path).context(DigestFile { path })?;
-        let exists = ctx.client.file_exists(hash, &fauth).context(HttpClient)?;
+        let hash = digest::digest_file_sha256(path).context(DigestFileSnafu { path })?;
+        let exists = ctx
+            .client
+            .file_exists(hash, &fauth)
+            .context(HttpClientSnafu)?;
         Ok(exists.exists)
     } else {
         Ok(false)
@@ -360,11 +363,11 @@ mod matching {
 
     impl Matcher {
         pub fn new(args: &Input) -> Result<Matcher, Error> {
-            let include = glob::Pattern::new(&args.matches).context(BadGlobPattern {
+            let include = glob::Pattern::new(&args.matches).context(BadGlobPatternSnafu {
                 pattern: args.matches.clone(),
             })?;
             let exclude = match &args.not_matches {
-                Some(nm) => Some(glob::Pattern::new(nm).context(BadGlobPattern {
+                Some(nm) => Some(glob::Pattern::new(nm).context(BadGlobPatternSnafu {
                     pattern: nm.to_string(),
                 })?),
                 None => None,
@@ -388,7 +391,7 @@ mod matching {
         pub fn traverse(&self, start: &Path) -> Result<Matches, Error> {
             let pattern = start.join(&self.include_glob).display().to_string();
             log::info!("Traversing {} (excluding {:?})", pattern, self.exclude_glob);
-            let paths = glob::glob(&pattern).context(BadGlobPattern {
+            let paths = glob::glob(&pattern).context(BadGlobPatternSnafu {
                 pattern: self.include_glob.clone(),
             })?;
 

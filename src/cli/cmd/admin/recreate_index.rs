@@ -16,7 +16,7 @@ impl AdminCmd for Input {
 
     fn exec(&self, admin_opts: &super::Input, ctx: &Context) -> Result<(), Error> {
         let result = recreate_index(admin_opts, ctx)?;
-        ctx.write_result(result).context(WriteResult)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }
@@ -35,5 +35,7 @@ pub enum Error {
 
 pub fn recreate_index(admin_opts: &super::Input, ctx: &Context) -> Result<BasicResult, Error> {
     let secret = super::get_secret(admin_opts, ctx).ok_or(Error::NoAdminSecret)?;
-    ctx.client.admin_recreate_index(secret).context(HttpClient)
+    ctx.client
+        .admin_recreate_index(secret)
+        .context(HttpClientSnafu)
 }
