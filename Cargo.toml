@@ -20,7 +20,7 @@ clap = { version = "3.0.14", features = ["derive", "wrap_help"] }
 clap_complete = "3.0.6"
 console = {version = "0.15"}
 csv = "1.1"
-dialoguer = { version = "0.9" }
+dialoguer = { version = "0.10" }
 dirs = { version = "4.0" }
 env_logger = { version = "0.9" }
 glob = "0.3"
