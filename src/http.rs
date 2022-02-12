@@ -55,6 +55,7 @@ use snafu::{ResultExt, Snafu};
 
 const APP_JSON: &str = "application/json";
 const ID_LEN: usize = 47;
+const APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 
 /// The errors cases.
 #[derive(Debug, Snafu)]
@@ -119,7 +120,10 @@ impl Client {
     pub fn new<S: Into<String>>(docspell_url: S) -> Result<Client, Error> {
         let url = docspell_url.into();
         log::info!("Create docspell client for: {}", url);
-        let client = ClientBuilder::new().build().context(ClientCreate)?;
+        let client = ClientBuilder::new()
+            .user_agent(APP_USER_AGENT)
+            .build()
+            .context(ClientCreate)?;
         Ok(Client {
             client,
             base_url: url,
