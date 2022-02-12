@@ -30,7 +30,7 @@ use crate::util::file::FileActionResult;
 /// So using `upload --traverse --delete` will upload all files that
 /// are not yet in Docspell and then deletes them.
 ///
-/// For glob patterns, see https://docs.rs/glob/0.3.0/glob/struct.Pattern.html
+/// For glob patterns, see <https://docs.rs/glob/0.3.0/glob/struct.Pattern.html>
 #[derive(Parser, Debug)]
 #[clap(group = ArgGroup::new("g_multiple"))]
 pub struct Input {

@@ -14,7 +14,7 @@ use std::path::PathBuf;
 /// is a free document management system, designed for home use.
 ///
 /// This CLI is mostly a wrapper around the docspell remote api. For
-/// more information, see https://docspell.org/docs/api.
+/// more information, see <https://docspell.org/docs/api>.
 #[derive(Parser, Debug)]
 #[clap(name = "dsc", version)]
 pub struct MainOpts {

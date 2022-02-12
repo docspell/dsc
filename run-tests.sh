@@ -19,5 +19,6 @@ trap "{ stop_docker ; }" EXIT
 
 start_docker
 
+cargo test --doc
 cargo test --test login
 cargo test

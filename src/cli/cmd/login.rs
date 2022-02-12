@@ -102,7 +102,7 @@ pub fn login_otp(ctx: &Context) -> Result<AuthResp, Error> {
 fn get_password(opts: &Input, ctx: &Context) -> Result<String, Error> {
     if let Some(pe) = &opts.pass_entry {
         log::debug!("Using given pass entry");
-        pass::pass_password(&pe).context(PassEntry)
+        pass::pass_password(pe).context(PassEntry)
     } else if let Some(pw) = &opts.password {
         log::debug!("Using given plain password");
         Ok(pw.clone())
@@ -115,7 +115,7 @@ fn get_password(opts: &Input, ctx: &Context) -> Result<String, Error> {
             None => match &ctx.cfg.pass_entry {
                 Some(pe) => {
                     log::debug!("Using pass_entry from config file.");
-                    pass::pass_password(&pe).context(PassEntry)
+                    pass::pass_password(pe).context(PassEntry)
                 }
                 None => Err(Error::NoPassword),
             },

@@ -7,7 +7,7 @@
 //! # Usage
 //!
 //! ```rust
-//! let client = dsc::http::Client::new("http://localhost:7880");
+//! let client = dsc::http::Client::new("http://localhost:7880").unwrap();
 //! println!("{:?}", client.version());
 //! ```
 //!

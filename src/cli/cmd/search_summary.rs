@@ -8,7 +8,7 @@ use crate::http::Error as HttpError;
 /// Performs a search and prints a summary of the results.
 #[derive(Parser, std::fmt::Debug)]
 pub struct Input {
-    /// The query string. See https://docspell.org/docs/query/
+    /// The query string. See <https://docspell.org/docs/query/>
     query: String,
 }
 
