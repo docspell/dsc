@@ -147,18 +147,25 @@ fn event_act(event: DebouncedEvent, opts: &Input, ctx: &Context) -> Result<(), E
 }
 
 fn upload_and_report(path: PathBuf, opts: &Input, ctx: &Context) -> Result<(), Error> {
-    eprintln!("------------------------------------------------------------------------------");
-    eprintln!("Got: {}", path.display());
-    let result = upload_file(path, opts, ctx)?;
-    if result.success {
-        if opts.dry_run {
-            eprintln!("Dry run. Would upload now.");
-        } else {
-            eprintln!("Server: {}", result.message);
-        }
+    if path.is_dir() {
+        log::debug!(
+            "Skip event triggered on a directory and not a file: {:?}",
+            path
+        );
     } else {
-        log::error!("Error from uploading: {}", result.message);
-        eprintln!("Sevrer Error: {}", result.message);
+        eprintln!("------------------------------------------------------------------------------");
+        eprintln!("Got: {}", path.display());
+        let result = upload_file(path, opts, ctx)?;
+        if result.success {
+            if opts.dry_run {
+                eprintln!("Dry run. Would upload now.");
+            } else {
+                eprintln!("Server: {}", result.message);
+            }
+        } else {
+            log::error!("Error from uploading: {}", result.message);
+            eprintln!("Sevrer Error: {}", result.message);
+        }
     }
     Ok(())
 }
