@@ -125,7 +125,7 @@ impl Cmd for Input {
         let attachs = ctx
             .client
             .download_search(&ctx.opts.session, &req)
-            .context(HttpClient)?;
+            .context(HttpClientSnafu)?;
 
         if attachs.is_empty() {
             println!("The search result is empty.");
@@ -139,7 +139,7 @@ impl Cmd for Input {
                         .unwrap_or_else(|| PathBuf::from("docspell-files.zip"));
                     if let Some(parent) = zip_file.parent() {
                         if !parent.exists() {
-                            std::fs::create_dir_all(&parent).context(CreateFile)?;
+                            std::fs::create_dir_all(&parent).context(CreateFileSnafu)?;
                         }
                     }
                     println!(
@@ -153,10 +153,10 @@ impl Cmd for Input {
                     let parent = self
                         .target
                         .clone()
-                        .unwrap_or(std::env::current_dir().context(CreateFile)?);
+                        .unwrap_or(std::env::current_dir().context(CreateFileSnafu)?);
 
                     if !parent.exists() {
-                        std::fs::create_dir_all(&parent).context(CreateFile)?;
+                        std::fs::create_dir_all(&parent).context(CreateFileSnafu)?;
                     }
                     println!(
                         "Downloading {}",
@@ -185,7 +185,7 @@ fn download_flat(
         } else {
             dref.get(&ctx.client, &ctx.opts.session)
         }
-        .context(HttpClient)?;
+        .context(HttpClientSnafu)?;
 
         if let Some(mut dl) = dlopt {
             let org_name = dl.get_filename().unwrap_or(&dref.name);
@@ -197,9 +197,9 @@ fn download_flat(
                 println!("Skipping already downloaded file {}", org_name);
             } else {
                 println!("Downloading {} …", &fname);
-                let file = std::fs::File::create(path).context(CreateFile)?;
+                let file = std::fs::File::create(path).context(CreateFileSnafu)?;
                 let mut writer = std::io::BufWriter::new(file);
-                dl.copy_to(&mut writer).context(HttpClient)?;
+                dl.copy_to(&mut writer).context(HttpClientSnafu)?;
             }
         } else {
             println!(
@@ -222,9 +222,9 @@ fn download_zip(
         println!("Zip file already exists! {}", zip_file.display());
     } else {
         if zip_file.exists() {
-            std::fs::remove_file(zip_file).context(CreateFile)?;
+            std::fs::remove_file(zip_file).context(CreateFileSnafu)?;
         }
-        let zip = std::fs::File::create(zip_file).context(CreateFile)?;
+        let zip = std::fs::File::create(zip_file).context(CreateFileSnafu)?;
         let mut zw = zip::ZipWriter::new(zip);
         let mut dupes = Dupes::new();
         for dref in attachs {
@@ -235,7 +235,7 @@ fn download_zip(
             } else {
                 dref.get(&ctx.client, &ctx.opts.session)
             }
-            .context(HttpClient)?;
+            .context(HttpClientSnafu)?;
 
             if let Some(mut dl) = dlopt {
                 let org_name = dl.get_filename().unwrap_or(&dref.name);
@@ -244,9 +244,9 @@ fn download_zip(
                     println!("Skipping already downloaded file {}", org_name);
                 } else {
                     zw.start_file(&fname, zip::write::FileOptions::default())
-                        .context(Zip)?;
+                        .context(ZipSnafu)?;
                     println!("Downloading {} …", &fname);
-                    dl.copy_to(&mut zw).context(HttpClient)?;
+                    dl.copy_to(&mut zw).context(HttpClientSnafu)?;
                 }
             } else {
                 println!(
@@ -256,7 +256,7 @@ fn download_zip(
                 );
             }
         }
-        zw.finish().context(Zip)?;
+        zw.finish().context(ZipSnafu)?;
 
         if dupes.is_empty() {
             match std::fs::remove_file(zip_file) {

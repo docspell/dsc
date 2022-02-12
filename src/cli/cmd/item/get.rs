@@ -30,7 +30,7 @@ impl Cmd for Input {
 
     fn exec(&self, ctx: &Context) -> Result<(), Error> {
         let item = get_item(self.id.as_str(), ctx)?;
-        ctx.write_result(item).context(WriteResult)?;
+        ctx.write_result(item).context(WriteResultSnafu)?;
         Ok(())
     }
 }
@@ -39,7 +39,7 @@ fn get_item(id: &str, ctx: &Context) -> Result<ItemDetail, Error> {
     let result = ctx
         .client
         .get_item(&ctx.opts.session, id)
-        .context(HttpClient)?;
+        .context(HttpClientSnafu)?;
 
     result.ok_or(Error::ItemNotFound)
 }

@@ -19,8 +19,8 @@ impl AdminCmd for Input {
         let result = ctx
             .client
             .admin_convert_all_pdfs(secret)
-            .context(HttpClient)?;
-        ctx.write_result(result).context(WriteResult)?;
+            .context(HttpClientSnafu)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }

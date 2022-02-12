@@ -76,7 +76,7 @@ impl DsConfig {
                     .map(|p| p.display().to_string())
                     .unwrap_or_else(|_| "unknown directory".into())
             );
-            let given_path = cfg_file.as_path().canonicalize().context(ReadFile {
+            let given_path = cfg_file.as_path().canonicalize().context(ReadFileSnafu {
                 path: cfg_file.as_path().to_path_buf(),
             })?;
             log::debug!("Load config from: {:}", given_path.display());

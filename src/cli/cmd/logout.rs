@@ -23,12 +23,12 @@ impl Cmd for Input {
     type CmdError = Error;
 
     fn exec(&self, ctx: &Context) -> Result<(), Error> {
-        ctx.client.logout().context(HttpClient)?;
+        ctx.client.logout().context(HttpClientSnafu)?;
         let message = BasicResult {
             success: true,
             message: "Session deleted.".into(),
         };
-        ctx.write_result(message).context(WriteResult)?;
+        ctx.write_result(message).context(WriteResultSnafu)?;
         Ok(())
     }
 }

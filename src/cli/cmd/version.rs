@@ -30,9 +30,9 @@ impl Cmd for Input {
     type CmdError = Error;
 
     fn exec(&self, ctx: &Context) -> Result<(), Error> {
-        let result = ctx.client.version().context(HttpClient)?;
+        let result = ctx.client.version().context(HttpClientSnafu)?;
         let vinfo = AllVersion::default(result, ctx.base_url());
-        ctx.write_result(vinfo).context(WriteResult)?;
+        ctx.write_result(vinfo).context(WriteResultSnafu)?;
         Ok(())
     }
 }

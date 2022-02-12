@@ -19,8 +19,8 @@ impl Cmd for Input {
         let result = ctx
             .client
             .summary(&ctx.opts.session, &self.query)
-            .context(HttpClient)?;
-        ctx.write_result(result).context(WriteResult)?;
+            .context(HttpClientSnafu)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }

@@ -37,7 +37,7 @@ impl Cmd for Input {
 
     fn exec(&self, ctx: &Context) -> Result<(), Error> {
         let result = search(self, ctx)?;
-        ctx.write_result(result).context(WriteResult)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }
@@ -62,5 +62,5 @@ fn search(opts: &Input, ctx: &Context) -> Result<SearchResult, Error> {
 
     ctx.client
         .search(&ctx.opts.session, &req)
-        .context(HttpClient)
+        .context(HttpClientSnafu)
 }

@@ -57,11 +57,15 @@ impl Cmd for Input {
 
     fn exec(&self, ctx: &Context) -> Result<(), Error> {
         match &self.subcmd {
-            AdminCommand::GeneratePreviews(input) => input.exec(self, ctx).context(GeneratePreview),
-            AdminCommand::RecreateIndex(input) => input.exec(self, ctx).context(RecreateIndex),
-            AdminCommand::ResetPassword(input) => input.exec(self, ctx).context(ResetPassword),
-            AdminCommand::ConvertAllPdfs(input) => input.exec(self, ctx).context(ConvertAllPdfs),
-            AdminCommand::Disable2FA(input) => input.exec(self, ctx).context(Disable2FA),
+            AdminCommand::GeneratePreviews(input) => {
+                input.exec(self, ctx).context(GeneratePreviewSnafu)
+            }
+            AdminCommand::RecreateIndex(input) => input.exec(self, ctx).context(RecreateIndexSnafu),
+            AdminCommand::ResetPassword(input) => input.exec(self, ctx).context(ResetPasswordSnafu),
+            AdminCommand::ConvertAllPdfs(input) => {
+                input.exec(self, ctx).context(ConvertAllPdfsSnafu)
+            }
+            AdminCommand::Disable2FA(input) => input.exec(self, ctx).context(Disable2FASnafu),
         }
     }
 }

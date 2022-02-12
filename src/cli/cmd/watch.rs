@@ -108,10 +108,11 @@ pub fn watch_directories(opts: &Input, ctx: &Context) -> Result<(), Error> {
     };
     let (tx, rx) = mpsc::channel();
 
-    let mut watcher = notify::watcher(tx, Duration::from_secs(opts.delay_secs)).context(Watch)?;
+    let mut watcher =
+        notify::watcher(tx, Duration::from_secs(opts.delay_secs)).context(WatchSnafu)?;
     for dir in &opts.dirs {
         eprintln!("Watching directory ({:?}): {}", mode, dir.display());
-        watcher.watch(dir, mode).context(Watch)?;
+        watcher.watch(dir, mode).context(WatchSnafu)?;
     }
     eprintln!("Press Ctrl-C to quit.");
     loop {
@@ -188,7 +189,7 @@ fn upload_file(path: PathBuf, opts: &Input, ctx: &Context) -> Result<BasicResult
         dry_run: opts.dry_run,
         files: vec![path],
     };
-    upload::upload_files(data, ctx).context(Upload)
+    upload::upload_files(data, ctx).context(UploadSnafu)
 }
 
 pub fn find_collective(
@@ -197,7 +198,7 @@ pub fn find_collective(
     opts: &EndpointOpts,
 ) -> Result<Option<String>, Error> {
     if opts.integration && opts.collective.is_none() {
-        let cid = file::collective_from_subdir(path, dirs).context(FindCollective)?;
+        let cid = file::collective_from_subdir(path, dirs).context(FindCollectiveSnafu)?;
         if cid.is_none() {
             Err(Error::NoCollective {
                 path: path.to_path_buf(),

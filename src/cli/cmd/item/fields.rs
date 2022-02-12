@@ -65,7 +65,7 @@ impl Cmd for Input {
             Action::Set(value) => set_field(&self.name, value, &self.id, ctx)?,
             Action::Remove => remove_field(self, ctx)?,
         };
-        ctx.write_result(result).context(WriteResult)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }
@@ -77,11 +77,11 @@ fn set_field(name: &str, value: String, id: &str, ctx: &Context) -> Result<Basic
     };
     ctx.client
         .set_field(&ctx.opts.session, id, &fvalue)
-        .context(HttpClient)
+        .context(HttpClientSnafu)
 }
 
 fn remove_field(opts: &Input, ctx: &Context) -> Result<BasicResult, Error> {
     ctx.client
         .remove_field(&ctx.opts.session, &opts.id, &opts.name)
-        .context(HttpClient)
+        .context(HttpClientSnafu)
 }

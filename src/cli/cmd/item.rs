@@ -38,9 +38,9 @@ impl Cmd for Input {
 
     fn exec(&self, ctx: &Context) -> Result<(), Error> {
         match &self.subcmd {
-            ItemCommand::Get(input) => input.exec(ctx).context(Get),
-            ItemCommand::Tags(input) => input.exec(ctx).context(Tags),
-            ItemCommand::Fields(input) => input.exec(ctx).context(Fields),
+            ItemCommand::Get(input) => input.exec(ctx).context(GetSnafu),
+            ItemCommand::Tags(input) => input.exec(ctx).context(TagsSnafu),
+            ItemCommand::Fields(input) => input.exec(ctx).context(FieldsSnafu),
         }
     }
 }

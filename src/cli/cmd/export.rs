@@ -160,7 +160,7 @@ fn export(req: &SearchReq, opts: &Input, ctx: &Context) -> Result<usize, Error> 
     let results = ctx
         .client
         .search(&ctx.opts.session, req)
-        .context(HttpClient)?;
+        .context(HttpClientSnafu)?;
     let mut item_counter = 0;
     let items = opts.target.join("items");
     let by_date = opts.target.join("by_date");
@@ -210,7 +210,7 @@ fn export_message(item: Item, ctx: &Context) -> Result<(), Error> {
     match ctx.format() {
         Format::Tabular => eprintln!("Exported item: {}", item.name),
         Format::Csv => eprintln!("Exported item: {}", item.name),
-        _ => ctx.write_result(item).context(WriteResult)?,
+        _ => ctx.write_result(item).context(WriteResultSnafu)?,
     }
 
     Ok(())
@@ -224,29 +224,29 @@ fn export_item(item: &Item, overwrite: bool, item_dir: &Path, ctx: &Context) -> 
             "Remove existing meta file {}, due to overwrite=true",
             meta_file.display()
         );
-        std::fs::remove_file(&meta_file).context(DeleteFile)?;
+        std::fs::remove_file(&meta_file).context(DeleteFileSnafu)?;
     }
     if !item_dir.exists() {
-        std::fs::create_dir_all(&item_dir).context(CreateFile)?;
+        std::fs::create_dir_all(&item_dir).context(CreateFileSnafu)?;
     }
     if !&meta_file.exists() {
-        let file = std::fs::File::create(&meta_file).context(CreateFile)?;
+        let file = std::fs::File::create(&meta_file).context(CreateFileSnafu)?;
         let fw = std::io::BufWriter::new(file);
-        serde_json::to_writer_pretty(fw, item).context(Json)?;
+        serde_json::to_writer_pretty(fw, item).context(JsonSnafu)?;
     } else {
         log::debug!("Skip existing meta file: {}", meta_file.display());
     }
 
     let file_dir = item_dir.join("files");
     if !file_dir.exists() {
-        std::fs::create_dir_all(&file_dir).context(CreateFile)?;
+        std::fs::create_dir_all(&file_dir).context(CreateFileSnafu)?;
     }
     let dl = Downloads::from_item(item);
     for attach in dl {
         log::debug!("Saving attachment: {}/{}", attach.id, attach.name);
         let orig = attach
             .get_original(&ctx.client, &ctx.opts.session)
-            .context(HttpClient)?;
+            .context(HttpClientSnafu)?;
         if let Some(mut orig_file) = orig {
             let file_name = orig_file
                 .get_filename()
@@ -257,12 +257,12 @@ fn export_item(item: &Item, overwrite: bool, item_dir: &Path, ctx: &Context) -> 
                     "Removing existing {}, due to overwrite=true",
                     file_path.display()
                 );
-                std::fs::remove_file(&meta_file).context(DeleteFile)?;
+                std::fs::remove_file(&meta_file).context(DeleteFileSnafu)?;
             }
             if !file_path.exists() {
-                let file = std::fs::File::create(&file_path).context(CreateFile)?;
+                let file = std::fs::File::create(&file_path).context(CreateFileSnafu)?;
                 let mut fw = std::io::BufWriter::new(file);
-                orig_file.copy_to(&mut fw).context(HttpClient)?;
+                orig_file.copy_to(&mut fw).context(HttpClientSnafu)?;
             } else {
                 log::debug!("Skipping existing file {}", file_path.display());
             }
@@ -278,7 +278,7 @@ fn make_links(
     link_name_path: &Path,
 ) -> Result<(), Error> {
     if !link_name_path.exists() {
-        std::fs::create_dir_all(&link_name_path).context(CreateFile)?;
+        std::fs::create_dir_all(&link_name_path).context(CreateFileSnafu)?;
     }
     let link_filename = match opts.link_naming.unwrap_or_default() {
         LinkNaming::Id => item.id.clone(),
@@ -317,7 +317,7 @@ fn make_links(
     };
 
     if create_link {
-        file::symlink(rel_link_target, link_name).context(Symlink)?;
+        file::symlink(rel_link_target, link_name).context(SymlinkSnafu)?;
     } else {
         log::debug!("Skip existing link: {}", link_target.display());
     }

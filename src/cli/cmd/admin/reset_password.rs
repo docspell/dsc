@@ -19,7 +19,7 @@ impl AdminCmd for Input {
 
     fn exec(&self, admin_opts: &super::Input, ctx: &Context) -> Result<(), Error> {
         let result = reset_password(self, admin_opts, ctx)?;
-        ctx.write_result(result).context(WriteResult)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }
@@ -47,5 +47,5 @@ pub fn reset_password(
     };
     ctx.client
         .admin_reset_password(secret, &account)
-        .context(HttpClient)
+        .context(HttpClientSnafu)
 }

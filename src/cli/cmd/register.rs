@@ -39,8 +39,8 @@ impl Cmd for Input {
             invite: self.invite.clone(),
         };
 
-        let result = ctx.client.register(&body).context(HttpClient)?;
-        ctx.write_result(result).context(WriteResult)?;
+        let result = ctx.client.register(&body).context(HttpClientSnafu)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }

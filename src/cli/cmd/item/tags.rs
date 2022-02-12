@@ -72,7 +72,7 @@ impl Cmd for Input {
             Action::Replace => replace_tags(self, ctx)?,
             Action::Remove => remove_tags(self, ctx)?,
         };
-        ctx.write_result(result).context(WriteResult)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }
@@ -83,7 +83,7 @@ fn add_tags(opts: &Input, ctx: &Context) -> Result<BasicResult, Error> {
     };
     ctx.client
         .link_tags(&ctx.opts.session, &opts.id, &tags)
-        .context(HttpClient)
+        .context(HttpClientSnafu)
 }
 
 fn replace_tags(opts: &Input, ctx: &Context) -> Result<BasicResult, Error> {
@@ -92,7 +92,7 @@ fn replace_tags(opts: &Input, ctx: &Context) -> Result<BasicResult, Error> {
     };
     ctx.client
         .set_tags(&ctx.opts.session, &opts.id, &tags)
-        .context(HttpClient)
+        .context(HttpClientSnafu)
 }
 
 fn remove_tags(opts: &Input, ctx: &Context) -> Result<BasicResult, Error> {
@@ -101,5 +101,5 @@ fn remove_tags(opts: &Input, ctx: &Context) -> Result<BasicResult, Error> {
     };
     ctx.client
         .remove_tags(&ctx.opts.session, &opts.id, &tags)
-        .context(HttpClient)
+        .context(HttpClientSnafu)
 }

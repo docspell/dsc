@@ -19,7 +19,7 @@ impl AdminCmd for Input {
 
     fn exec(&self, admin_opts: &super::Input, ctx: &Context) -> Result<(), Error> {
         let result = disable_2fa(self, admin_opts, ctx)?;
-        ctx.write_result(result).context(WriteResult)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }
@@ -47,5 +47,5 @@ pub fn disable_2fa(
     };
     ctx.client
         .admin_reset_otp(secret, &account)
-        .context(HttpClient)
+        .context(HttpClientSnafu)
 }

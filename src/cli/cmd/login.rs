@@ -73,7 +73,7 @@ impl Cmd for Input {
             result = login_otp(ctx)?;
         }
 
-        ctx.write_result(result).context(WriteResult)?;
+        ctx.write_result(result).context(WriteResultSnafu)?;
         Ok(())
     }
 }
@@ -84,15 +84,17 @@ pub fn login(opts: &Input, ctx: &Context) -> Result<AuthResp, Error> {
         password: get_password(opts, ctx)?,
         remember_me: false,
     };
-    ctx.client.login(&body).context(HttpClient)
+    ctx.client.login(&body).context(HttpClientSnafu)
 }
 
 pub fn login_otp(ctx: &Context) -> Result<AuthResp, Error> {
     print!("Authentication code: ");
-    std::io::stdout().flush().context(PassEntry)?;
+    std::io::stdout().flush().context(PassEntrySnafu)?;
     let mut otp: String = String::new();
-    std::io::stdin().read_line(&mut otp).context(PassEntry)?;
-    ctx.client.login_otp(otp.trim()).context(HttpClient)
+    std::io::stdin()
+        .read_line(&mut otp)
+        .context(PassEntrySnafu)?;
+    ctx.client.login_otp(otp.trim()).context(HttpClientSnafu)
 }
 
 /// Get the password in this order:
@@ -102,7 +104,7 @@ pub fn login_otp(ctx: &Context) -> Result<AuthResp, Error> {
 fn get_password(opts: &Input, ctx: &Context) -> Result<String, Error> {
     if let Some(pe) = &opts.pass_entry {
         log::debug!("Using given pass entry");
-        pass::pass_password(pe).context(PassEntry)
+        pass::pass_password(pe).context(PassEntrySnafu)
     } else if let Some(pw) = &opts.password {
         log::debug!("Using given plain password");
         Ok(pw.clone())
@@ -115,7 +117,7 @@ fn get_password(opts: &Input, ctx: &Context) -> Result<String, Error> {
             None => match &ctx.cfg.pass_entry {
                 Some(pe) => {
                     log::debug!("Using pass_entry from config file.");
-                    pass::pass_password(pe).context(PassEntry)
+                    pass::pass_password(pe).context(PassEntrySnafu)
                 }
                 None => Err(Error::NoPassword),
             },
