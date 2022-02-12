@@ -48,7 +48,7 @@ use self::payload::*;
 use self::util::{DOCSPELL_ADMIN, DOCSPELL_AUTH};
 use reqwest::blocking::{
     multipart::{Form, Part},
-    RequestBuilder, Response,
+    ClientBuilder, RequestBuilder, Response,
 };
 use reqwest::StatusCode;
 use snafu::{ResultExt, Snafu};
@@ -64,6 +64,9 @@ pub enum Error {
 
     #[snafu(display("An error parsing mime '{}': {}", raw, source))]
     Mime { source: reqwest::Error, raw: String },
+
+    #[snafu(display("An error occurred creating the http client: {}", source))]
+    ClientCreate { source: reqwest::Error },
 
     #[snafu(display("Session error: {}", source))]
     Session { source: self::session::Error },
@@ -113,13 +116,14 @@ pub struct Client {
 impl Client {
     /// Create a new client by providing the base url to docspell. For
     /// example: `http://localhost:7880`.
-    pub fn new<S: Into<String>>(docspell_url: S) -> Client {
+    pub fn new<S: Into<String>>(docspell_url: S) -> Result<Client, Error> {
         let url = docspell_url.into();
         log::info!("Create docspell client for: {}", url);
-        Client {
-            client: reqwest::blocking::Client::new(),
+        let client = ClientBuilder::new().build().context(ClientCreate)?;
+        Ok(Client {
+            client,
             base_url: url,
-        }
+        })
     }
 
     /// Queries the Docspell server for its version and build information.
