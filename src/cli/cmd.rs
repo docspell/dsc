@@ -73,10 +73,6 @@ impl Context<'_> {
     fn format(&self) -> Format {
         self.opts.format.unwrap_or(self.cfg.default_format)
     }
-
-    fn pass_entry(&self, given: &Option<String>) -> Option<String> {
-        given.clone().or_else(|| self.cfg.pass_entry.clone())
-    }
 }
 
 fn docspell_url(opts: &CommonOpts, cfg: &DsConfig) -> String {
