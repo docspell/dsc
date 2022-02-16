@@ -1,7 +1,9 @@
 mod common;
+
 use crate::common::{mk_cmd, Result};
 use assert_cmd::prelude::*;
 use dsc::http::payload::{BasicResult, ItemDetail, SearchResult, SourceAndTags, Summary};
+use std::fs;
 use std::{io::Write, path::Path, process::Command};
 
 const ITEM_ID1: &str = "2wKtSUVt3Kj-mAmexmm1jFe-BU6aY6PN4vo-5cpaDD2EyRm";
@@ -94,6 +96,34 @@ fn remote_upload_int_endpoint() -> Result<()> {
     assert
         .success()
         .stdout(basic_result_json(true, "Files submitted."));
+    Ok(())
+}
+
+#[test]
+fn remote_upload_int_endpoint_guess_collective() -> Result<()> {
+    let base = std::path::Path::new("target/test_remote_upload");
+    if base.exists() {
+        fs::remove_dir_all(base)?;
+    }
+
+    let demo = base.join("demo");
+    std::fs::create_dir_all(demo.clone())?;
+    std::fs::copy("README.md", demo.join("README.md"))?;
+
+    let mut cmd = mk_cmd()?;
+    let assert = cmd
+        .arg("upload")
+        .args(&[
+            "-i",
+            "--header",
+            "Docspell-Integration:test123",
+            "--traverse",
+        ])
+        .arg("target/test_remote_upload")
+        .assert();
+    assert
+        .success()
+        .stdout(basic_result_json(true, "Uploaded 1"));
     Ok(())
 }
 
