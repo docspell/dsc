@@ -66,7 +66,9 @@ pub fn check_file(
     opts: &EndpointOpts,
     ctx: &Context,
 ) -> Result<CheckFileResult, Error> {
-    let fa = opts.to_file_auth(ctx);
+    let fa = opts
+        .to_file_auth(ctx, &|| None)
+        .ok_or(Error::NoCollective)?;
     let hash = digest::digest_file_sha256(file).context(DigestFailSnafu { path: file })?;
     let mut result = ctx.client.file_exists(hash, &fa).context(HttpClientSnafu)?;
     result.file = file.canonicalize().ok().map(|p| p.display().to_string());

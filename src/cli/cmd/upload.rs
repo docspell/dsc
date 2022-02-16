@@ -6,9 +6,9 @@ use super::{Cmd, Context};
 use crate::cli::opts::{EndpointOpts, FileAction, UploadMeta};
 use crate::cli::sink::Error as SinkError;
 use crate::http::payload::{BasicResult, StringList, UploadMeta as MetaRequest};
-use crate::http::Error as HttpError;
-use crate::util::digest;
+use crate::http::{Error as HttpError, FileAuth};
 use crate::util::file::FileActionResult;
+use crate::util::{digest, file};
 
 /// Uploads files to docspell.
 ///
@@ -86,8 +86,11 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("The collective is required, but was not specified"))]
-    CollectiveNotGiven {},
+    #[snafu(display(
+        "The collective is required when uploading: {}. It cannot be deduced from the path.",
+        path.display()
+    ))]
+    CollectiveNotGiven { path: PathBuf },
 
     #[snafu(display("Unable to open file {}: {}", path.display(), source))]
     OpenFile {
@@ -112,6 +115,12 @@ pub enum Error {
         path: PathBuf,
         source: std::io::Error,
     },
+
+    #[snafu(display("File or directory not found: {}", path.display()))]
+    FileMissing { path: PathBuf },
+
+    #[snafu(display("Cannot upload directory: {}. Try with --traverse.", path.display()))]
+    CannotUploadDirectory { path: PathBuf },
 
     #[snafu(display("An http error occurred: {}", source))]
     HttpClient { source: HttpError },
@@ -214,30 +223,52 @@ fn upload_traverse(
 ) -> Result<BasicResult, Error> {
     log::debug!("Upload by traversing directory");
     let mut counter = 0;
-    let fauth = opts.endpoint.to_file_auth(ctx);
+    for path in &opts.files {
+        if !path.exists() {
+            return Err(Error::FileMissing {
+                path: path.to_path_buf(),
+            });
+        }
+    }
     for path in &opts.files {
         if path.is_dir() {
             for child in matcher.traverse(path)? {
-                let exists = check_existence(&child, opts, ctx)?;
-                if !exists {
-                    eprintln!("Uploading {}", child.display());
-                    counter += 1;
-                    if !opts.dry_run {
-                        let res = ctx
-                            .client
-                            .upload_files(&fauth, meta, &[child.as_path()])
-                            .context(HttpClientSnafu)?;
-                        if res.success {
-                            apply_file_action(&child, Some(path), opts)?;
+                if !child.is_dir() {
+                    let fauth = opts
+                        .endpoint
+                        .to_file_auth(ctx, &|| {
+                            file::collective_from_subdir(&child, &[path.to_path_buf()])
+                                .unwrap_or(None)
+                        })
+                        .ok_or(Error::CollectiveNotGiven {
+                            path: child.clone(),
+                        })?;
+                    let exists = check_existence(&child, opts, ctx, &fauth)?;
+                    if !exists {
+                        eprintln!("Uploading {}", child.display());
+                        counter += 1;
+                        if !opts.dry_run {
+                            let res = ctx
+                                .client
+                                .upload_files(&fauth, meta, &[child.as_path()])
+                                .context(HttpClientSnafu)?;
+                            if res.success {
+                                apply_file_action(&child, Some(path), opts)?;
+                            }
                         }
+                    } else {
+                        file_exists_message(&child);
+                        apply_file_action(&child, Some(path), opts)?;
                     }
-                } else {
-                    file_exists_message(&child);
-                    apply_file_action(&child, Some(path), opts)?;
                 }
             }
         } else if matcher.is_included(path) {
-            let exists = check_existence(path, opts, ctx)?;
+            log::debug!("Uploading given regular file: {:?}", path);
+            let fauth = opts
+                .endpoint
+                .to_file_auth(ctx, &|| None)
+                .ok_or(Error::CollectiveNotGiven { path: path.clone() })?;
+            let exists = check_existence(path, opts, ctx, &fauth)?;
             if !exists {
                 eprintln!("Uploading file {}", path.display());
                 counter += 1;
@@ -275,11 +306,31 @@ fn upload_single(
     matcher: matching::Matcher,
 ) -> Result<BasicResult, Error> {
     log::debug!("Upload using a single request");
-    let fauth = opts.endpoint.to_file_auth(ctx);
     let mut files: Vec<&Path> = Vec::new();
+
+    for path in &opts.files {
+        if !path.exists() {
+            return Err(Error::FileMissing {
+                path: path.to_path_buf(),
+            });
+        }
+        if path.is_dir() {
+            return Err(Error::CannotUploadDirectory {
+                path: path.to_path_buf(),
+            });
+        }
+    }
+
     for path in &opts.files {
         if matcher.is_included(path) {
-            let exists = check_existence(path, opts, ctx)?;
+            let fauth =
+                opts.endpoint
+                    .to_file_auth(ctx, &|| None)
+                    .ok_or(Error::CollectiveNotGiven {
+                        path: opts.files[0].clone(),
+                    })?;
+
+            let exists = check_existence(path, opts, ctx, &fauth)?;
             if !exists {
                 eprintln!("Adding to single request: {}", path.display());
                 if !opts.dry_run {
@@ -296,6 +347,13 @@ fn upload_single(
 
     if !opts.dry_run {
         if !files.is_empty() {
+            let fauth =
+                opts.endpoint
+                    .to_file_auth(ctx, &|| None)
+                    .ok_or(Error::CollectiveNotGiven {
+                        path: opts.files[0].clone(),
+                    })?;
+
             eprintln!("Sending request …");
             let result = ctx
                 .client
@@ -321,9 +379,13 @@ fn upload_single(
     }
 }
 
-fn check_existence(path: &Path, opts: &Input, ctx: &Context) -> Result<bool, Error> {
+fn check_existence(
+    path: &Path,
+    opts: &Input,
+    ctx: &Context,
+    fauth: &FileAuth,
+) -> Result<bool, Error> {
     if opts.upload.skip_duplicates {
-        let fauth = opts.endpoint.to_file_auth(ctx);
         let hash = digest::digest_file_sha256(path).context(DigestFileSnafu { path })?;
         let exists = ctx
             .client

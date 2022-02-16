@@ -181,9 +181,14 @@ impl EndpointOpts {
             .or_else(|| cfg.default_source_id.clone())
     }
 
-    pub fn to_file_auth(&self, ctx: &Context) -> FileAuth {
+    /// When no result can be returned, the collective was not provided.
+    pub fn to_file_auth(
+        &self,
+        ctx: &Context,
+        fallback_cid: &dyn Fn() -> Option<String>,
+    ) -> Option<FileAuth> {
         if self.integration {
-            let cid = self.collective.clone().unwrap(); // must be checked by cli
+            let cid = self.collective.clone().or_else(fallback_cid)?;
             let mut res = IntegrationData {
                 collective: cid,
                 auth: IntegrationAuth::None,
@@ -194,14 +199,14 @@ impl EndpointOpts {
             if let Some(header) = &self.header {
                 res.auth = IntegrationAuth::Header(header.name.clone(), header.value.clone());
             }
-            FileAuth::Integration(res)
+            Some(FileAuth::Integration(res))
         } else {
             let sid = self.get_source_id(ctx.cfg);
             match sid {
-                Some(id) => FileAuth::from_source(id),
-                None => FileAuth::Session {
+                Some(id) => Some(FileAuth::from_source(id)),
+                None => Some(FileAuth::Session {
                     token: ctx.opts.session.clone(),
-                },
+                }),
             }
         }
     }

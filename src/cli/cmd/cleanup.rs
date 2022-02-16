@@ -168,22 +168,21 @@ fn check_file_exists(
     opts: &EndpointOpts,
     ctx: &Context,
 ) -> Result<bool, Error> {
-    let mut ep = opts.clone();
     let dirs: Vec<PathBuf> = match root {
         Some(d) => vec![d.clone()],
         None => vec![],
     };
-    if opts.integration && opts.collective.is_none() {
-        if let Some(cid) =
-            file::collective_from_subdir(path, &dirs).map_err(|_e| Error::NoCollective)?
-        {
-            ep.collective = Some(cid);
-        }
-    }
+
+    let fauth = opts
+        .to_file_auth(ctx, &|| {
+            file::collective_from_subdir(path, &dirs).unwrap_or(None)
+        })
+        .ok_or(Error::NoCollective)?;
+
     let hash = digest::digest_file_sha256(path).context(DigestFailSnafu { path })?;
     let result = ctx
         .client
-        .file_exists(hash, &opts.to_file_auth(ctx))
+        .file_exists(hash, &fauth)
         .context(HttpClientSnafu)?;
 
     Ok(result.exists)
