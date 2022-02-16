@@ -389,7 +389,7 @@ fn check_existence(
         let hash = digest::digest_file_sha256(path).context(DigestFileSnafu { path })?;
         let exists = ctx
             .client
-            .file_exists(hash, &fauth)
+            .file_exists(hash, fauth)
             .context(HttpClientSnafu)?;
         Ok(exists.exists)
     } else {
