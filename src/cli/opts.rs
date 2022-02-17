@@ -4,11 +4,12 @@ use super::cmd::*;
 use crate::{
     config::DsConfig,
     http::payload,
+    http::proxy,
     http::{FileAuth, IntegrationAuth, IntegrationData},
 };
 use clap::{ArgEnum, ArgGroup, Parser, ValueHint};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
 /// This is a command line interface to the docspell server. Docspell
 /// is a free document management system, designed for home use.
@@ -64,6 +65,56 @@ pub struct CommonOpts {
     /// this option. In these cases, no file system access happens.
     #[clap(long)]
     pub session: Option<String>,
+
+    /// Set a proxy to use for doing http requests. By default, the
+    /// system proxy will be used. Can be either `none` or <url>. If
+    /// `none`, the system proxy will be ignored; otherwise specify
+    /// the proxy url, like `http://myproxy.com`.
+    #[clap(long)]
+    pub proxy: Option<ProxySetting>,
+
+    /// The user to authenticate at the proxy via Basic auth.
+    #[clap(long)]
+    pub proxy_user: Option<String>,
+
+    /// The password to authenticate at the proxy via Basic auth.
+    #[clap(long)]
+    pub proxy_password: Option<String>,
+}
+
+impl CommonOpts {
+    pub fn to_proxy_setting(&self) -> proxy::ProxySetting {
+        match &self.proxy {
+            None => proxy::ProxySetting::System,
+            Some(ProxySetting::None) => proxy::ProxySetting::None,
+            Some(ProxySetting::Custom { url }) => proxy::ProxySetting::Custom {
+                url: url.clone(),
+                user: self.proxy_user.clone(),
+                password: self.proxy_password.clone(),
+            },
+        }
+    }
+}
+
+#[derive(Parser, Debug)]
+pub enum ProxySetting {
+    /// Don't use any proxy; this will also discard the system proxy.
+    None,
+
+    /// Use a custom defined proxy.
+    Custom { url: String },
+}
+
+impl FromStr for ProxySetting {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.eq_ignore_ascii_case("none") {
+            Ok(ProxySetting::None)
+        } else {
+            Ok(ProxySetting::Custom { url: s.to_string() })
+        }
+    }
 }
 
 /// All subcommands.

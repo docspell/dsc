@@ -7,7 +7,8 @@
 //! # Usage
 //!
 //! ```rust
-//! let client = dsc::http::Client::new("http://localhost:7880").unwrap();
+//! use dsc::http;
+//! let client = http::Client::new("http://localhost:7880", http::proxy::ProxySetting::System).unwrap();
 //! println!("{:?}", client.version());
 //! ```
 //!
@@ -35,6 +36,7 @@
 //! Docspells configuration file.
 
 pub mod payload;
+pub mod proxy;
 mod session;
 mod util;
 
@@ -117,13 +119,16 @@ pub struct Client {
 impl Client {
     /// Create a new client by providing the base url to docspell. For
     /// example: `http://localhost:7880`.
-    pub fn new<S: Into<String>>(docspell_url: S) -> Result<Client, Error> {
+    pub fn new<S: Into<String>>(
+        docspell_url: S,
+        proxy: proxy::ProxySetting,
+    ) -> Result<Client, Error> {
         let url = docspell_url.into();
         log::info!("Create docspell client for: {}", url);
-        let client = ClientBuilder::new()
-            .user_agent(APP_USER_AGENT)
-            .build()
-            .context(ClientCreateSnafu)?;
+        let mut client_builder = ClientBuilder::new().user_agent(APP_USER_AGENT);
+        client_builder = proxy.set(client_builder).context(ClientCreateSnafu)?;
+
+        let client = client_builder.build().context(ClientCreateSnafu)?;
         Ok(Client {
             client,
             base_url: url,
