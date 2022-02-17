@@ -8,7 +8,12 @@
 //!
 //! ```rust
 //! use dsc::http;
-//! let client = http::Client::new("http://localhost:7880", http::proxy::ProxySetting::System).unwrap();
+//! let client = http::Client::new(
+//!    "http://localhost:7880",
+//!    http::proxy::ProxySetting::System,
+//!    &None,
+//!    false
+//! ).unwrap();
 //! println!("{:?}", client.version());
 //! ```
 //!
@@ -52,7 +57,7 @@ use reqwest::blocking::{
     multipart::{Form, Part},
     ClientBuilder, RequestBuilder, Response,
 };
-use reqwest::StatusCode;
+use reqwest::{Certificate, StatusCode};
 use snafu::{ResultExt, Snafu};
 
 const APP_JSON: &str = "application/json";
@@ -122,11 +127,36 @@ impl Client {
     pub fn new<S: Into<String>>(
         docspell_url: S,
         proxy: proxy::ProxySetting,
+        trusted_certificate: &Option<PathBuf>,
+        accept_invalid_certs: bool,
     ) -> Result<Client, Error> {
         let url = docspell_url.into();
         log::info!("Create docspell client for: {}", url);
         let mut client_builder = ClientBuilder::new().user_agent(APP_USER_AGENT);
         client_builder = proxy.set(client_builder).context(ClientCreateSnafu)?;
+        match trusted_certificate {
+            Some(cert_file) => {
+                log::debug!(
+                    "Adding extra certificate from file: {}",
+                    cert_file.display(),
+                );
+                let buf = std::fs::read(cert_file).context(OpenFileSnafu { path: cert_file })?;
+                let cert = match Certificate::from_pem(&buf) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        log::debug!("Reading PEM format failed: {:?}. Try with DER", e);
+                        Certificate::from_der(&buf).context(ClientCreateSnafu)?
+                    }
+                };
+                client_builder = client_builder.add_root_certificate(cert);
+            }
+            None => {
+                if accept_invalid_certs {
+                    log::info!("NOTE: ignoring invalid certificates!");
+                    client_builder = client_builder.danger_accept_invalid_certs(true);
+                }
+            }
+        }
 
         let client = client_builder.build().context(ClientCreateSnafu)?;
         Ok(Client {

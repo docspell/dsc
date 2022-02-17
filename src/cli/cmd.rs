@@ -57,8 +57,13 @@ pub struct Context<'a> {
 
 impl Context<'_> {
     pub fn new<'a>(opts: &'a CommonOpts, cfg: &'a DsConfig) -> Result<Context<'a>, CmdError> {
-        let client = Client::new(docspell_url(opts, cfg), opts.to_proxy_setting())
-            .context(ContextCreateSnafu)?;
+        let client = Client::new(
+            docspell_url(opts, cfg),
+            opts.to_proxy_setting(),
+            &opts.extra_certificate,
+            opts.accept_invalid_certificates,
+        )
+        .context(ContextCreateSnafu)?;
         Ok(Context { opts, cfg, client })
     }
 
