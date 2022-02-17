@@ -1,5 +1,4 @@
-use clap::{App, ArgEnum, Parser};
-//use clap_complete::generators::{Bash, Elvish, Fish, PowerShell, Zsh};
+use clap::{ArgEnum, Command, Parser};
 use clap_complete::{generate, Generator, Shell};
 
 /// Generates completions for some shells.
@@ -21,7 +20,7 @@ pub enum GeneratorChoice {
 }
 
 impl Input {
-    pub fn print_completions(&self, app: &mut App) {
+    pub fn print_completions(&self, app: &mut Command) {
         match &self.shell {
             GeneratorChoice::Bash => generate_completions(Shell::Bash, app),
             GeneratorChoice::Elvish => generate_completions(Shell::Elvish, app),
@@ -32,6 +31,6 @@ impl Input {
     }
 }
 
-fn generate_completions<G: Generator>(gen: G, app: &mut App) {
+fn generate_completions<G: Generator>(gen: G, app: &mut Command) {
     generate(gen, app, "dsc", &mut std::io::stdout());
 }

@@ -22,7 +22,7 @@ pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), CmdError> {
             eprintln!("Wrote config to {:}", cfg_file.display());
         }
         SubCommand::GenerateCompletions(input) => {
-            let mut app = MainOpts::into_app();
+            let mut app = MainOpts::command();
             input.print_completions(&mut app);
         }
         SubCommand::Item(input) => input.exec(&ctx)?,
