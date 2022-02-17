@@ -41,6 +41,7 @@ pub struct MainOpts {
 /// They are defined for the main command, before the subcommand is
 /// defined.
 #[derive(Parser, Debug)]
+#[clap(group = ArgGroup::new("tls"))]
 pub struct CommonOpts {
     /// Be more verbose when logging.
     #[clap(short, long, parse(from_occurrences))]
@@ -80,6 +81,18 @@ pub struct CommonOpts {
     /// The password to authenticate at the proxy via Basic auth.
     #[clap(long)]
     pub proxy_password: Option<String>,
+
+    /// Add a root certificate to the trust store used when connecting
+    /// via TLS. It can be a PEM or DER formatted file.
+    #[clap(long, value_hint = ValueHint::FilePath, group = "tls")]
+    pub extra_certificate: Option<PathBuf>,
+
+    /// This ignores any invalid certificates when connecting to the
+    /// docspell server. It is obvious, that this should be used
+    /// carefully! This cannot be used, when `--extra-certificate` is
+    /// specfified.
+    #[clap(long, group = "tls")]
+    pub accept_invalid_certificates: bool,
 }
 
 impl CommonOpts {
