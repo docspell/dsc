@@ -1,5 +1,7 @@
 pub mod convert_all_pdfs;
 pub mod disable_2fa;
+pub mod file_clone_repository;
+pub mod file_integrity_check;
 pub mod generate_previews;
 pub mod recreate_index;
 pub mod reset_password;
@@ -26,11 +28,27 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    GeneratePreview { source: generate_previews::Error },
-    RecreateIndex { source: recreate_index::Error },
-    ResetPassword { source: reset_password::Error },
-    ConvertAllPdfs { source: convert_all_pdfs::Error },
-    Disable2FA { source: disable_2fa::Error },
+    GeneratePreview {
+        source: generate_previews::Error,
+    },
+    RecreateIndex {
+        source: recreate_index::Error,
+    },
+    ResetPassword {
+        source: reset_password::Error,
+    },
+    ConvertAllPdfs {
+        source: convert_all_pdfs::Error,
+    },
+    Disable2FA {
+        source: disable_2fa::Error,
+    },
+    CloneFileRepo {
+        source: file_clone_repository::Error,
+    },
+    FileIntegrityCheck {
+        source: file_integrity_check::Error,
+    },
 }
 
 #[derive(Parser, Debug)]
@@ -50,6 +68,12 @@ pub enum AdminCommand {
     #[clap(name = "disable-2fa")]
     #[clap(version)]
     Disable2FA(disable_2fa::Input),
+
+    #[clap(version)]
+    CloneFileRepository(file_clone_repository::Input),
+
+    #[clap(version)]
+    FileIntegrityCheck(file_integrity_check::Input),
 }
 
 impl Cmd for Input {
@@ -66,6 +90,12 @@ impl Cmd for Input {
                 input.exec(self, ctx).context(ConvertAllPdfsSnafu)
             }
             AdminCommand::Disable2FA(input) => input.exec(self, ctx).context(Disable2FASnafu),
+            AdminCommand::CloneFileRepository(input) => {
+                input.exec(self, ctx).context(CloneFileRepoSnafu)
+            }
+            AdminCommand::FileIntegrityCheck(input) => {
+                input.exec(self, ctx).context(FileIntegrityCheckSnafu)
+            }
         }
     }
 }
