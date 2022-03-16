@@ -783,6 +783,40 @@ impl Client {
             .context(SerializeRespSnafu)
     }
 
+    pub fn admin_files_clone_repository<S: Into<String>>(
+        &self,
+        admin_secret: S,
+        req: &FileCloneRequest,
+    ) -> Result<BasicResult, Error> {
+        let url = &format!("{}/api/v1/admin/files/cloneFileRepository", self.base_url);
+        self.client
+            .post(url)
+            .header(DOCSPELL_ADMIN, admin_secret.into())
+            .json(&req)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(HttpSnafu { url })?
+            .json::<BasicResult>()
+            .context(SerializeRespSnafu)
+    }
+
+    pub fn admin_files_integrity_check<S: Into<String>>(
+        &self,
+        admin_secret: S,
+        req: &FileIntegrityCheckRequest,
+    ) -> Result<BasicResult, Error> {
+        let url = &format!("{}/api/v1/admin/files/integrityCheck", self.base_url);
+        self.client
+            .post(url)
+            .header(DOCSPELL_ADMIN, admin_secret.into())
+            .json(&req)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .context(HttpSnafu { url })?
+            .json::<BasicResult>()
+            .context(SerializeRespSnafu)
+    }
+
     // --- Helpers
 
     fn require_item_id<S: AsRef<str>>(

@@ -3,6 +3,18 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct FileIntegrityCheckRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub collective: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileCloneRequest {
+    #[serde(alias = "targetRepositories", rename(serialize = "targetRepositories"))]
+    pub target_repositories: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ItemDetail {
     pub id: String,
     pub direction: String,
