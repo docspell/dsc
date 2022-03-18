@@ -42,7 +42,7 @@ rustPlatform.buildRustPackage rec {
       };
     in cleanSrc ../.;
 
-  cargoSha256 = "10qblicxafvy45aj2mprrb04q578jznbraiaqff226lwr5b7cm5z";
+  cargoSha256 = "09np4yzi0y49vjsz4rs4kcp45hszqkpa72wrhkb9bpvp6q66yf6a";
 
   # only unit tests can be run
   checkPhase = ''
