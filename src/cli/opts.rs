@@ -43,7 +43,9 @@ pub struct MainOpts {
 #[derive(Parser, Debug)]
 #[clap(group = ArgGroup::new("tls"))]
 pub struct CommonOpts {
-    /// Be more verbose when logging.
+    /// Be more verbose when logging. Verbosity is increased by
+    /// occurrence of this option. Use `-vv` for debug verbosity and
+    /// `-v` for info.
     #[clap(short, long, parse(from_occurrences))]
     pub verbose: i32,
 

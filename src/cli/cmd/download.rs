@@ -188,8 +188,8 @@ fn download_flat(
         .context(HttpClientSnafu)?;
 
         if let Some(mut dl) = dlopt {
-            let org_name = dl.get_filename().unwrap_or(&dref.name);
-            let (fname, duplicate) = dupes.use_name(org_name);
+            let org_name = dl.get_filename().unwrap_or(dref.name);
+            let (fname, duplicate) = dupes.use_name(&org_name);
             let path = parent.join(&fname);
             if path.exists() && !opts.overwrite {
                 println!("File exists: {}. Skipping.", path.display());
@@ -238,8 +238,8 @@ fn download_zip(
             .context(HttpClientSnafu)?;
 
             if let Some(mut dl) = dlopt {
-                let org_name = dl.get_filename().unwrap_or(&dref.name);
-                let (fname, duplicate) = dupes.use_name(org_name);
+                let org_name = dl.get_filename().unwrap_or(dref.name);
+                let (fname, duplicate) = dupes.use_name(&org_name);
                 if duplicate && opts.dupes == DupeMode::Skip {
                     println!("Skipping already downloaded file {}", org_name);
                 } else {

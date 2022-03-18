@@ -404,6 +404,7 @@ dependencies = [
  "notify",
  "openssl",
  "pathdiff",
+ "percent-encoding",
  "predicates",
  "prettytable-rs",
  "reqwest",

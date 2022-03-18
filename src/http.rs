@@ -57,6 +57,7 @@ use reqwest::blocking::{
     multipart::{Form, Part},
     ClientBuilder, RequestBuilder, Response,
 };
+use reqwest::header::CONTENT_DISPOSITION;
 use reqwest::{Certificate, StatusCode};
 use snafu::{ResultExt, Snafu};
 
@@ -921,10 +922,10 @@ pub struct Download {
 impl Download {
     /// Get the filename from the responses `Content-Disposition`
     /// header.
-    pub fn get_filename(&self) -> Option<&str> {
+    pub fn get_filename(&self) -> Option<String> {
         self.resp
             .headers()
-            .get("Content-Disposition")
+            .get(CONTENT_DISPOSITION)
             .and_then(|hv| hv.to_str().ok())
             .and_then(util::filename_from_header)
     }

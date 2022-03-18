@@ -248,9 +248,7 @@ fn export_item(item: &Item, overwrite: bool, item_dir: &Path, ctx: &Context) -> 
             .get_original(&ctx.client, &ctx.opts.session)
             .context(HttpClientSnafu)?;
         if let Some(mut orig_file) = orig {
-            let file_name = orig_file
-                .get_filename()
-                .unwrap_or_else(|| attach.name.as_str());
+            let file_name = orig_file.get_filename().unwrap_or(attach.name);
             let file_path = file_dir.join(file_name);
             if file_path.exists() && overwrite {
                 log::debug!(
