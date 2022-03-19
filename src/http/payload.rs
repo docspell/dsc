@@ -123,6 +123,9 @@ pub struct UploadMeta {
 
     #[serde(alias = "attachmentsOnly", rename(serialize = "attachmentsOnly"))]
     pub attachments_only: bool,
+
+    #[serde(alias = "flattenArchives", rename(serialize = "flattenArchives"))]
+    pub flatten_archives: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

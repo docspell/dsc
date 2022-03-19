@@ -170,6 +170,7 @@ pub fn upload_files(args: &Input, ctx: &Context) -> Result<BasicResult, Error> {
         file_filter: args.upload.file_filter.clone(),
         language: args.upload.language.clone(),
         attachments_only: args.upload.attachments_only,
+        flatten_archives: args.upload.flatten_archives,
     };
     log::debug!("Send file metadata: {:?}", serde_json::to_string(&meta));
     if args.traverse {
