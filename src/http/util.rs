@@ -12,12 +12,12 @@ pub fn filename_from_header(header_value: &str) -> Option<String> {
     let mut all: Vec<(u32, String)> = header_value
         .split(';')
         .map(|e| e.trim())
-        .filter_map(|e| decode_name(e))
+        .filter_map(decode_name)
         .collect();
 
     all.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
 
-    let name = all.into_iter().nth(0).map(|(_, e)| e);
+    let name = all.into_iter().next().map(|(_, e)| e);
 
     log::debug!("Return file name: {:?}", name);
     name

@@ -350,6 +350,13 @@ pub struct UploadMeta {
     /// Only applicable when e-mail files are uploaded.
     #[clap(long)]
     pub attachments_only: bool,
+
+    /// If specified, extracts zip files and submits a separate job
+    /// for each entry. Otherwise zip files are treated as related and
+    /// result in a single item each with perhaps multiple
+    /// attachments.
+    #[clap(long)]
+    pub flatten_archives: bool,
 }
 
 // Shared options for specifying what to do with a file.

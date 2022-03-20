@@ -178,7 +178,7 @@ fn export(req: &SearchReq, opts: &Input, ctx: &Context) -> Result<usize, Error> 
                 make_links(&item, opts, &item_dir, &link_dir)?;
             }
             if opts.correspondent_links {
-                let corr_opt = item.corr_org.as_ref().or_else(|| item.corr_person.as_ref());
+                let corr_opt = item.corr_org.as_ref().or(item.corr_person.as_ref());
                 if let Some(corr) = corr_opt {
                     let link_dir = by_corr.join(file::safe_filename(&corr.name));
                     make_links(&item, opts, &item_dir, &link_dir)?;
