@@ -9,13 +9,47 @@ use std::path::{Path, PathBuf};
 /// Defines the contents of the configuration file.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DsConfig {
+    /// The base-url to the docspell server.
     pub docspell_url: String,
+
+    /// The format to use for the output.
     pub default_format: Format,
+
+    /// The admin secret used to authenticate for admin commands.
     pub admin_secret: Option<String>,
+
+    /// A source id to use when uploading.
     pub default_source_id: Option<String>,
+
+    /// A entry for the pass password manager, specifying the password
+    /// to docspell in its first line.
     pub pass_entry: Option<String>,
+
+    /// A pass entry to specify the totp secret in its first line. If
+    /// prefixed with `key:`, it will be looked up in the entry
+    /// defined by `pass_entry` for a line that starts with `key:`.
+    pub pass_otp_secret: Option<String>,
+
+    /// The account to use for login.
     pub default_account: Option<String>,
+
+    /// A command used to view pdf files.
     pub pdf_viewer: Vec<String>,
+
+    /// A proxy server used for all connections.
+    pub proxy: Option<String>,
+
+    /// The user to authenticate at the proxy server.
+    pub proxy_user: Option<String>,
+
+    /// The password to authenticate at the proxy server.
+    pub proxy_password: Option<String>,
+
+    /// A DER or PEM file to specify an external trust store.
+    pub extra_certificate: Option<PathBuf>,
+
+    /// Whether to accept invalid certificates.
+    pub accept_invalid_certificates: Option<bool>,
 }
 
 /// Error states when reading and writing the config file.
@@ -53,8 +87,14 @@ impl default::Default for DsConfig {
             admin_secret: None,
             default_source_id: None,
             pass_entry: None,
+            pass_otp_secret: None,
             default_account: None,
             pdf_viewer: vec!["zathura".into(), "{}".into()],
+            proxy: None,
+            proxy_user: None,
+            proxy_password: None,
+            extra_certificate: None,
+            accept_invalid_certificates: None,
         }
     }
 }

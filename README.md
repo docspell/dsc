@@ -58,8 +58,14 @@ default_format = "Tabular"
 # admin_secret = "test123"
 # default_source_id = "<some sorce id>"
 # pass_entry = "my/pass/entry"
+# pass_otp_secret = "key:totp" #or "my/pass/totp_entry"
 # default_account = "demo"
 pdf_viewer = ["zathura", "{}"]
+# proxy = myproxy.com
+# proxy_user = me
+# proxy_password = superword
+# extra_certificate = /path/to/trust.pem #PEM or DER
+# accept_invalid_certificates = false
 ```
 
 The `pdf_viewer` is used with the `view` command to display the PDF
@@ -80,6 +86,14 @@ run `dsc login` without any arguments. The retrieved session token is
 stored on your file system next to the config file. Subsequent
 commands can use the session token. Once it is expired, you need to
 call `dsc login` again.
+
+When TOTP is enabled, it is also possible to store the secret in
+[pass](https://www.passwordstore.org/) and specify the entry to this
+in the config file at `pass_otp_secret`. Dsc can then calculate the
+otp accordingly. If the value starts with `key:` then the renaming
+part is used to lookup such a line in the main entry (defined via
+`pass_entry`). If not prefixed with `key:` a separate pass entry is
+looked up.
 
 For commands `file-exists` and `upload` it is possible to use a source
 id or the integration endpoint instead of being authenticated.
