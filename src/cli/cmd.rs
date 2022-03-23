@@ -28,10 +28,15 @@ pub mod version;
 pub mod view;
 pub mod watch;
 
+use std::path::PathBuf;
+use std::str::FromStr;
+
 use super::opts::Format;
 use super::sink::{Error as SinkError, Sink};
+use crate::cli;
 use crate::cli::opts::CommonOpts;
 use crate::config::{ConfigError, DsConfig};
+use crate::http::proxy::ProxySetting;
 use crate::http::{self, Client};
 use serde::Serialize;
 use snafu::{ResultExt, Snafu};
@@ -59,9 +64,9 @@ impl Context<'_> {
     pub fn new<'a>(opts: &'a CommonOpts, cfg: &'a DsConfig) -> Result<Context<'a>, CmdError> {
         let client = Client::new(
             docspell_url(opts, cfg),
-            opts.to_proxy_setting(),
-            &opts.extra_certificate,
-            opts.accept_invalid_certificates,
+            proxy_settings(opts, cfg),
+            &extra_certificate(opts, cfg),
+            accept_invalid_certs(opts, cfg),
         )
         .context(ContextCreateSnafu)?;
         Ok(Context { opts, cfg, client })
@@ -86,6 +91,31 @@ fn docspell_url(opts: &CommonOpts, cfg: &DsConfig) -> String {
         .as_ref()
         .unwrap_or(&cfg.docspell_url)
         .clone()
+}
+
+fn accept_invalid_certs(opts: &CommonOpts, cfg: &DsConfig) -> bool {
+    opts.accept_invalid_certificates || cfg.accept_invalid_certificates.unwrap_or(false)
+}
+
+fn extra_certificate(opts: &CommonOpts, cfg: &DsConfig) -> Option<PathBuf> {
+    opts.extra_certificate
+        .clone()
+        .or_else(|| cfg.extra_certificate.clone())
+}
+
+fn proxy_settings(opts: &CommonOpts, cfg: &DsConfig) -> ProxySetting {
+    let user = opts.proxy_user.clone().or_else(|| cfg.proxy_user.clone());
+    let pass = opts
+        .proxy_password
+        .clone()
+        .or_else(|| cfg.proxy_password.clone());
+    let prx = opts.proxy.clone().or_else(|| match &cfg.proxy {
+        None => None,
+        Some(str) => cli::opts::ProxySetting::from_str(&str).ok(),
+    });
+
+    log::debug!("Using proxy: {:?} @ {:?}", user, prx);
+    CommonOpts::to_proxy_setting(&prx, user, pass)
 }
 
 #[derive(Debug, Snafu)]

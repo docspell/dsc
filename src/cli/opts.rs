@@ -98,20 +98,24 @@ pub struct CommonOpts {
 }
 
 impl CommonOpts {
-    pub fn to_proxy_setting(&self) -> proxy::ProxySetting {
-        match &self.proxy {
+    pub fn to_proxy_setting(
+        proxy: &Option<ProxySetting>,
+        user: Option<String>,
+        password: Option<String>,
+    ) -> proxy::ProxySetting {
+        match proxy {
             None => proxy::ProxySetting::System,
             Some(ProxySetting::None) => proxy::ProxySetting::None,
             Some(ProxySetting::Custom { url }) => proxy::ProxySetting::Custom {
                 url: url.clone(),
-                user: self.proxy_user.clone(),
-                password: self.proxy_password.clone(),
+                user,
+                password,
             },
         }
     }
 }
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone, Serialize, Deserialize)]
 pub enum ProxySetting {
     /// Don't use any proxy; this will also discard the system proxy.
     None,

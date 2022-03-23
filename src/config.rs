@@ -16,6 +16,11 @@ pub struct DsConfig {
     pub pass_entry: Option<String>,
     pub default_account: Option<String>,
     pub pdf_viewer: Vec<String>,
+    pub proxy: Option<String>,
+    pub proxy_user: Option<String>,
+    pub proxy_password: Option<String>,
+    pub extra_certificate: Option<PathBuf>,
+    pub accept_invalid_certificates: Option<bool>,
 }
 
 /// Error states when reading and writing the config file.
@@ -55,6 +60,11 @@ impl default::Default for DsConfig {
             pass_entry: None,
             default_account: None,
             pdf_viewer: vec!["zathura".into(), "{}".into()],
+            proxy: None,
+            proxy_user: None,
+            proxy_password: None,
+            extra_certificate: None,
+            accept_invalid_certificates: None,
         }
     }
 }
