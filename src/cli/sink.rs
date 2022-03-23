@@ -34,6 +34,11 @@ where
                 serde_lexpr::to_writer(std::io::stdout(), &value)?;
                 Ok(())
             }
+            Format::Elisp => {
+                let opts = serde_lexpr::print::Options::elisp();
+                serde_lexpr::to_writer_custom(std::io::stdout(), &value, opts)?;
+                Ok(())
+            }
             Format::Csv => Self::write_csv(value),
             Format::Tabular => Self::write_tabular(value),
         }

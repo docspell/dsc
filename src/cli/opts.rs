@@ -205,6 +205,7 @@ pub enum SubCommand {
 pub enum Format {
     Json,
     Lisp,
+    Elisp,
     Csv,
     Tabular,
 }
