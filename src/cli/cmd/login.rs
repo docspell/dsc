@@ -6,6 +6,7 @@ use crate::http::Error as HttpError;
 use crate::util::pass;
 
 use clap::{ArgGroup, Parser, ValueHint};
+use rsotp::TOTP;
 use snafu::{ResultExt, Snafu};
 use std::io::Write;
 
@@ -35,6 +36,13 @@ pub struct Input {
     /// `password` option is ignored.
     #[clap(long, group = "pass")]
     pass_entry: Option<String>,
+
+    /// An entry for the pass password manager that contains the TOTP
+    /// secret, so dsc can obtain the TOTP code automatically. If
+    /// prefixed with `key:` the remaining part is looked up in the
+    /// other `pass_entry` instead.
+    #[clap(long)]
+    pass_otp: Option<String>,
 }
 
 #[derive(Debug, Snafu)]
@@ -47,6 +55,9 @@ pub enum Error {
 
     #[snafu(display("Retrieving password using pass failed: {}", source))]
     PassEntry { source: std::io::Error },
+
+    #[snafu(display("No pass entry given, but required"))]
+    NoPassEntry,
 
     #[snafu(display("No password provided"))]
     NoPassword,
@@ -70,7 +81,7 @@ impl Cmd for Input {
         let mut result = login(self, ctx)?;
         if result.require_second_factor {
             log::info!("Account has two-factor auth enabled. Sending otp now.");
-            result = login_otp(ctx)?;
+            result = login_otp(self, ctx)?;
         }
 
         ctx.write_result(result).context(WriteResultSnafu)?;
@@ -87,14 +98,48 @@ pub fn login(opts: &Input, ctx: &Context) -> Result<AuthResp, Error> {
     ctx.client.login(&body).context(HttpClientSnafu)
 }
 
-pub fn login_otp(ctx: &Context) -> Result<AuthResp, Error> {
-    print!("Authentication code: ");
-    std::io::stdout().flush().context(PassEntrySnafu)?;
-    let mut otp: String = String::new();
-    std::io::stdin()
-        .read_line(&mut otp)
-        .context(PassEntrySnafu)?;
-    ctx.client.login_otp(otp.trim()).context(HttpClientSnafu)
+pub fn login_otp(opts: &Input, ctx: &Context) -> Result<AuthResp, Error> {
+    let otp = get_otp(opts, ctx)?;
+    ctx.client.login_otp(&otp).context(HttpClientSnafu)
+}
+
+/// Get the OTP code in this order:
+///
+/// * Check options or the config for a otp pass entry. Obtain the
+///   secret and calculate the current OTP
+/// * Ask the user for the OTP
+fn get_otp(opts: &Input, ctx: &Context) -> Result<String, Error> {
+    let totp_entry = opts
+        .pass_otp
+        .clone()
+        .or_else(|| ctx.cfg.pass_otp_secret.clone());
+
+    match totp_entry {
+        None => {
+            print!("Authentication code: ");
+            std::io::stdout().flush().context(PassEntrySnafu)?;
+            let mut otp: String = String::new();
+            std::io::stdin()
+                .read_line(&mut otp)
+                .context(PassEntrySnafu)?;
+            Ok(otp.trim().to_string())
+        }
+        Some(name) => {
+            log::debug!("Looking up TOTP secret via: {}", name);
+            if name.starts_with("key:") {
+                log::debug!("Looking up a line in {:?}", ctx.cfg.pass_entry);
+                let pentry = ctx.cfg.pass_entry.clone().ok_or(Error::NoPassEntry)?;
+                let otp_secret = pass::pass_key(&pentry, &name[4..]).context(PassEntrySnafu)?;
+                let otp = TOTP::new(otp_secret).now();
+                Ok(otp.trim().to_string())
+            } else {
+                log::debug!("Retrieve totp secret from separate entry");
+                let otp_secret = pass::pass_password(&name).context(PassEntrySnafu)?;
+                let otp = TOTP::new(otp_secret).now();
+                Ok(otp.trim().to_string())
+            }
+        }
+    }
 }
 
 /// Get the password in this order:
