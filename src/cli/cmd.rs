@@ -19,6 +19,7 @@ pub mod geninvite;
 pub mod item;
 pub mod login;
 pub mod logout;
+pub mod open_item;
 pub mod register;
 pub mod search;
 pub mod search_summary;
@@ -132,6 +133,7 @@ pub enum CmdError {
     Item { source: item::Error },
     Login { source: login::Error },
     Logout { source: logout::Error },
+    OpenItem { source: open_item::Error },
     Register { source: register::Error },
     Search { source: search::Error },
     SearchSummary { source: search_summary::Error },
@@ -142,6 +144,11 @@ pub enum CmdError {
     WriteSink { source: SinkError },
 }
 
+impl From<open_item::Error> for CmdError {
+    fn from(source: open_item::Error) -> Self {
+        CmdError::OpenItem { source }
+    }
+}
 impl From<ConfigError> for CmdError {
     fn from(source: ConfigError) -> Self {
         CmdError::WriteConfig { source }

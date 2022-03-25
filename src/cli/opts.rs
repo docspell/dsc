@@ -198,6 +198,9 @@ pub enum SubCommand {
 
     #[clap(version)]
     Admin(admin::Input),
+
+    #[clap(version)]
+    OpenItem(open_item::Input),
 }
 
 /// The format for presenting the results.
