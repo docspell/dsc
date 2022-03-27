@@ -181,6 +181,9 @@ pub enum SubCommand {
     #[clap(version)]
     Item(item::Input),
 
+    #[clap(version)]
+    Bookmark(bookmark::Input),
+
     #[clap(version, alias = "up")]
     Upload(upload::Input),
 

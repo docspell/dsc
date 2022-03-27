@@ -75,6 +75,17 @@ pub fn str_or_empty(opt: Option<&String>) -> &str {
 }
 
 // --- impls for payloads
+impl AsTable for BookmarkList {
+    fn to_table(&self) -> Table {
+        let mut table = mk_table();
+        table.set_titles(row![bFg => "Name", "Query"]);
+        for bm in &self.bookmarks {
+            table.add_row(row![bm.name, bm.query]);
+        }
+        table
+    }
+}
+impl Sink for BookmarkList {}
 
 impl AsTable for ItemDetail {
     fn to_table(&self) -> Table {

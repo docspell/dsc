@@ -25,6 +25,7 @@ pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), CmdError> {
             let mut app = MainOpts::command();
             input.print_completions(&mut app);
         }
+        SubCommand::Bookmark(input) => input.exec(&ctx)?,
         SubCommand::Item(input) => input.exec(&ctx)?,
         SubCommand::Watch(input) => input.exec(&ctx)?,
         SubCommand::Version(input) => input.exec(&ctx)?,

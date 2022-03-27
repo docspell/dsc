@@ -10,6 +10,7 @@
 //! referenced in the subcommand enum.
 
 pub mod admin;
+pub mod bookmark;
 pub mod cleanup;
 pub mod download;
 pub mod export;
@@ -121,6 +122,7 @@ fn proxy_settings(opts: &CommonOpts, cfg: &DsConfig) -> ProxySetting {
 
 #[derive(Debug, Snafu)]
 pub enum CmdError {
+    Bookmark { source: bookmark::Error },
     ContextCreate { source: http::Error },
     Export { source: export::Error },
     Watch { source: watch::Error },
@@ -142,6 +144,12 @@ pub enum CmdError {
     View { source: view::Error },
     WriteConfig { source: ConfigError },
     WriteSink { source: SinkError },
+}
+
+impl From<bookmark::Error> for CmdError {
+    fn from(source: bookmark::Error) -> Self {
+        CmdError::Bookmark { source }
+    }
 }
 
 impl From<open_item::Error> for CmdError {
