@@ -25,6 +25,7 @@ pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), CmdError> {
             let mut app = MainOpts::command();
             input.print_completions(&mut app);
         }
+        SubCommand::Bookmark(input) => input.exec(&ctx)?,
         SubCommand::Item(input) => input.exec(&ctx)?,
         SubCommand::Watch(input) => input.exec(&ctx)?,
         SubCommand::Version(input) => input.exec(&ctx)?,
@@ -37,6 +38,7 @@ pub fn execute_cmd(cfg: DsConfig, opts: MainOpts) -> Result<(), CmdError> {
         SubCommand::FileExists(input) => input.exec(&ctx)?,
         SubCommand::GenInvite(input) => input.exec(&ctx)?,
         SubCommand::Register(input) => input.exec(&ctx)?,
+        SubCommand::OpenItem(input) => input.exec(&ctx)?,
         SubCommand::Upload(input) => input.exec(&ctx)?,
         SubCommand::Download(input) => input.exec(&ctx)?,
         SubCommand::View(input) => input.exec(&ctx)?,

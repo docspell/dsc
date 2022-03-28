@@ -349,6 +349,23 @@ impl Client {
             .context(SerializeRespSnafu)
     }
 
+    /// Lists all query bookmarks.
+    pub fn get_bookmarks(&self, token: &Option<String>) -> Result<Vec<Bookmark>, Error> {
+        let url = &format!("{}/api/v1/sec/querybookmark", self.base_url);
+        let token = session::session_token(token, self).context(SessionSnafu)?;
+        let resp = self
+            .client
+            .get(url)
+            .header(DOCSPELL_AUTH, token)
+            .send()
+            .context(HttpSnafu { url })?;
+
+        resp.error_for_status()
+            .context(HttpSnafu { url })?
+            .json::<Vec<Bookmark>>()
+            .context(SerializeRespSnafu)
+    }
+
     /// Get all item details. The item is identified by its id. The id
     /// may be a prefix only, in this case another request is used to
     /// find the complete id.

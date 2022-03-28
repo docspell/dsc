@@ -181,6 +181,9 @@ pub enum SubCommand {
     #[clap(version)]
     Item(item::Input),
 
+    #[clap(version)]
+    Bookmark(bookmark::Input),
+
     #[clap(version, alias = "up")]
     Upload(upload::Input),
 
@@ -198,6 +201,9 @@ pub enum SubCommand {
 
     #[clap(version)]
     Admin(admin::Input),
+
+    #[clap(version)]
+    OpenItem(open_item::Input),
 }
 
 /// The format for presenting the results.
@@ -205,6 +211,7 @@ pub enum SubCommand {
 pub enum Format {
     Json,
     Lisp,
+    Elisp,
     Csv,
     Tabular,
 }

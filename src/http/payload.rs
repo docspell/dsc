@@ -3,6 +3,20 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct Bookmark {
+    pub id: String,
+    pub name: String,
+    pub query: String,
+    pub personal: bool,
+    pub created: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BookmarkList {
+    pub bookmarks: Vec<Bookmark>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FileIntegrityCheckRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub collective: Option<String>,
