@@ -113,7 +113,7 @@ fn proxy_settings(opts: &CommonOpts, cfg: &DsConfig) -> ProxySetting {
         .or_else(|| cfg.proxy_password.clone());
     let prx = opts.proxy.clone().or_else(|| match &cfg.proxy {
         None => None,
-        Some(str) => cli::opts::ProxySetting::from_str(&str).ok(),
+        Some(str) => cli::opts::ProxySetting::from_str(str).ok(),
     });
 
     log::debug!("Using proxy: {:?} @ {:?}", user, prx);

@@ -64,8 +64,8 @@ impl table::AsTable for CmdResult {
         table.set_titles(row![bFg => "success", "item id", "url"]);
         table.add_row(row![
             self.success,
-            self.item_id.clone().unwrap_or(String::from("-")),
-            self.url.clone().unwrap_or(String::from("-")),
+            self.item_id.clone().unwrap_or_else(|| String::from("-")),
+            self.url.clone().unwrap_or_else(|| String::from("-")),
         ]);
         table
     }
@@ -132,7 +132,7 @@ impl Cmd for Input {
     }
 }
 
-fn create_url(ctx: &Context, item_id: &String) -> String {
+fn create_url(ctx: &Context, item_id: &str) -> String {
     let base_url = cmd::docspell_url(ctx.opts, ctx.cfg);
     format!("{}/app/item/{}", base_url, item_id)
 }
