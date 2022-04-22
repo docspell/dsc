@@ -2,7 +2,7 @@
 name = "dsc"
 version = "0.10.0-pre"
 authors = ["eikek <eikek@posteo.de>"]
-edition = "2018"
+edition = "2021"
 description = "A command line interface to Docspell."
 homepage = "https://docspell.org"
 license = "GPLv3"

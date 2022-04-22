@@ -1,5 +1,5 @@
 let
-  pkgs_source = import (builtins.fetchTarball "channel:nixos-21.05");
+  pkgs_source = import (builtins.fetchTarball "channel:nixos-21.11");
   #pkgs = pkgs_source {};
   moz_overlay = import (builtins.fetchTarball
     https://github.com/mozilla/nixpkgs-mozilla/archive/master.tar.gz);
