@@ -89,10 +89,22 @@ impl Context<'_> {
 }
 
 fn docspell_url(opts: &CommonOpts, cfg: &DsConfig) -> String {
-    opts.docspell_url
-        .as_ref()
-        .unwrap_or(&cfg.docspell_url)
-        .clone()
+    match &opts.docspell_url {
+        Some(u) => {
+            log::debug!("Use docspell url from arguments: {}", u);
+            u.clone()
+        }
+        None => match std::env::var(DSC_DOCSPELL_URL).ok() {
+            Some(u) => {
+                log::debug!("Use docspell url from env: {}", u);
+                u
+            }
+            None => {
+                log::debug!("Use docspell url from config: {}", cfg.docspell_url);
+                cfg.docspell_url.clone()
+            }
+        },
+    }
 }
 
 fn accept_invalid_certs(opts: &CommonOpts, cfg: &DsConfig) -> bool {
@@ -247,3 +259,5 @@ impl From<export::Error> for CmdError {
         CmdError::Export { source }
     }
 }
+
+const DSC_DOCSPELL_URL: &str = "DSC_DOCSPELL_URL";
