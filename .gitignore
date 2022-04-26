@@ -2,5 +2,5 @@
 result
 /local
 *.qcow2
-
+.direnv/
 .vscode

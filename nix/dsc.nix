@@ -1,7 +1,3 @@
-let
-  fromCargo = (builtins.fromTOML (builtins.readFile ../Cargo.toml)).package.version;
-in
-
 { lib
 , stdenv
 , pkg-config
@@ -10,27 +6,14 @@ in
 , installShellFiles
 , git
 , binutils-unwrapped
-, callPackage
-, version ? fromCargo
+, rustPlatform
+, pname
+, version
+, description
 }:
-let
-  rustPlatform = callPackage ./rust-platform.nix {};
-in
 rustPlatform.buildRustPackage rec {
+  inherit pname version;
 
-  pname = "dsc";
-  inherit version;
-
-  # src = fetchgit {
-  #   url = https://github.com/docspell/dsc.git;
-  #   rev =
-  #     if lib.hasSuffix "-pre" version then
-  #       "master"
-  #     else
-  #       "v${version}";
-  #   # leaveDotGit = true;
-  #   sha256 = "0wnl72bcn3mpy1n4rbzrffsibjjm28smzs7bszsvyb97rdj93yzw";
-  # };
   src =
     let
       cleanSrcFilter = name: type:
@@ -42,7 +25,7 @@ rustPlatform.buildRustPackage rec {
       };
     in cleanSrc ../.;
 
-  cargoSha256 = "06j017zjmq5sqav3lsl3iqaqjwkqbxpgq1dbyafg0mw3shm0qf81";
+  cargoLock.lockFile = ../Cargo.lock;
 
   # only unit tests can be run
   checkPhase = ''
@@ -71,10 +54,9 @@ rustPlatform.buildRustPackage rec {
   '';
 
   meta = with lib; {
-    description = "A command line interface to Docspell";
+    inherit description;
     homepage = "https://github.com/docspell/dsc";
     license = with licenses; [ gpl3 ];
     maintainers = with maintainers; [ eikek ];
   };
-
 }

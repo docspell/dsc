@@ -102,9 +102,10 @@ id or the integration endpoint instead of being authenticated.
 ## Building
 
 Install [nix](https://nixos.org/download.html#nix-quick-install) and
-run `nix-shell` in the source root. This installs required rust tools.
-Alternatively, the rust tool chain can be setup with
-[rustup](https://rustup.rs/). Currently, dsc requires rust >= 1.54.0.
+run `nix-shell` or `nix develop` in the source root. This installs
+required rust tools. Alternatively, the rust tool chain can be setup
+with [rustup](https://rustup.rs/). Currently, dsc requires rust >=
+1.54.0.
 
 Building the binary for your platform (The second line strips the
 binary of debug symbols):
@@ -146,21 +147,26 @@ supported.
 
 ## Nix Package
 
-The `nix/release.nix` contains a nix expression to build this package.
-It can be build using:
+The `nix/dsc.nix` contains a nix expression to build this package. It
+can be build using [flake enabled](https://nixos.wiki/wiki/Flakes) nix:
 
 ``` bash
-nix-build
+nix build
 ```
 
-The build is updated on each release only; it is not working for the
-master branch in general!
+You can install it into your profile. With
+[flakes](https://nixos.wiki/wiki/Flakes) enabled:
 
-You can install it into your profile using `nix-env`:
+```
+nix profile install github:docspell/dsc/v$version
+```
+
+Or using `nix-env`:
 ``` bashn
 nix-env -if https://github.com/docspell/dsc/archive/refs/tags/v$version.tar.gz
 ```
-where `$version` is the current version, like 0.2.0.
+
+where `$version` is the current version, like 0.9.0.
 
 
 ## Examples
