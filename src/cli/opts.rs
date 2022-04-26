@@ -58,7 +58,8 @@ pub struct CommonOpts {
     pub format: Option<Format>,
 
     /// The (base) URL to the Docspell server. If not given, it must
-    /// be present in the config file.
+    /// be present in the config file or given as environment variable
+    /// DSC_DOCSPELL_URL.
     #[clap(short, long, value_hint = ValueHint::Url)]
     pub docspell_url: Option<String>,
 
