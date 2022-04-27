@@ -25,7 +25,7 @@ fn basic_result_json(success: bool, msg: &str) -> String {
 fn dsc_help() -> Result<()> {
     let mut cmd = Command::cargo_bin("dsc")?;
     let assert = cmd.arg("--help").assert();
-    assert.success().stdout("");
+    assert.success().stderr("");
     Ok(())
 }
 

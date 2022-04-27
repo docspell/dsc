@@ -129,7 +129,7 @@ fn get_otp(opts: &Input, ctx: &Context) -> Result<String, Error> {
             if let Some(secret) = name.strip_prefix("key:") {
                 log::debug!("Looking up a line in {:?}", ctx.cfg.pass_entry);
                 let pentry = ctx.cfg.pass_entry.clone().ok_or(Error::NoPassEntry)?;
-                let otp_secret = pass::pass_key(&pentry, &secret).context(PassEntrySnafu)?;
+                let otp_secret = pass::pass_key(&pentry, secret).context(PassEntrySnafu)?;
                 let otp = TOTP::new(otp_secret).now();
                 Ok(otp.trim().to_string())
             } else {
