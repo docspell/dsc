@@ -24,8 +24,14 @@
       baseVersion = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.version;
       version = "${baseVersion}+${builtins.substring 0 8 date}-${commit}";
 
+      overlays = {
+        overlay = final: prev: {
+          ${name} = self.packages.${final.system}.${name};
+        };
+      };
+
     in
-    utils.lib.eachDefaultSystem
+    overlays // utils.lib.eachDefaultSystem
       (system:
         let
           # Imports
