@@ -60,7 +60,7 @@ pub struct Input {
 
     /// Traverses directories and uploads all files that match the
     /// glob patterns if specfified. This means it cannot be used with
-    /// `--multiple`, because each file is uploaded in a separate
+    /// `--single-item`, because each file is uploaded in a separate
     /// request. Without this, only files are accepted and uploaded in
     /// one single request.
     #[clap(long, short, group = "g_multiple")]
