@@ -136,7 +136,18 @@ fn near_expiry(created: u64, valid: Option<u64>) -> bool {
         .duration_since(std::time::SystemTime::UNIX_EPOCH)
         .unwrap();
     let created_ms = Duration::from_millis(created);
-    let diff = now - created_ms;
+
+    let diff = match now.checked_sub(created_ms) {
+        Some(d) => d,
+        None => {
+            log::warn!(
+                "Cannot calc '{:?} - {:?}'. Going with a default.",
+                now,
+                created_ms,
+            );
+            Duration::from_secs(180)
+        }
+    };
 
     match valid {
         Some(valid_ms) => {
