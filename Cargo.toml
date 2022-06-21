@@ -16,7 +16,7 @@ readme = "README.md"
 
 [dependencies]
 chrono = "0.4"
-clap = { version = "3.2.5", features = ["derive", "wrap_help"] }
+clap = { version = "3.2.6", features = ["derive", "wrap_help"] }
 clap_complete = "3.2.1"
 console = {version = "0.15"}
 csv = "1.1"
