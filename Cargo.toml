@@ -28,7 +28,7 @@ hex = "0.4"
 log = { version = "0.4" }
 notify = "4.0"
 openssl = { version = "0.10", optional = true }
-percent-encoding = { version = "2.1" }
+percent-encoding = { version = "2.2" }
 prettytable-rs = { version = "0.9" }
 reqwest = { version = "0.11", default-features = false, features = ["json", "blocking", "multipart"] }
 rsotp = "0.1.0"
