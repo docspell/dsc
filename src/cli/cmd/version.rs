@@ -3,7 +3,7 @@ use crate::cli::table::AsTable;
 use crate::http::payload::{BuildInfo, VersionInfo};
 use crate::http::Error as HttpError;
 use clap::Parser;
-use prettytable::{cell, row, Table};
+use prettytable::{row, Table};
 use serde::Serialize;
 use snafu::{ResultExt, Snafu};
 

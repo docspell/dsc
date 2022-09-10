@@ -192,7 +192,7 @@ fn get_token_file() -> Result<PathBuf, Error> {
 
 fn read_token_file(path: &Path) -> Result<AuthResp, Error> {
     if path.exists() {
-        let _flock = acquire_lock(path, false)?;
+        acquire_lock(path, false)?;
 
         let cnt = std::fs::read_to_string(&path).context(ReadSessionFileSnafu { path })?;
         let resp: AuthResp = serde_json::from_str(&cnt).context(SerializeSessionSnafu)?;

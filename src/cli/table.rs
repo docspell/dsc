@@ -4,7 +4,7 @@ use crate::cli::sink::{Error as SinkError, Sink};
 use crate::http::payload::*;
 use chrono::{DateTime, TimeZone, Utc};
 use prettytable::format::{FormatBuilder, LinePosition, LineSeparator};
-use prettytable::{cell, row, Table};
+use prettytable::{row, Table};
 
 /// A trait to format a data structure into a [`prettytable::Table`].
 pub trait AsTable {

@@ -1,5 +1,5 @@
 use clap::Parser;
-use prettytable::{cell, row, Table};
+use prettytable::{row, Table};
 use serde::{Deserialize, Serialize};
 use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
