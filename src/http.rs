@@ -719,6 +719,7 @@ impl Client {
         self.client
             .post(url)
             .header(DOCSPELL_ADMIN, admin_secret.into())
+            .header(reqwest::header::CONTENT_LENGTH, 0)
             .send()
             .and_then(|r| r.error_for_status())
             .context(HttpSnafu { url })?
@@ -737,6 +738,7 @@ impl Client {
         self.client
             .post(url)
             .header(DOCSPELL_ADMIN, admin_secret.into())
+            .header(reqwest::header::CONTENT_LENGTH, 0)
             .send()
             .and_then(|r| r.error_for_status())
             .context(HttpSnafu { url })?
@@ -757,6 +759,7 @@ impl Client {
         self.client
             .post(url)
             .header(DOCSPELL_ADMIN, admin_secret.into())
+            .header(reqwest::header::CONTENT_LENGTH, 0)
             .send()
             .and_then(|r| r.error_for_status())
             .context(HttpSnafu { url })?
