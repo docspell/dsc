@@ -1,15 +1,15 @@
-use clap::{ArgEnum, Command, Parser};
+use clap::{Command, Parser, ValueEnum};
 use clap_complete::{generate, Generator, Shell};
 
 /// Generates completions for some shells.
 ///
 #[derive(Parser, std::fmt::Debug)]
 pub struct Input {
-    #[clap(long, arg_enum)]
+    #[clap(long, value_enum)]
     pub shell: GeneratorChoice,
 }
 
-#[derive(ArgEnum, Clone, Debug, PartialEq)]
+#[derive(ValueEnum, Clone, Debug, PartialEq)]
 pub enum GeneratorChoice {
     Bash,
     Elvish,

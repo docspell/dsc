@@ -37,7 +37,7 @@ pub struct Input {
 
     /// One or more files/directories to check. Directories are
     /// traversed recursively.
-    #[clap(required = true, min_values = 1)]
+    #[clap(required = true, num_args = 1)]
     pub files: Vec<PathBuf>,
 }
 

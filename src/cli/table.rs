@@ -53,7 +53,7 @@ pub fn format_date(dt: i64) -> String {
 pub fn format_date_by(dt: i64, pattern: &str) -> String {
     let secs = dt / 1000;
     let nsec: u32 = ((dt % 1000) * 1000) as u32;
-    let dt: DateTime<Utc> = Utc.timestamp(secs, nsec);
+    let dt: DateTime<Utc> = Utc.timestamp_opt(secs, nsec).unwrap();
     dt.format(pattern).to_string()
 }
 

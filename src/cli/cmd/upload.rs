@@ -1,4 +1,4 @@
-use clap::{ArgGroup, Parser, ValueHint};
+use clap::{ArgAction, ArgGroup, Parser, ValueHint};
 use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
 
@@ -42,7 +42,7 @@ pub struct Input {
 
     /// If set, all files are uploaded as one single item. Default is
     /// to create one item per file. This does not work with `--traverse`!
-    #[clap(long = "single-item", parse(from_flag = std::ops::Not::not), group="g_multiple")]
+    #[clap(long = "single-item", action = ArgAction::SetFalse, group="g_multiple")]
     pub multiple: bool,
 
     /// A glob pattern for matching against each file. Note that
@@ -80,7 +80,7 @@ pub struct Input {
     pub dry_run: bool,
 
     /// One or more files to upload
-    #[clap(required = true, min_values = 1, value_hint = ValueHint::FilePath)]
+    #[clap(required = true, num_args = 1, value_hint = ValueHint::FilePath)]
     pub files: Vec<PathBuf>,
 }
 

@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use snafu::{ResultExt, Snafu};
 
 use super::{Cmd, Context};
@@ -20,7 +20,7 @@ pub struct Input {
     pub search_mode: SearchMode,
 
     /// Do not fetch details to each item in the result
-    #[clap(long = "no-details", parse(from_flag = std::ops::Not::not))]
+    #[clap(long = "no-details", action = ArgAction::SetFalse)]
     pub with_details: bool,
 
     /// Limit the number of results.

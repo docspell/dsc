@@ -7,7 +7,7 @@ use crate::{
     http::proxy,
     http::{FileAuth, IntegrationAuth, IntegrationData},
 };
-use clap::{ArgEnum, ArgGroup, Parser, ValueHint};
+use clap::{ArgAction, ArgGroup, Parser, ValueEnum, ValueHint};
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, str::FromStr};
 
@@ -26,7 +26,7 @@ pub struct MainOpts {
     ///
     /// The environment variable DSC_CONFIG can also be used to define
     /// a specific config file.
-    #[clap(short, long, parse(from_os_str), value_hint = ValueHint::FilePath)]
+    #[clap(short, long, value_parser, value_hint = ValueHint::FilePath)]
     pub config: Option<PathBuf>,
 
     #[clap(flatten)]
@@ -46,15 +46,15 @@ pub struct CommonOpts {
     /// Be more verbose when logging. Verbosity is increased by
     /// occurrence of this option. Use `-vv` for debug verbosity and
     /// `-v` for info.
-    #[clap(short, long, parse(from_occurrences))]
-    pub verbose: i32,
+    #[clap(short, long, action = ArgAction::Count)]
+    pub verbose: u8,
 
     /// The output format. This defines how to format the output. The
     /// default is "Tabular" or it can be given via the config file.
     /// While json and lisp are always presenting all information, csv
     /// and tabular can omit or consolidate some for better
     /// readability.
-    #[clap(short, long, arg_enum)]
+    #[clap(short, long, value_enum)]
     pub format: Option<Format>,
 
     /// The (base) URL to the Docspell server. If not given, it must
@@ -208,7 +208,7 @@ pub enum SubCommand {
 }
 
 /// The format for presenting the results.
-#[derive(ArgEnum, Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(ValueEnum, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Format {
     Json,
     Lisp,
@@ -315,7 +315,7 @@ impl std::str::FromStr for NameVal {
 }
 
 /// The direction of an item in docspell.
-#[derive(ArgEnum, Debug, Clone)]
+#[derive(ValueEnum, Debug, Clone)]
 pub enum Direction {
     In,
     Out,
@@ -333,7 +333,7 @@ impl Direction {
 #[derive(Parser, Debug, Clone)]
 pub struct UploadMeta {
     /// Specify the direction of the item.
-    #[clap(long, arg_enum)]
+    #[clap(long, value_enum)]
     pub direction: Option<Direction>,
 
     /// Specify a folder to associate to the new item.
@@ -341,12 +341,12 @@ pub struct UploadMeta {
     pub folder: Option<String>,
 
     /// Alow duplicates by skipping the duplicate check.
-    #[clap(long = "allow-dupes", parse(from_flag = std::ops::Not::not))]
+    #[clap(long = "allow-dupes", action = ArgAction::SetFalse)]
     pub skip_duplicates: bool,
 
     /// Specify a list of tags to associate. Tags can be given by name
     /// or id. The option can be repeated multiple times.
-    #[clap(long, required = false, min_values = 1, number_of_values = 1)]
+    #[clap(long, required = false, num_args = 1, number_of_values = 1)]
     pub tag: Vec<String>,
 
     /// Only applicable for zip/eml files. Specify a file filter to

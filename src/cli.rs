@@ -6,7 +6,7 @@ pub mod sink;
 pub mod table;
 
 use crate::config::DsConfig;
-use clap::IntoApp;
+use clap::CommandFactory;
 
 use self::cmd::{Cmd, CmdError, Context};
 use self::opts::{MainOpts, SubCommand};

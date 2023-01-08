@@ -27,7 +27,7 @@ pub struct Input {
     pub replace: bool,
 
     /// A list of tags. Can be ids or names.
-    #[clap(required = true, min_values = 1)]
+    #[clap(required = true, num_args = 1)]
     pub tags: Vec<String>,
 }
 

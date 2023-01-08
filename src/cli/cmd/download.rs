@@ -1,4 +1,4 @@
-use clap::{ArgEnum, ArgGroup, Parser};
+use clap::{ArgGroup, Parser, ValueEnum};
 use snafu::{ResultExt, Snafu};
 use std::path::{Display, Path, PathBuf};
 
@@ -62,7 +62,7 @@ pub struct Input {
     /// What to do when multiple files map to the same name. Can be
     /// one of: skip, rename. For rename, the target file is renamed
     /// by appending a number suffix.
-    #[clap(long, arg_enum, default_value = "rename")]
+    #[clap(long, value_enum, default_value = "rename")]
     dupes: DupeMode,
 
     /// Download everything into this directory. If not given, the
@@ -83,7 +83,7 @@ impl Input {
     }
 }
 
-#[derive(ArgEnum, Clone, Debug, PartialEq, Eq)]
+#[derive(ValueEnum, Clone, Debug, PartialEq, Eq)]
 pub enum DupeMode {
     Skip,
     Rename,

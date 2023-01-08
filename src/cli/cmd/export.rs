@@ -1,4 +1,4 @@
-use clap::{ArgEnum, ArgGroup, Parser};
+use clap::{ArgGroup, Parser, ValueEnum};
 use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
 
@@ -10,7 +10,7 @@ use crate::http::payload::{Item, SearchMode, SearchReq};
 use crate::http::{Downloads, Error as HttpError};
 use crate::util::file;
 
-#[derive(ArgEnum, Clone, Copy, Debug)]
+#[derive(ValueEnum, Clone, Copy, Debug)]
 pub enum LinkNaming {
     /// Name links to items after the items' id.
     Id,
@@ -66,7 +66,7 @@ pub struct Input {
 
     /// Specify after which of an items' property the links to it
     /// should be named. (Defaults to id)
-    #[clap(long, arg_enum)]
+    #[clap(long, value_enum)]
     link_naming: Option<LinkNaming>,
 
     /// Creates symlinks by item date. This may not work on some file
