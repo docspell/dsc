@@ -5,7 +5,7 @@ use clap_complete::{generate, Generator, Shell};
 ///
 #[derive(Parser, std::fmt::Debug)]
 pub struct Input {
-    #[clap(long, value_enum)]
+    #[arg(long, value_enum)]
     pub shell: GeneratorChoice,
 }
 
@@ -14,7 +14,7 @@ pub enum GeneratorChoice {
     Bash,
     Elvish,
     Fish,
-    #[clap(name = "powershell")]
+    #[value(name = "powershell")]
     PowerShell,
     Zsh,
 }

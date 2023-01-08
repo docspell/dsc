@@ -10,11 +10,11 @@ use crate::http::Error as HttpError;
 #[derive(Parser, std::fmt::Debug)]
 pub struct Input {
     /// Filter sources that start by the given name
-    #[clap(long)]
+    #[arg(long)]
     pub name: Option<String>,
 
     /// Filter sources that start by the given id
-    #[clap(long)]
+    #[arg(long)]
     pub id: Option<String>,
 }
 

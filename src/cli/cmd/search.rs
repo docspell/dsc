@@ -20,15 +20,15 @@ pub struct Input {
     pub search_mode: SearchMode,
 
     /// Do not fetch details to each item in the result
-    #[clap(long = "no-details", action = ArgAction::SetFalse)]
+    #[arg(long = "no-details", action = ArgAction::SetFalse)]
     pub with_details: bool,
 
     /// Limit the number of results.
-    #[clap(short, long, default_value = "20")]
+    #[arg(short, long, default_value = "20")]
     pub limit: u32,
 
     /// Skip the first n results.
-    #[clap(short, long, default_value = "0")]
+    #[arg(short, long, default_value = "0")]
     pub offset: u32,
 }
 

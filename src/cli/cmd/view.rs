@@ -21,7 +21,7 @@ use crate::http::Error as HttpError;
 /// Use the `search-summary` command with the same query to get an
 /// idea how much is being downloaded. This is an interactive command.
 #[derive(Parser, std::fmt::Debug)]
-#[clap(group = ArgGroup::new("kind"))]
+#[command(group = ArgGroup::new("kind"))]
 pub struct Input {
     /// The query string. See <https://docspell.org/docs/query/>
     query: String,
@@ -30,15 +30,15 @@ pub struct Input {
     pub search_mode: SearchMode,
 
     /// Limit the number of results.
-    #[clap(short, long, default_value = "60")]
+    #[arg(short, long, default_value = "60")]
     limit: u32,
 
     /// Skip the first n results.
-    #[clap(short, long, default_value = "0")]
+    #[arg(short, long, default_value = "0")]
     offset: u32,
 
     /// Ask whether to keep viewing between each file.
-    #[clap(long, short)]
+    #[arg(long, short)]
     stop: bool,
 }
 

@@ -14,7 +14,7 @@ pub struct Input {
 
 #[derive(Parser, Debug)]
 pub enum SourceCommand {
-    #[clap(version)]
+    #[command(version)]
     List(list::Input),
 }
 

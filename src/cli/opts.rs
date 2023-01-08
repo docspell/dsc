@@ -17,7 +17,7 @@ use std::{path::PathBuf, str::FromStr};
 /// This CLI is mostly a wrapper around the docspell remote api. For
 /// more information, see <https://docspell.org/docs/api>.
 #[derive(Parser, Debug)]
-#[clap(name = "dsc", version)]
+#[command(name = "dsc", version)]
 pub struct MainOpts {
     /// This can specify a path to a config file to load. It is
     /// expected to be in TOML format. If not given, the default
@@ -26,7 +26,7 @@ pub struct MainOpts {
     ///
     /// The environment variable DSC_CONFIG can also be used to define
     /// a specific config file.
-    #[clap(short, long, value_parser, value_hint = ValueHint::FilePath)]
+    #[arg(short, long, value_hint = ValueHint::FilePath)]
     pub config: Option<PathBuf>,
 
     #[clap(flatten)]
@@ -41,12 +41,12 @@ pub struct MainOpts {
 /// They are defined for the main command, before the subcommand is
 /// defined.
 #[derive(Parser, Debug)]
-#[clap(group = ArgGroup::new("tls"))]
+#[command(group = ArgGroup::new("tls"))]
 pub struct CommonOpts {
     /// Be more verbose when logging. Verbosity is increased by
     /// occurrence of this option. Use `-vv` for debug verbosity and
     /// `-v` for info.
-    #[clap(short, long, action = ArgAction::Count)]
+    #[arg(short, long, action = ArgAction::Count)]
     pub verbose: u8,
 
     /// The output format. This defines how to format the output. The
@@ -54,47 +54,47 @@ pub struct CommonOpts {
     /// While json and lisp are always presenting all information, csv
     /// and tabular can omit or consolidate some for better
     /// readability.
-    #[clap(short, long, value_enum)]
+    #[arg(short, long, value_enum)]
     pub format: Option<Format>,
 
     /// The (base) URL to the Docspell server. If not given, it must
     /// be present in the config file or given as environment variable
     /// DSC_DOCSPELL_URL.
-    #[clap(short, long, value_hint = ValueHint::Url)]
+    #[arg(short, long, value_hint = ValueHint::Url)]
     pub docspell_url: Option<String>,
 
     /// Overrides the session token which is by default created by the
     /// `login` command and stored in the file system. It can be
     /// overriden by either the env variable `DSC_SESSION` or using
     /// this option. In these cases, no file system access happens.
-    #[clap(long)]
+    #[arg(long)]
     pub session: Option<String>,
 
     /// Set a proxy to use for doing http requests. By default, the
     /// system proxy will be used. Can be either `none` or <url>. If
     /// `none`, the system proxy will be ignored; otherwise specify
     /// the proxy url, like `http://myproxy.com`.
-    #[clap(long)]
+    #[arg(long)]
     pub proxy: Option<ProxySetting>,
 
     /// The user to authenticate at the proxy via Basic auth.
-    #[clap(long)]
+    #[arg(long)]
     pub proxy_user: Option<String>,
 
     /// The password to authenticate at the proxy via Basic auth.
-    #[clap(long)]
+    #[arg(long)]
     pub proxy_password: Option<String>,
 
     /// Add a root certificate to the trust store used when connecting
     /// via TLS. It can be a PEM or DER formatted file.
-    #[clap(long, value_hint = ValueHint::FilePath, group = "tls")]
+    #[arg(long, value_hint = ValueHint::FilePath, group = "tls")]
     pub extra_certificate: Option<PathBuf>,
 
     /// This ignores any invalid certificates when connecting to the
     /// docspell server. It is obvious, that this should be used
     /// carefully! This cannot be used, when `--extra-certificate` is
     /// specfified.
-    #[clap(long, group = "tls")]
+    #[arg(long, group = "tls")]
     pub accept_invalid_certificates: bool,
 }
 
@@ -143,67 +143,67 @@ pub enum SubCommand {
     /// Write the default config to the file system and exit.
     ///
     /// The location depends on the OS and is shown after writing.
-    #[clap(version)]
+    #[command(version)]
     WriteDefaultConfig,
 
     /// Write completions for some shells to stdout.
     GenerateCompletions(generate_completions::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Watch(watch::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Version(version::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Login(login::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Logout(logout::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Search(search::Input),
 
-    #[clap(version, alias = "summary")]
+    #[command(version, alias = "summary")]
     SearchSummary(search_summary::Input),
 
-    #[clap(version)]
+    #[command(version)]
     FileExists(file_exists::Input),
 
-    #[clap(version)]
+    #[command(version)]
     GenInvite(geninvite::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Register(register::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Source(source::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Item(item::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Bookmark(bookmark::Input),
 
-    #[clap(version, alias = "up")]
+    #[command(version, alias = "up")]
     Upload(upload::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Download(download::Input),
 
-    #[clap(version)]
+    #[command(version)]
     View(view::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Cleanup(cleanup::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Export(export::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Admin(admin::Input),
 
-    #[clap(version)]
+    #[command(version)]
     OpenItem(open_item::Input),
 }
 
@@ -222,33 +222,33 @@ pub enum Format {
 // Uploads can be done via a source id, the integration endpoint or a
 // valid session.
 #[derive(Parser, Debug, Clone)]
-#[clap(group = ArgGroup::new("int"))]
-#[clap(group = ArgGroup::new("g_source"))]
+#[command(group = ArgGroup::new("int"))]
+#[command(group = ArgGroup::new("g_source"))]
 pub struct EndpointOpts {
     /// When using the integration endpoint, provides the Basic auth
     /// header as credential. This must be a `username:password` pair.
-    #[clap(long, group = "int")]
+    #[arg(long, group = "int")]
     pub basic: Option<NameVal>,
 
     /// Use the integration endpoint and provide the http header as
     /// credentials. This must be a `Header:Value` pair.
-    #[clap(long, group = "int")]
+    #[arg(long, group = "int")]
     pub header: Option<NameVal>,
 
     /// Use the integration endpoint. Credentials `--header|--basic`
     /// must be specified if applicable.
-    #[clap(long, short, group = "g_source")]
+    #[arg(long, short, group = "g_source")]
     pub integration: bool,
 
     /// When using the integration endpoint, the collective is
     /// required.
-    #[clap(long, short, value_hint = ValueHint::Username)]
+    #[arg(long, short, value_hint = ValueHint::Username)]
     pub collective: Option<String>,
 
     /// Use the given source id. If not specified, the default id from
     /// the config is used; otherwise a login is required
-    #[clap(long, group = "int")]
-    #[clap(group = "g_source")]
+    #[arg(long, group = "int")]
+    #[arg(group = "g_source")]
     pub source: Option<String>,
 }
 
@@ -333,67 +333,67 @@ impl Direction {
 #[derive(Parser, Debug, Clone)]
 pub struct UploadMeta {
     /// Specify the direction of the item.
-    #[clap(long, value_enum)]
+    #[arg(long, value_enum)]
     pub direction: Option<Direction>,
 
     /// Specify a folder to associate to the new item.
-    #[clap(long)]
+    #[arg(long)]
     pub folder: Option<String>,
 
     /// Alow duplicates by skipping the duplicate check.
-    #[clap(long = "allow-dupes", action = ArgAction::SetFalse)]
+    #[arg(long = "allow-dupes", action = ArgAction::SetFalse)]
     pub skip_duplicates: bool,
 
     /// Specify a list of tags to associate. Tags can be given by name
     /// or id. The option can be repeated multiple times.
-    #[clap(long, required = false, num_args = 1, number_of_values = 1)]
+    #[arg(long, required = false, num_args = 1)]
     pub tag: Vec<String>,
 
     /// Only applicable for zip/eml files. Specify a file filter to
     /// use when unpacking archives like zip files or eml files.
-    #[clap(long)]
+    #[arg(long)]
     pub file_filter: Option<String>,
 
     /// Specify the language of the document.
-    #[clap(long, short)]
+    #[arg(long, short)]
     pub language: Option<String>,
 
     /// Discard the the mail body and only import the attachments.
     /// Only applicable when e-mail files are uploaded.
-    #[clap(long)]
+    #[arg(long)]
     pub attachments_only: bool,
 
     /// If specified, extracts zip files and submits a separate job
     /// for each entry. Otherwise zip files are treated as related and
     /// result in a single item each with perhaps multiple
     /// attachments.
-    #[clap(long)]
+    #[arg(long)]
     pub flatten_archives: bool,
 }
 
 // Shared options for specifying what to do with a file.
 #[derive(Parser, Debug, Clone)]
-#[clap(group = ArgGroup::new("file-action"))]
+#[command(group = ArgGroup::new("file-action"))]
 pub struct FileAction {
     /// Deletes the file.
-    #[clap(long, group = "file-action")]
+    #[arg(long, group = "file-action")]
     pub delete: bool,
 
     /// Moves the file into the given directory. The directory
     /// structure is retained in the target folder.
-    #[clap(long = "move", group = "file-action", value_hint = ValueHint::DirPath)]
+    #[arg(long = "move", group = "file-action", value_hint = ValueHint::DirPath)]
     pub move_to: Option<PathBuf>,
 }
 
 #[derive(Parser, Debug, Clone)]
-#[clap(group = ArgGroup::new("search-mode"))]
+#[command(group = ArgGroup::new("search-mode"))]
 pub struct SearchMode {
     /// Search in trashed items, too.
-    #[clap(long, group = "search-mode")]
+    #[arg(long, group = "search-mode")]
     pub all: bool,
 
     /// Search only in trashed items.
-    #[clap(long, group = "search-mode")]
+    #[arg(long, group = "search-mode")]
     pub trashed_only: bool,
 }
 

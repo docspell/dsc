@@ -12,7 +12,7 @@ use crate::http::Error as HttpError;
 /// calculated one.
 #[derive(Parser, std::fmt::Debug)]
 pub struct Input {
-    #[clap(long, short)]
+    #[arg(long, short)]
     pub collective: Option<String>,
 }
 

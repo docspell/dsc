@@ -11,7 +11,7 @@ use crate::http::Error as HttpError;
 /// one.
 #[derive(Parser, std::fmt::Debug)]
 pub struct Input {
-    #[clap(long, short)]
+    #[arg(long, short)]
     pub target: Vec<String>,
 }
 

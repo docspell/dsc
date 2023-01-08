@@ -12,7 +12,7 @@ use crate::http::Error as HttpError;
 /// server.
 #[derive(Parser, Debug)]
 pub struct Input {
-    #[clap(long, short)]
+    #[arg(long, short)]
     password: String,
 }
 

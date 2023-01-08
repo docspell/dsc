@@ -32,12 +32,12 @@ pub struct Input {
     pub action: FileAction,
 
     /// Each file is printed.
-    #[clap(long)]
+    #[arg(long)]
     pub dry_run: bool,
 
     /// One or more files/directories to check. Directories are
     /// traversed recursively.
-    #[clap(required = true, num_args = 1)]
+    #[arg(required = true, num_args = 1)]
     pub files: Vec<PathBuf>,
 }
 

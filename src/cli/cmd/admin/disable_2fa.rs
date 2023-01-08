@@ -10,7 +10,7 @@ use crate::http::Error as HttpError;
 /// Disables the two-factor authentication for a given account
 #[derive(Parser, std::fmt::Debug)]
 pub struct Input {
-    #[clap(long, short, value_hint = ValueHint::Username)]
+    #[arg(long, short, value_hint = ValueHint::Username)]
     pub account: String,
 }
 

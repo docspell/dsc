@@ -10,21 +10,21 @@ use crate::http::Error as HttpError;
 #[derive(Parser, Debug)]
 pub struct Input {
     /// The collective name to use. If unsure, use the same as login.
-    #[clap(long, short, value_hint = ValueHint::Username)]
+    #[arg(long, short, value_hint = ValueHint::Username)]
     pub collective_name: String,
 
     /// The user name. This name together with the collective name
     /// must be unique.
-    #[clap(long, short, value_hint = ValueHint::Username)]
+    #[arg(long, short, value_hint = ValueHint::Username)]
     pub login: String,
 
     /// The password for the account.
-    #[clap(long, short)]
+    #[arg(long, short)]
     pub password: String,
 
     /// If signup requires an invitation key, it can be specified
     /// here.
-    #[clap(long, short)]
+    #[arg(long, short)]
     pub invite: Option<String>,
 }
 
