@@ -1,4 +1,4 @@
-use clap::{ArgEnum, ArgGroup, Parser};
+use clap::{ArgGroup, Parser, ValueEnum};
 use snafu::{ResultExt, Snafu};
 use std::path::{Display, Path, PathBuf};
 
@@ -20,7 +20,7 @@ use crate::{
 /// Use the `search-summary` command with the same query to get an
 /// idea how much is being downloaded.
 #[derive(Parser, std::fmt::Debug)]
-#[clap(group = ArgGroup::new("kind"))]
+#[command(group = ArgGroup::new("kind"))]
 pub struct Input {
     /// The query string. See <https://docspell.org/docs/query/>
     query: String,
@@ -29,46 +29,46 @@ pub struct Input {
     pub search_mode: SearchMode,
 
     /// Limit the number of results.
-    #[clap(short, long, default_value = "60")]
+    #[arg(short, long, default_value = "60")]
     limit: u32,
 
     /// Skip the first n results.
-    #[clap(short, long, default_value = "0")]
+    #[arg(short, long, default_value = "0")]
     offset: u32,
 
     /// Whether to overwrite already existing files. By default the
     /// download is skipped if there is already a file with the target
     /// name present. When using `--zip` this will remove an existing
     /// zip file before downloading.
-    #[clap(long)]
+    #[arg(long)]
     overwrite: bool,
 
     /// Download the original file instead of the converted PDF.
-    #[clap(long, group = "kind")]
+    #[arg(long, group = "kind")]
     original: bool,
 
     /// Download the original archive file to the attachment if
     /// available. Since often multiple files map to a single archive,
     /// the option `--dupes skip` can be used here.
-    #[clap(long, group = "kind")]
+    #[arg(long, group = "kind")]
     archive: bool,
 
     /// Creates a single zip file containing all files (flat). If this
     /// is enabled, the `target` option is expected to be the target
     /// zip file and not a directory.
-    #[clap(long)]
+    #[arg(long)]
     zip: bool,
 
     /// What to do when multiple files map to the same name. Can be
     /// one of: skip, rename. For rename, the target file is renamed
     /// by appending a number suffix.
-    #[clap(long, arg_enum, default_value = "rename")]
+    #[arg(long, value_enum, default_value = "rename")]
     dupes: DupeMode,
 
     /// Download everything into this directory. If not given, the
     /// current working directory is used. If `--zip` is used, this is
     /// the zip file to create.
-    #[clap(short, long)]
+    #[arg(short, long)]
     target: Option<PathBuf>,
 }
 impl Input {
@@ -83,7 +83,7 @@ impl Input {
     }
 }
 
-#[derive(ArgEnum, Clone, Debug, PartialEq, Eq)]
+#[derive(ValueEnum, Clone, Debug, PartialEq, Eq)]
 pub enum DupeMode {
     Skip,
     Rename,

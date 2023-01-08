@@ -19,7 +19,7 @@ use super::{Cmd, Context};
 pub struct Input {
     /// This secret is required to access them. If not given here, it
     /// is taken from the config file.
-    #[clap(short, long)]
+    #[arg(short, long)]
     pub admin_secret: Option<String>,
 
     #[clap(subcommand)]
@@ -53,26 +53,26 @@ pub enum Error {
 
 #[derive(Parser, Debug)]
 pub enum AdminCommand {
-    #[clap(version)]
+    #[command(version)]
     GeneratePreviews(generate_previews::Input),
 
-    #[clap(version)]
+    #[command(version)]
     RecreateIndex(recreate_index::Input),
 
-    #[clap(version)]
+    #[command(version)]
     ResetPassword(reset_password::Input),
 
-    #[clap(version)]
+    #[command(version)]
     ConvertAllPdfs(convert_all_pdfs::Input),
 
-    #[clap(name = "disable-2fa")]
-    #[clap(version)]
+    #[command(name = "disable-2fa")]
+    #[command(version)]
     Disable2FA(disable_2fa::Input),
 
-    #[clap(version)]
+    #[command(version)]
     CloneFileRepository(file_clone_repository::Input),
 
-    #[clap(version)]
+    #[command(version)]
     FileIntegrityCheck(file_integrity_check::Input),
 }
 

@@ -10,7 +10,7 @@ use crate::http::Error as HttpError;
 /// Resets the password of the given account.
 #[derive(Parser, std::fmt::Debug)]
 pub struct Input {
-    #[clap(long, short, value_hint = ValueHint::Username)]
+    #[arg(long, short, value_hint = ValueHint::Username)]
     pub account: String,
 }
 

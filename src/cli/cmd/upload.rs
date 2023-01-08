@@ -1,4 +1,4 @@
-use clap::{ArgGroup, Parser, ValueHint};
+use clap::{ArgAction, ArgGroup, Parser, ValueHint};
 use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
 
@@ -32,7 +32,7 @@ use crate::util::{digest, file};
 ///
 /// For glob patterns, see <https://docs.rs/glob/0.3.0/glob/struct.Pattern.html>
 #[derive(Parser, Debug)]
-#[clap(group = ArgGroup::new("g_multiple"))]
+#[command(group = ArgGroup::new("g_multiple"))]
 pub struct Input {
     #[clap(flatten)]
     pub endpoint: EndpointOpts,
@@ -42,12 +42,12 @@ pub struct Input {
 
     /// If set, all files are uploaded as one single item. Default is
     /// to create one item per file. This does not work with `--traverse`!
-    #[clap(long = "single-item", parse(from_flag = std::ops::Not::not), group="g_multiple")]
+    #[arg(long = "single-item", action = ArgAction::SetFalse, group="g_multiple")]
     pub multiple: bool,
 
     /// A glob pattern for matching against each file. Note that
     /// usually you can just use the shells expansion mechanism.
-    #[clap(long, short, default_value = "**/*")]
+    #[arg(long, short, default_value = "**/*")]
     pub matches: String,
 
     #[clap(flatten)]
@@ -55,7 +55,7 @@ pub struct Input {
 
     /// A glob pattern that excludes files to upload. If `--matches`
     /// is also specified, both must evaluate to true.
-    #[clap(long, short)]
+    #[arg(long, short)]
     pub not_matches: Option<String>,
 
     /// Traverses directories and uploads all files that match the
@@ -63,24 +63,24 @@ pub struct Input {
     /// `--single-item`, because each file is uploaded in a separate
     /// request. Without this, only files are accepted and uploaded in
     /// one single request.
-    #[clap(long, short, group = "g_multiple")]
+    #[arg(long, short, group = "g_multiple")]
     pub traverse: bool,
 
     /// Can be used with `--traverse` to periodically run an upload.
     /// This option allows to set a delay in seconds that is waited in
     /// between runs. Please see the `watch` subcommand for a more
     /// efficient way to achieve the same.
-    #[clap(long)]
+    #[arg(long)]
     pub poll: Option<u64>,
 
     /// Doesn't submit the request, but prints which files would be
     /// uploaded instead. This might be useful when using `--traverse`
     /// and glob patterns.
-    #[clap(long)]
+    #[arg(long)]
     pub dry_run: bool,
 
     /// One or more files to upload
-    #[clap(required = true, min_values = 1, value_hint = ValueHint::FilePath)]
+    #[arg(required = true, num_args = 1, value_hint = ValueHint::FilePath)]
     pub files: Vec<PathBuf>,
 }
 

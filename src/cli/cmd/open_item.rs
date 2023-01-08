@@ -23,7 +23,7 @@ pub struct Input {
     pub endpoint: EndpointOpts,
 
     /// Do not open the item in the browser, only print the url.
-    #[clap(long)]
+    #[arg(long)]
     pub print_only: bool,
 
     /// A file or an item id.

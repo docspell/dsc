@@ -20,28 +20,28 @@ use std::io::Write;
 /// session token is given via options or env variable, the session
 /// file is not updated (no filesystem access occurs).
 #[derive(Parser, Debug, PartialEq)]
-#[clap(group = ArgGroup::new("pass"))]
+#[command(group = ArgGroup::new("pass"))]
 pub struct Input {
     /// The account name. If not given here, it is looked up in the
     /// config file.
-    #[clap(long, short, value_hint = ValueHint::Username)]
+    #[arg(long, short, value_hint = ValueHint::Username)]
     user: Option<String>,
 
     /// The password used for authentication in plain text. An
     /// environment variable DSC_PASSWORD can also be used.
-    #[clap(long, group = "pass")]
+    #[arg(long, group = "pass")]
     password: Option<String>,
 
     /// An entry for the pass password manager. If this is given, the
     /// `password` option is ignored.
-    #[clap(long, group = "pass")]
+    #[arg(long, group = "pass")]
     pass_entry: Option<String>,
 
     /// An entry for the pass password manager that contains the TOTP
     /// secret, so dsc can obtain the TOTP code automatically. If
     /// prefixed with `key:` the remaining part is looked up in the
     /// other `pass_entry` instead.
-    #[clap(long)]
+    #[arg(long)]
     pass_otp: Option<String>,
 }
 

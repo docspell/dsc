@@ -21,7 +21,7 @@ pub struct Input {
     pub endpoint: EndpointOpts,
 
     /// One or more files to check
-    #[clap(required = true, min_values = 1, value_hint = ValueHint::FilePath)]
+    #[arg(required = true, num_args = 1, value_hint = ValueHint::FilePath)]
     pub files: Vec<PathBuf>,
 }
 

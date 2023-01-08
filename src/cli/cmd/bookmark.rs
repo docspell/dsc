@@ -8,13 +8,13 @@ use super::{Cmd, Context};
 /// Manage bookmarks.
 #[derive(Parser, std::fmt::Debug)]
 pub struct Input {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     pub subcmd: BookmarkCommand,
 }
 
 #[derive(Parser, Debug)]
 pub enum BookmarkCommand {
-    #[clap(version)]
+    #[command(version)]
     Get(get::Input),
 }
 

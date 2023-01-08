@@ -8,22 +8,22 @@ use crate::http::Error as HttpError;
 
 /// Set or remove field values for an item.
 #[derive(Parser, Debug)]
-#[clap(group = ArgGroup::new("action"))]
+#[command(group = ArgGroup::new("action"))]
 pub struct Input {
     /// The item id (can be abbreviated to a prefix)
-    #[clap(long)]
+    #[arg(long)]
     pub id: String,
 
     /// Set the value of the field.
-    #[clap(long, group = "action")]
+    #[arg(long, group = "action")]
     pub set: Option<String>,
 
     /// Remove the field from the item.
-    #[clap(long, group = "action")]
+    #[arg(long, group = "action")]
     pub remove: bool,
 
     /// The field name.
-    #[clap(long)]
+    #[arg(long)]
     pub name: String,
 }
 

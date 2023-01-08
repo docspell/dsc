@@ -1,4 +1,4 @@
-use clap::{ArgEnum, ArgGroup, Parser};
+use clap::{ArgGroup, Parser, ValueEnum};
 use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
 
@@ -10,7 +10,7 @@ use crate::http::payload::{Item, SearchMode, SearchReq};
 use crate::http::{Downloads, Error as HttpError};
 use crate::util::file;
 
-#[derive(ArgEnum, Clone, Copy, Debug)]
+#[derive(ValueEnum, Clone, Copy, Debug)]
 pub enum LinkNaming {
     /// Name links to items after the items' id.
     Id,
@@ -44,60 +44,60 @@ impl Default for LinkNaming {
 /// The `--*-links` options can be used to create a symlink tree based
 /// on some metadata, like tags, correspondents or item date.
 #[derive(Parser, std::fmt::Debug)]
-#[clap(group = ArgGroup::new("kind"))]
+#[command(group = ArgGroup::new("kind"))]
 pub struct Input {
     /// Limit the number of results.
-    #[clap(short, long, default_value = "100")]
+    #[arg(short, long, default_value = "100")]
     limit: u32,
 
     /// Skip the first n results.
-    #[clap(short, long, default_value = "0")]
+    #[arg(short, long, default_value = "0")]
     offset: u32,
 
     /// If `true`, all entries are exported. That is, the `offset` is
     /// incremented until all entries have been exported.
-    #[clap(short, long)]
+    #[arg(short, long)]
     all: bool,
 
     /// Overwrite already existing files. By default the download is
     /// skipped if there is already a file with the same name present.
-    #[clap(long)]
+    #[arg(long)]
     overwrite: bool,
 
     /// Specify after which of an items' property the links to it
     /// should be named. (Defaults to id)
-    #[clap(long, arg_enum)]
+    #[arg(long, value_enum)]
     link_naming: Option<LinkNaming>,
 
     /// Creates symlinks by item date. This may not work on some file
     /// systems.
-    #[clap(long)]
+    #[arg(long)]
     date_links: bool,
 
     /// Create symlinks by tag. This may not work on some file
     /// systems.
-    #[clap(long)]
+    #[arg(long)]
     tag_links: bool,
 
     /// Create symlinks by folder. This may not work on some
     /// file systems.
-    #[clap(long)]
+    #[arg(long)]
     folder_links: bool,
 
     /// Create symlinks by correspondent. This may not work on some
     /// file systems.
-    #[clap(long)]
+    #[arg(long)]
     correspondent_links: bool,
 
     /// If your Folder-names contain a custom delimiter used to represent
     /// flat hierarchy (e.g. "Financial/Invoices"), the delimiter you set
     /// with this option is used to split the Folder name into a path, which
     /// is then created on the file-system when using the folder-links export.
-    #[clap(long)]
+    #[arg(long)]
     folder_delimiter: Option<String>,
 
     /// Download everything into this directory.
-    #[clap(short, long)]
+    #[arg(short, long)]
     target: PathBuf,
 
     /// The optional query string. If not given everything is

@@ -10,19 +10,19 @@ use super::{Cmd, Context};
 /// Manage items.
 #[derive(Parser, std::fmt::Debug)]
 pub struct Input {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     pub subcmd: ItemCommand,
 }
 
 #[derive(Parser, Debug)]
 pub enum ItemCommand {
-    #[clap(version)]
+    #[command(version)]
     Get(get::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Tags(tags::Input),
 
-    #[clap(version)]
+    #[command(version)]
     Fields(fields::Input),
 }
 

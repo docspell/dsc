@@ -28,11 +28,11 @@ use crate::util::file;
 #[derive(Parser, Debug)]
 pub struct Input {
     /// Wether to watch directories recursively or not.
-    #[clap(long, short)]
+    #[arg(long, short)]
     pub recursive: bool,
 
     /// A delay in seconds after which the event is acted upon.
-    #[clap(long = "delay", default_value = "6")]
+    #[arg(long = "delay", default_value = "6")]
     pub delay_secs: u64,
 
     #[clap(flatten)]
@@ -43,23 +43,23 @@ pub struct Input {
 
     /// A glob pattern for matching against each file. Note that
     /// usually you can just use the shells expansion mechanism.
-    #[clap(long, short, default_value = "**/*")]
+    #[arg(long, short, default_value = "**/*")]
     pub matches: String,
 
     /// A glob pattern that excludes files to upload. If `--matches`
     /// is also specified, both must evaluate to true.
-    #[clap(long, short)]
+    #[arg(long, short)]
     pub not_matches: Option<String>,
 
     /// Don't upload anything, but print what would be uploaded.
-    #[clap(long)]
+    #[arg(long)]
     pub dry_run: bool,
 
     #[clap(flatten)]
     pub endpoint: EndpointOpts,
 
     /// The directories to watch for changes.
-    #[clap(value_hint = ValueHint::DirPath)]
+    #[arg(value_hint = ValueHint::DirPath)]
     pub dirs: Vec<PathBuf>,
 }
 
