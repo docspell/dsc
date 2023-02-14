@@ -19,7 +19,7 @@ chrono = "0.4"
 clap = { version = "4.1.4", features = ["derive", "wrap_help"] }
 clap_complete = "4.1.1"
 console = {version = "0.15"}
-csv = "1.1"
+csv = "1.2"
 dialoguer = { version = "0.10" }
 dirs = { version = "4.0" }
 env_logger = { version = "0.10" }
