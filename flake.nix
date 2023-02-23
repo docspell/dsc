@@ -1,90 +1,64 @@
-# Adopted from https://github.com/srid/rust-nix-template/blob/master/flake.nix
-
 {
   description = "A command line interface to Docspell";
 
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-22.05";
-    utils.url = "github:numtide/flake-utils";
-    rust-overlay.url = "github:oxalica/rust-overlay";
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    naersk.url = "github:nix-community/naersk/master";
   };
 
-  outputs = { self, nixpkgs, utils, rust-overlay, ... }:
-    let
-      # If you change the name here, you must also do it in Cargo.toml
-      name = "dsc";
-      rustChannel = "stable";
-
-      commit = self.shortRev or "dirty";
-      date = self.lastModifiedDate or self.lastModified or "19700101";
-      baseVersion = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.version;
-      version = "${baseVersion}+${builtins.substring 0 8 date}-${commit}";
-
-      overlays = {
-        overlay = final: prev: {
-          ${name} = self.packages.${final.system}.${name};
-        };
-      };
-
-    in
-    overlays // utils.lib.eachDefaultSystem
-      (system:
+  outputs = inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [ ];
+      systems =
+        [
+          "aarch64-linux"
+          "aarch64-darwin"
+          "x86_64-darwin"
+          "x86_64-linux"
+        ]; # List taken from flake-utils
+      perSystem = { config, self', inputs', pkgs, system, ... }:
         let
-          # Imports
-          pkgs = import nixpkgs {
-            inherit system;
-            overlays = [
-              rust-overlay.overlays.default
-              (self: super:
-                let
-                  rustLatest = self.rust-bin.${rustChannel}.latest.default;
-                in {
-                  rustc = rustLatest;
-                  cargo = rustLatest;
-                  rustPlatform = pkgs.makeRustPlatform {
-                    rustc = rustLatest;
-                    cargo = rustLatest;
-                  };
-              })
-            ];
-          };
+          naersk-lib = pkgs.callPackage inputs.naersk { };
         in
         rec {
-          packages.${name} = pkgs.callPackage ./nix/dsc.nix {
-            inherit version;
-            description = self.description;
-            pname = name;
-          };
-
-          # `nix build`
-          defaultPackage = packages.${name};
-
-          # `nix run`
-          apps.${name} = utils.lib.mkApp {
-            inherit name;
-            drv = packages.${name};
-          };
-          defaultApp = apps.${name};
-
-          # `nix develop`
-          devShell = pkgs.mkShell
-            {
-              inputsFrom = builtins.attrValues self.packages.${system};
-              buildInputs = with pkgs;
-                # Tools you need for development go here.
-                [
-                  nixpkgs-fmt
-                  cargo-watch
-                  pkgs.rust-bin.${rustChannel}.latest.rust-analysis
-                  pkgs.rust-bin.${rustChannel}.latest.rls
-                ];
-
-              RUST_SRC_PATH = "${pkgs.rust-bin.${rustChannel}.latest.rust-src}/lib/rustlib/src/rust/library";
+          packages.default = naersk-lib.buildPackage {
+            root = ./.;
+            meta = with pkgs.lib; {
+              inherit description;
+              homepage = "https://github.com/docspell/dsc";
+              license = with licenses; [ gpl3 ];
+              maintainers = with maintainers; [ eikek ];
             };
-        }
-      );
+            nativeBuildInputs = with pkgs;
+              [
+                pkg-config
+                openssl
+                installShellFiles
+              ];
+            postInstall =
+              ''
+                for shell in fish zsh bash; do
+                  $out/bin/dsc generate-completions --shell $shell > dsc.$shell
+                  installShellCompletion --$shell dsc.$shell
+                done
+              '';
+          };
+          apps.default = {
+            type = "app";
+            program = "${packages.default}/bin/dsc";
+          };
+          devShells.default = with pkgs; mkShell {
+            buildInputs = [
+              cargo
+            ];
+            RUST_SRC_PATH = rustPlatform.rustLibSrc;
+          };
+          formatter = pkgs.nixpkgs-fmt;
+        };
+      flake = {
+        # The usual flake attributes can be defined here, including system-
+        # agnostic ones like nixosModule and system-enumerating ones, although
+        # those are more easily expressed in perSystem.
+      };
+    };
 }
