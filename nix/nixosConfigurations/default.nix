@@ -9,6 +9,8 @@ let
       };
     };
   };
+  watchDir = "/docspell-watch";
+  integrationHeaderValue = "test123";
 in
 {
   # Common development config
@@ -47,6 +49,27 @@ in
 
   # Add dsc to the environment
   environment.systemPackages = [ pkgs.dsc ];
+  # configure dsc-watch
+  systemd.tmpfiles.rules =
+    [
+      "d ${watchDir} 1777 root root 10d" # directory to watch
+    ];
+
+  services.dsc-watch = {
+    enable = true;
+    docspell-url = "http://localhost:7880";
+    exclude-filter = null;
+    watchDirs =
+      [
+        watchDir # Note, dsc expects files to be in a subdirectory corresponding to a collective. There is no way to declaratively create a collective as of the time of writing
+      ];
+    integration-endpoint =
+      {
+        enabled = true;
+        header = "Docspell-Integration:${integrationHeaderValue}";
+      };
+  };
+
   # Docspell service configuration and its requirements
   services.docspell-joex = {
     enable = true;
@@ -70,7 +93,7 @@ in
       enabled = true;
       http-header = {
         enabled = true;
-        header-value = "test123";
+        header-value = integrationHeaderValue;
       };
     };
     inherit full-text-search;

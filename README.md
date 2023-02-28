@@ -154,19 +154,28 @@ can be build using [flake enabled](https://nixos.wiki/wiki/Flakes) nix:
 nix build
 ```
 
-You can install it into your profile. With
-[flakes](https://nixos.wiki/wiki/Flakes) enabled:
+Or ran as
 
-```
-nix profile install github:docspell/dsc/v$version
-```
-
-Or using `nix-env`:
-``` bashn
-nix-env -if https://github.com/docspell/dsc/archive/refs/tags/v$version.tar.gz
+``` bash
+nix run github:docspell/dsc
 ```
 
-where `$version` is the current version, like 0.9.0.
+The repository provides a package which can be included in your system
+flake by adding:
+
+``` nix
+{
+  inputs.dsc-flake.url = "github:docspell/dsc";
+  ...
+  outputs =
+  ...
+    environment.systemPackages = [ dsc-flake.packages.${system}.default ]
+  ...
+}
+```
+
+And a module for dsc watch. An example of its usage is in nixosConfigurations
+output of the flake.
 
 
 ## Examples

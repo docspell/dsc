@@ -71,6 +71,11 @@
         # The usual flake attributes can be defined here, including system-
         # agnostic ones like nixosModule and system-enumerating ones, although
         # those are more easily expressed in perSystem.
+        nixosModules =
+          rec {
+            default = dsc-watch;
+            dsc-watch = import ./nix/module.nix;
+          };
         nixosConfigurations.dev-vm =
           let
             system = "x86_64-linux";
@@ -88,6 +93,7 @@
             modules =
               [
                 inputs.docspell-flake.nixosModules.default
+                self.nixosModules.dsc-watch
                 ./nix/nixosConfigurations
               ];
           };
