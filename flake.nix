@@ -8,7 +8,9 @@
 
   outputs = inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [ ];
+      imports = [
+        inputs.flake-parts.flakeModules.easyOverlay
+      ];
       systems =
         [
           "aarch64-linux"
@@ -21,27 +23,31 @@
           naersk-lib = pkgs.callPackage inputs.naersk { };
         in
         rec {
-          packages.default = naersk-lib.buildPackage {
-            root = ./.;
-            meta = with pkgs.lib; {
-              inherit description;
-              homepage = "https://github.com/docspell/dsc";
-              license = with licenses; [ gpl3 ];
-              maintainers = with maintainers; [ eikek ];
+          packages = rec
+          {
+            default = naersk-lib.buildPackage {
+              root = ./.;
+              meta = with pkgs.lib; {
+                description = "A command line interface to Docspell";
+                homepage = "https://github.com/docspell/dsc";
+                license = with licenses; [ gpl3 ];
+                maintainers = with maintainers; [ eikek ];
+              };
+              nativeBuildInputs = with pkgs;
+                [
+                  pkg-config
+                  openssl
+                  installShellFiles
+                ];
+              postInstall =
+                ''
+                  for shell in fish zsh bash; do
+                    $out/bin/dsc generate-completions --shell $shell > dsc.$shell
+                    installShellCompletion --$shell dsc.$shell
+                  done
+                '';
             };
-            nativeBuildInputs = with pkgs;
-              [
-                pkg-config
-                openssl
-                installShellFiles
-              ];
-            postInstall =
-              ''
-                for shell in fish zsh bash; do
-                  $out/bin/dsc generate-completions --shell $shell > dsc.$shell
-                  installShellCompletion --$shell dsc.$shell
-                done
-              '';
+            dsc = default;
           };
           apps.default = {
             type = "app";
@@ -52,6 +58,9 @@
               cargo
             ];
             RUST_SRC_PATH = rustPlatform.rustLibSrc;
+          };
+          overlayAttrs = {
+            inherit (config.packages) dsc;
           };
           formatter = pkgs.nixpkgs-fmt;
         };
