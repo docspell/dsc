@@ -4,9 +4,12 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     naersk.url = "github:nix-community/naersk/master";
+    docspell-flake = {
+      url = "github:eikek/docspell?dir=nix";
+    };
   };
 
-  outputs = inputs@{ flake-parts, ... }:
+  outputs = inputs@{ flake-parts, self, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.flake-parts.flakeModules.easyOverlay
@@ -68,6 +71,26 @@
         # The usual flake attributes can be defined here, including system-
         # agnostic ones like nixosModule and system-enumerating ones, although
         # those are more easily expressed in perSystem.
+        nixosConfigurations.dev-vm =
+          let
+            system = "x86_64-linux";
+            pkgs = import inputs.nixpkgs {
+              inherit system;
+              overlays =
+                [
+                  self.overlays.default
+                  inputs.docspell-flake.overlays.default
+                ];
+            };
+          in
+          inputs.nixpkgs.lib.nixosSystem {
+            inherit pkgs system;
+            modules =
+              [
+                inputs.docspell-flake.nixosModules.default
+                ./nix/nixosConfigurations
+              ];
+          };
       };
     };
 }
