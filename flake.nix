@@ -39,9 +39,11 @@
               nativeBuildInputs = with pkgs;
                 [
                   pkg-config
-                  openssl
-                  installShellFiles
                 ];
+              buildInputs = with pkgs; [
+                openssl
+                installShellFiles
+              ];
               postInstall =
                 ''
                   for shell in fish zsh bash; do
@@ -59,7 +61,13 @@
           devShells.default = with pkgs; mkShell {
             buildInputs = [
               cargo
+              rustc
+              openssl
             ];
+            nativeBuildInputs = with pkgs;
+              [
+                pkg-config
+              ];
             RUST_SRC_PATH = rustPlatform.rustLibSrc;
           };
           overlayAttrs = {
