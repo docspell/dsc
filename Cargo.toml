@@ -1,6 +1,6 @@
 [package]
 name = "dsc"
-version = "0.10.0"
+version = "0.11.0-pre"
 authors = ["eikek <eikek@posteo.de>"]
 edition = "2021"
 description = "A command line interface to Docspell."
