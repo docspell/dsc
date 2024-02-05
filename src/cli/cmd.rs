@@ -134,27 +134,70 @@ fn proxy_settings(opts: &CommonOpts, cfg: &DsConfig) -> ProxySetting {
 
 #[derive(Debug, Snafu)]
 pub enum CmdError {
+    #[snafu(display("Bookmark - {}", source))]
     Bookmark { source: bookmark::Error },
+
+    #[snafu(display("ContextCreate - {}", source))]
     ContextCreate { source: http::Error },
+
+    #[snafu(display("Export - {}", source))]
     Export { source: export::Error },
+
+    #[snafu(display("Watch - {}", source))]
     Watch { source: watch::Error },
+
+    #[snafu(display("Upload - {}", source))]
     Upload { source: upload::Error },
+
+    #[snafu(display("Admin - {}", source))]
     Admin { source: admin::Error },
+
+    #[snafu(display("Cleanup - {}", source))]
     Cleanup { source: cleanup::Error },
+
+    #[snafu(display("Download - {}", source))]
     Download { source: download::Error },
+
+    #[snafu(display("FileExists - {}", source))]
     FileExists { source: file_exists::Error },
+
+    #[snafu(display("GenInvite - {}", source))]
     GenInvite { source: geninvite::Error },
+
+    #[snafu(display("Item - {}", source))]
     Item { source: item::Error },
+
+    #[snafu(display("Login - {}", source))]
     Login { source: login::Error },
+
+    #[snafu(display("Logout - {}", source))]
     Logout { source: logout::Error },
+
+    #[snafu(display("OpenItem - {}", source))]
     OpenItem { source: open_item::Error },
+
+    #[snafu(display("Register - {}", source))]
     Register { source: register::Error },
+
+    #[snafu(display("Search - {}", source))]
     Search { source: search::Error },
+
+    #[snafu(display("SearchSummary - {}", source))]
     SearchSummary { source: search_summary::Error },
+
+    #[snafu(display("Source - {}", source))]
     Source { source: source::Error },
+
+    #[snafu(display("Version - {}", source))]
     Version { source: version::Error },
+
+    #[snafu(display("View - {}", source))]
     View { source: view::Error },
+
+    #[snafu(display("WriteConfig - {}", source))]
     WriteConfig { source: ConfigError },
+
+    #[snafu(display("{}", source))]
     WriteSink { source: SinkError },
 }
 

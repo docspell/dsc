@@ -9,6 +9,7 @@ use crate::{
 };
 use clap::{ArgAction, ArgGroup, Parser, ValueEnum, ValueHint};
 use serde::{Deserialize, Serialize};
+use snafu::Snafu;
 use std::{path::PathBuf, str::FromStr};
 
 /// This is a command line interface to the docspell server. Docspell
@@ -225,6 +226,18 @@ pub enum Format {
 #[command(group = ArgGroup::new("int"))]
 #[command(group = ArgGroup::new("g_source"))]
 pub struct EndpointOpts {
+    /// Use the integration endpoint and provide the basic auth header
+    /// as credentials. This must be a `username:password` pair as the
+    /// first line not starting with '#'.
+    #[arg(long, group = "int", value_hint = ValueHint::FilePath)]
+    pub basic_file: Option<PathBuf>,
+
+    /// Use the integration endpoint and provide the http header as
+    /// credentials. This must be a `Header:Value` pair as the first
+    /// line not starting with '#'.
+    #[arg(long, group = "int", value_hint = ValueHint::FilePath)]
+    pub header_file: Option<PathBuf>,
+
     /// When using the integration endpoint, provides the Basic auth
     /// header as credential. This must be a `username:password` pair.
     #[arg(long, group = "int")]
@@ -235,8 +248,9 @@ pub struct EndpointOpts {
     #[arg(long, group = "int")]
     pub header: Option<NameVal>,
 
-    /// Use the integration endpoint. Credentials `--header|--basic`
-    /// must be specified if applicable.
+    /// Use the integration endpoint. Credentials
+    /// `--header[-file]|--basic[-file]` must be specified if
+    /// applicable.
     #[arg(long, short, group = "g_source")]
     pub integration: bool,
 
@@ -252,6 +266,21 @@ pub struct EndpointOpts {
     pub source: Option<String>,
 }
 
+#[derive(Debug, Snafu)]
+pub enum FileAuthError {
+    #[snafu(display("Could not read file: {}", path.display()))]
+    FileRead {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+
+    #[snafu(display("Could not parse name:value pair in '{}': {}", path.display(), message))]
+    NameValParse { path: PathBuf, message: String },
+
+    #[snafu(display("No collective specified"))]
+    NoCollective,
+}
+
 impl EndpointOpts {
     pub fn get_source_id(&self, cfg: &DsConfig) -> Option<String> {
         self.source
@@ -259,30 +288,72 @@ impl EndpointOpts {
             .or_else(|| cfg.default_source_id.clone())
     }
 
-    /// When no result can be returned, the collective was not provided.
+    fn read_name_val(file: &PathBuf) -> Result<NameVal, FileAuthError> {
+        let cnt = std::fs::read_to_string(file).map_err(|e| FileAuthError::FileRead {
+            path: file.to_path_buf(),
+            source: e,
+        })?;
+
+        let line = cnt
+            .lines()
+            .filter(|s| !s.starts_with("#"))
+            .take(1)
+            .map(String::from)
+            .nth(0);
+
+        match line {
+            Some(l) => NameVal::from_str(&l).map_err(|str| FileAuthError::NameValParse {
+                path: file.to_path_buf(),
+                message: str,
+            }),
+            None => Err(FileAuthError::NameValParse {
+                path: file.to_path_buf(),
+                message: "File is empty".to_string(),
+            }),
+        }
+    }
+
+    /// Convert the options into a `FileAuth` object to be used with the http client
     pub fn to_file_auth(
         &self,
         ctx: &Context,
         fallback_cid: &dyn Fn() -> Option<String>,
-    ) -> Option<FileAuth> {
+    ) -> Result<FileAuth, FileAuthError> {
         if self.integration {
-            let cid = self.collective.clone().or_else(fallback_cid)?;
+            let cid = self
+                .collective
+                .clone()
+                .or_else(fallback_cid)
+                .ok_or(FileAuthError::NoCollective)?;
             let mut res = IntegrationData {
                 collective: cid,
                 auth: IntegrationAuth::None,
             };
+            if let Some(header_file) = &self.header_file {
+                log::debug!(
+                    "Reading file for integration header {}",
+                    header_file.display()
+                );
+                let np = Self::read_name_val(&header_file)?;
+                res.auth = IntegrationAuth::Header(np.name.clone(), np.value.clone());
+            }
+            if let Some(basic_file) = &self.basic_file {
+                log::debug!("Reading file for basic auth {}", basic_file.display());
+                let np = Self::read_name_val(&basic_file)?;
+                res.auth = IntegrationAuth::Basic(np.name.clone(), np.value.clone());
+            }
             if let Some(basic) = &self.basic {
                 res.auth = IntegrationAuth::Basic(basic.name.clone(), basic.value.clone());
             }
             if let Some(header) = &self.header {
                 res.auth = IntegrationAuth::Header(header.name.clone(), header.value.clone());
             }
-            Some(FileAuth::Integration(res))
+            Ok(FileAuth::Integration(res))
         } else {
             let sid = self.get_source_id(ctx.cfg);
             match sid {
-                Some(id) => Some(FileAuth::from_source(id)),
-                None => Some(FileAuth::Session {
+                Some(id) => Ok(FileAuth::from_source(id)),
+                None => Ok(FileAuth::Session {
                     token: ctx.opts.session.clone(),
                 }),
             }

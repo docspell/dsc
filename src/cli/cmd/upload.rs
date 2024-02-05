@@ -3,7 +3,7 @@ use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
 
 use super::{Cmd, Context};
-use crate::cli::opts::{EndpointOpts, FileAction, UploadMeta};
+use crate::cli::opts::{EndpointOpts, FileAction, FileAuthError, UploadMeta};
 use crate::cli::sink::Error as SinkError;
 use crate::http::payload::{BasicResult, StringList, UploadMeta as MetaRequest};
 use crate::http::{Error as HttpError, FileAuth};
@@ -86,11 +86,11 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display(
-        "The collective is required when uploading: {}. It cannot be deduced from the path.",
-        path.display()
-    ))]
-    CollectiveNotGiven { path: PathBuf },
+    #[snafu(display("Cannot get credentials (could not be deduced from {}): {}", path.display(), source))]
+    CredentialsRead {
+        source: FileAuthError,
+        path: PathBuf,
+    },
 
     #[snafu(display("Unable to open file {}: {}", path.display(), source))]
     OpenFile {
@@ -241,7 +241,7 @@ fn upload_traverse(
                             file::collective_from_subdir(&child, &[path.to_path_buf()])
                                 .unwrap_or(None)
                         })
-                        .ok_or(Error::CollectiveNotGiven {
+                        .context(CredentialsReadSnafu {
                             path: child.clone(),
                         })?;
                     let exists = check_existence(&child, opts, ctx, &fauth)?;
@@ -268,7 +268,7 @@ fn upload_traverse(
             let fauth = opts
                 .endpoint
                 .to_file_auth(ctx, &|| None)
-                .ok_or(Error::CollectiveNotGiven { path: path.clone() })?;
+                .context(CredentialsReadSnafu { path: path.clone() })?;
             let exists = check_existence(path, opts, ctx, &fauth)?;
             if !exists {
                 eprintln!("Uploading file {}", path.display());
@@ -327,7 +327,7 @@ fn upload_single(
             let fauth =
                 opts.endpoint
                     .to_file_auth(ctx, &|| None)
-                    .ok_or(Error::CollectiveNotGiven {
+                    .context(CredentialsReadSnafu {
                         path: opts.files[0].clone(),
                     })?;
 
@@ -351,10 +351,9 @@ fn upload_single(
             let fauth =
                 opts.endpoint
                     .to_file_auth(ctx, &|| None)
-                    .ok_or(Error::CollectiveNotGiven {
+                    .context(CredentialsReadSnafu {
                         path: opts.files[0].clone(),
                     })?;
-
             eprintln!("Sending request …");
             let result = ctx
                 .client

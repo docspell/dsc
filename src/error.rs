@@ -6,7 +6,10 @@ use snafu::Snafu;
 
 #[derive(Debug, Snafu)]
 pub enum Error {
+    #[snafu(display("{}", source))]
     Cmd { source: cmd::CmdError },
+
+    #[snafu(display("Configuration error: {}", source))]
     Config { source: config::ConfigError },
 }
 
