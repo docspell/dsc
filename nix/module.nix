@@ -70,6 +70,16 @@ in
               default = false;
               description = "Whether to upload to the integration endpoint.";
             };
+            header-file = mkOption {
+              type = types.nullOr types.path;
+              default = null;
+              description = "A file containing the `header:value` pair for the integration endpoint.";
+            };
+            basic-file = mkOption {
+              type = types.nullOr types.path;
+              default = null;
+              description = "A file containing the `user:password` pair for the integration endpoint.";
+            };
             header = mkOption {
               type = types.nullOr types.str;
               default = null;
@@ -116,16 +126,15 @@ in
         args = (if cfg.recursive then [ "-r" ] else [ ]) ++
           (if cfg.delete-files then [ "--delete" ] else [ ]) ++
           (if cfg.integration-endpoint.enabled then [ "-i" ] else [ ]) ++
-          (if cfg.integration-endpoint.header != null
-          then
-            [ "--header" "'${cfg.integration-endpoint.header}'" ]
-          else
-            [ ]) ++
-          (if cfg.integration-endpoint.basic != null
-          then
-            [ "--basic" "'${cfg.integration-endpoint.basic}'" ]
-          else
-            [ ]) ++
+          (if cfg.integration-endpoint.header-file != null
+           then [ "--header-file" "'${cfg.integration-endpoint.header-file}'" ]
+           else if cfg.integration-endpoint.basic-file != null
+           then [ "--basic-file" "'${cfg.integration-endpoint.basic-file}'" ]
+           else if cfg.integration-endpoint.header != null
+           then [ "--header" "'${cfg.integration-endpoint.header}'" ]
+           else if cfg.integration-endpoint.basic != null
+           then [ "--basic" "'${cfg.integration-endpoint.basic}'" ]
+           else [ ]) ++
           (if cfg.include-filter != null then
             [ "--matches" "'${toString cfg.include-filter}'" ]
           else [ ]) ++
