@@ -2,7 +2,7 @@ use clap::{Parser, ValueHint};
 use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
 
-use crate::cli::opts::EndpointOpts;
+use crate::cli::opts::{EndpointOpts, FileAuthError};
 use crate::cli::sink::Error as SinkError;
 use crate::http::payload::CheckFileResult;
 use crate::http::Error as HttpError;
@@ -27,8 +27,8 @@ pub struct Input {
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Collective must be present when using integration endpoint."))]
-    NoCollective,
+    #[snafu(display("Cannot get credentials: {}", source))]
+    CredentialsRead { source: FileAuthError },
 
     #[snafu(display("Calculating digest of file {} failed: {}", path.display(), source))]
     DigestFail {
@@ -68,7 +68,7 @@ pub fn check_file(
 ) -> Result<CheckFileResult, Error> {
     let fa = opts
         .to_file_auth(ctx, &|| None)
-        .ok_or(Error::NoCollective)?;
+        .context(CredentialsReadSnafu)?;
     let hash = digest::digest_file_sha256(file).context(DigestFailSnafu { path: file })?;
     let mut result = ctx.client.file_exists(hash, &fa).context(HttpClientSnafu)?;
     result.file = file.canonicalize().ok().map(|p| p.display().to_string());

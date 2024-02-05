@@ -5,10 +5,10 @@ use snafu::{ResultExt, Snafu};
 use std::path::{Path, PathBuf};
 use webbrowser;
 
-use crate::cli::cmd;
 use crate::cli::opts::EndpointOpts;
 use crate::cli::sink::{Error as SinkError, Sink};
 use crate::cli::table;
+use crate::cli::{self, cmd};
 use crate::http::payload::CheckFileResult;
 use crate::http::Error as HttpError;
 use crate::util::digest;
@@ -49,6 +49,9 @@ pub enum Error {
 
     #[snafu(display("Error opening browser: {}", source))]
     Webbrowser { source: std::io::Error },
+
+    #[snafu(display("Cannot get credentials: {}", source))]
+    CredentialsRead { source: cli::opts::FileAuthError },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -144,7 +147,7 @@ fn item_from_file(
 ) -> Result<CheckFileResult, Error> {
     let fa = opts
         .to_file_auth(ctx, &|| None)
-        .ok_or(Error::NoCollective)?;
+        .context(CredentialsReadSnafu)?;
     let hash = digest::digest_file_sha256(file).context(DigestFailSnafu { path: file })?;
     let mut result = ctx.client.file_exists(hash, &fa).context(HttpClientSnafu)?;
     result.file = file.canonicalize().ok().map(|p| p.display().to_string());

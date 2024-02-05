@@ -6,7 +6,7 @@ use super::{Cmd, Context};
 use crate::http::Error as HttpError;
 use crate::util::{digest, file};
 use crate::{
-    cli::opts::{EndpointOpts, FileAction},
+    cli::opts::{EndpointOpts, FileAction, FileAuthError},
     util::file::FileActionResult,
 };
 use crate::{cli::sink::Error as SinkError, http::payload::BasicResult};
@@ -61,8 +61,8 @@ pub enum Error {
     #[snafu(display("No action given. Use --move or --delete."))]
     NoAction,
 
-    #[snafu(display("A collective was not found and was not specified"))]
-    NoCollective,
+    #[snafu(display("Cannot get credentials: {}", source))]
+    CredentialsRead { source: FileAuthError },
 
     #[snafu(display("The target '{}' is not a directory", path.display()))]
     TargetNotDirectory { path: PathBuf },
@@ -177,7 +177,7 @@ fn check_file_exists(
         .to_file_auth(ctx, &|| {
             file::collective_from_subdir(path, &dirs).unwrap_or(None)
         })
-        .ok_or(Error::NoCollective)?;
+        .context(CredentialsReadSnafu)?;
 
     let hash = digest::digest_file_sha256(path).context(DigestFailSnafu { path })?;
     let result = ctx
