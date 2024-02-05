@@ -57,7 +57,7 @@ pub enum Error {
     NoPdfViewer,
 
     #[snafu(display("Interaction with terminal failed: {}", source))]
-    Interact { source: std::io::Error },
+    Interact { source: dialoguer::Error },
 }
 
 impl Cmd for Input {
