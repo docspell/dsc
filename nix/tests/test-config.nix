@@ -1,29 +1,25 @@
 { config, pkgs, ... }:
 let
   dsc = import ../release.nix;
-  docspellsrc = builtins.fetchTarball "https://github.com/eikek/docspell/archive/master.tar.gz";
+  docspellsrc = builtins.fetchTarball
+    "https://github.com/eikek/docspell/archive/master.tar.gz";
   docspell = import "${docspellsrc}/nix/release.nix";
-in
-{
+in {
   imports = [ ../module.nix ] ++ docspell.modules;
 
-  i18n = {
-    defaultLocale = "en_US.UTF-8";
-  };
+  i18n = { defaultLocale = "en_US.UTF-8"; };
   console.keyMap = "de";
 
-  users.users.root = {
-    password = "root";
-  };
+  users.users.root = { password = "root"; };
 
   nixpkgs = {
     config = {
       packageOverrides = pkgs:
         let
-          callPackage = pkgs.lib.callPackageWith(custom // pkgs);
+          callPackage = pkgs.lib.callPackageWith (custom // pkgs);
           custom = {
-            dsc = callPackage dsc {};
-            docspell = callPackage docspell.currentPkg {};
+            dsc = callPackage dsc { };
+            docspell = callPackage docspell.currentPkg { };
           };
         in custom;
     };
@@ -38,7 +34,7 @@ in
       enabled = true;
       header = "Docspell-Integration:test123";
     };
-    watchDirs = ["/tmp/docs"];
+    watchDirs = [ "/tmp/docs" ];
   };
 
   services.docspell-restserver = {
@@ -51,32 +47,23 @@ in
         header-value = "test123";
       };
     };
-    full-text-search = {
-      enabled = false;
-    };
+    full-text-search = { enabled = false; };
   };
 
+  environment.systemPackages = [ pkgs.jq pkgs.telnet pkgs.htop pkgs.dsc ];
 
-  environment.systemPackages =
-    [ pkgs.jq
-      pkgs.telnet
-      pkgs.htop
-      pkgs.dsc
-    ];
-
-
-  services.xserver = {
-    enable = false;
-  };
+  services.xserver = { enable = false; };
 
   networking = {
     hostName = "dsctest";
-    firewall.allowedTCPPorts = [7880];
+    firewall.allowedTCPPorts = [ 7880 ];
   };
 
   system.activationScripts = {
     initUploadDir = ''
-      mkdir -p ${builtins.concatStringsSep " " config.services.dsc-watch.watchDirs}
+      mkdir -p ${
+        builtins.concatStringsSep " " config.services.dsc-watch.watchDirs
+      }
 
     '';
   };

@@ -1,10 +1,8 @@
 { config, lib, pkgs, ... }:
 
 with lib;
-let
-  cfg = config.services.dsc-watch;
-in
-{
+let cfg = config.services.dsc-watch;
+in {
 
   ## interface
   options = {
@@ -36,7 +34,6 @@ in
         default = true;
         description = "Whether to watch directories recursively.";
       };
-
 
       verbose = mkOption {
         type = types.bool;
@@ -73,12 +70,14 @@ in
             header-file = mkOption {
               type = types.nullOr types.path;
               default = null;
-              description = "A file containing the `header:value` pair for the integration endpoint.";
+              description =
+                "A file containing the `header:value` pair for the integration endpoint.";
             };
             basic-file = mkOption {
               type = types.nullOr types.path;
               default = null;
-              description = "A file containing the `user:password` pair for the integration endpoint.";
+              description =
+                "A file containing the `user:password` pair for the integration endpoint.";
             };
             header = mkOption {
               type = types.nullOr types.str;
@@ -121,47 +120,69 @@ in
   ## implementation
   config = mkIf config.services.dsc-watch.enable {
 
-    systemd.user.services.dsc-watch =
-      let
-        args = (if cfg.recursive then [ "-r" ] else [ ]) ++
-          (if cfg.delete-files then [ "--delete" ] else [ ]) ++
-          (if cfg.integration-endpoint.enabled then [ "-i" ] else [ ]) ++
-          (if cfg.integration-endpoint.header-file != null
-           then [ "--header-file" "'${cfg.integration-endpoint.header-file}'" ]
-           else if cfg.integration-endpoint.basic-file != null
-           then [ "--basic-file" "'${cfg.integration-endpoint.basic-file}'" ]
-           else if cfg.integration-endpoint.header != null
-           then [ "--header" "'${cfg.integration-endpoint.header}'" ]
-           else if cfg.integration-endpoint.basic != null
-           then [ "--basic" "'${cfg.integration-endpoint.basic}'" ]
-           else [ ]) ++
-          (if cfg.include-filter != null then
-            [ "--matches" "'${toString cfg.include-filter}'" ]
-          else [ ]) ++
-          (if cfg.exclude-filter != null then
-            [ "--not-matches" "'${toString cfg.exclude-filter}'" ]
-          else [ ]) ++
-          (if cfg.source-id != null then [ "--source" "'${cfg.source-id}'" ] else [ ]);
+    systemd.user.services.dsc-watch = let
+      argmap = [
+        {
+          when = cfg.recursive;
+          opt = [ "-r" ];
+        }
+        {
+          when = cfg.delete-files;
+          opt = [ "--delete" ];
+        }
+        {
+          when = cfg.integration-endpoint.enabled;
+          opt = [ "-i" ];
+        }
+        {
+          when = cfg.integration-endpoint.header-file != null;
+          opt = [ "--header-file" "'${cfg.integration-endpoint.header-file}'" ];
+        }
+        {
+          when = cfg.integration-endpoint.basic-file != null;
+          opt = [ "--basic-file" "'${cfg.integration-endpoint.basic-file}'" ];
+        }
+        {
+          when = cfg.integration-endpoint.header != null;
+          opt = [ "--header" "'${cfg.integration-endpoint.header}'" ];
+        }
+        {
+          when = cfg.integration-endpoint.basic != null;
+          opt = [ "--basic" "'${cfg.integration-endpoint.basic}'" ];
+        }
+        {
+          when = cfg.include-filter != null;
+          opt = "--matches" "'${toString cfg.include-filter}'";
+        }
+        {
+          when = cfg.exclude-filter != null;
+          opt = "--not-matches" "'${toString cfg.exclude-filter}'";
+        }
+        {
+          when = cfg.source-id != null;
+          opt = "--source" "'${cfg.source-id}'";
+        }
+      ];
 
-        cmd = "${cfg.package}/bin/dsc " +
-          "-d '${cfg.docspell-url}'" +
-          (if cfg.verbose then " -vv " else "") +
-          " watch " +
-          (builtins.concatStringsSep " " args) + " " +
-          (builtins.concatStringsSep " " cfg.watchDirs);
-      in
-      {
-        description = "Docspell Watch Directory";
-        after = [ "networking.target" ];
-        wants = [ "networking.target" ];
-        wantedBy = [ "default.target" ];
-        serviceConfig = {
-          Restart = "on-failure";
-          RestartSec = 5;
-        };
-        path = [ ];
+      argv = builtins.concatLists (builtins.map (a: a.opt)
+        (builtins.filter (a: a.when) argmap));
 
-        script = ''echo "Running for user: $(whoami)" && ${cmd}'';
+      cmd = "${cfg.package}/bin/dsc " + "-d '${cfg.docspell-url}'"
+        + (if cfg.verbose then " -vv " else "") + " watch "
+        + (builtins.concatStringsSep " " argv) + " "
+        + (builtins.concatStringsSep " " cfg.watchDirs);
+    in {
+      description = "Docspell Watch Directory";
+      after = [ "networking.target" ];
+      wants = [ "networking.target" ];
+      wantedBy = [ "default.target" ];
+      serviceConfig = {
+        Restart = "on-failure";
+        RestartSec = 5;
       };
+      path = [ ];
+
+      script = ''echo "Running for user: $(whoami)" && ${cmd}'';
+    };
   };
 }

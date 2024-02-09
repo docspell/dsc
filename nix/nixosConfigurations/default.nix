@@ -3,30 +3,21 @@ let
   full-text-search = {
     enabled = true;
     backend = "postgresql";
-    postgresql = {
-      pg-config = {
-        "german" = "my-germam";
-      };
-    };
+    postgresql = { pg-config = { "german" = "my-germam"; }; };
   };
   watchDir = "/docspell-watch";
   integrationHeaderValue = "test123";
-in
-{
+in {
   # Common development config
   imports = [ (modulesPath + "/virtualisation/qemu-vm.nix") ];
   services.openssh = {
     enable = true;
     settings.PermitRootLogin = "yes";
   };
-  i18n = {
-    defaultLocale = "en_US.UTF-8";
-  };
+  i18n = { defaultLocale = "en_US.UTF-8"; };
   console.keyMap = "us";
 
-  services.xserver = {
-    enable = false;
-  };
+  services.xserver = { enable = false; };
 
   networking = {
     hostName = "docspelltest";
@@ -39,9 +30,17 @@ in
 
   virtualisation.forwardPorts = [
     # SSH
-    { from = "host"; host.port = 64022; guest.port = 22; }
+    {
+      from = "host";
+      host.port = 64022;
+      guest.port = 22;
+    }
     # Docspell
-    { from = "host"; host.port = 64080; guest.port = 7880; }
+    {
+      from = "host";
+      host.port = 64080;
+      guest.port = 7880;
+    }
   ];
   system.stateVersion = "23.11";
   # This slows down the build of a vm
@@ -50,29 +49,25 @@ in
   # Add dsc to the environment
   environment.systemPackages = [ pkgs.dsc ];
   # configure dsc-watch
-  systemd.tmpfiles.rules =
-    [
-      "d ${watchDir} 1777 root root 10d" # directory to watch
-    ];
+  systemd.tmpfiles.rules = [
+    "d ${watchDir} 1777 root root 10d" # directory to watch
+  ];
 
   services.dsc-watch = {
     enable = true;
     docspell-url = "http://localhost:7880";
     exclude-filter = null;
-    watchDirs =
-      [
-        watchDir # Note, dsc expects files to be in a subdirectory corresponding to a collective. There is no way to declaratively create a collective as of the time of writing
-      ];
-    integration-endpoint =
-      let
-        headerFile = pkgs.writeText "int-header-file" ''
+    watchDirs = [
+      watchDir # Note, dsc expects files to be in a subdirectory corresponding to a collective. There is no way to declaratively create a collective as of the time of writing
+    ];
+    integration-endpoint = let
+      headerFile = pkgs.writeText "int-header-file" ''
         Docspell-Integration:${integrationHeaderValue}
-        '';
-      in
-      {
-        enabled = true;
-        header-file = headerFile;
-      };
+      '';
+    in {
+      enabled = true;
+      header-file = headerFile;
+    };
   };
 
   # Docspell service configuration and its requirements
@@ -89,9 +84,7 @@ in
     openid = lib.mkForce [ ];
     backend = {
       addons.enabled = true;
-      signup = {
-        mode = "open";
-      };
+      signup = { mode = "open"; };
     };
     integration-endpoint = {
       enabled = true;
@@ -104,11 +97,7 @@ in
     extraConfig = {
       files = {
         default-store = "database";
-        stores = {
-          minio = {
-            enabled = true;
-          };
-        };
+        stores = { minio = { enabled = true; }; };
       };
     };
   };
