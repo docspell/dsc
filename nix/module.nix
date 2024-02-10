@@ -19,9 +19,17 @@ in {
       };
 
       docspell-url = mkOption {
-        type = types.str;
+        type = types.nullOr types.str;
+        default = null;
         example = "http://localhost:7880";
         description = "The base url to the docspell server.";
+      };
+
+      configFile = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        example = "./docspell-conf.toml";
+        description = "Config file that can be used to group together multiple options.";
       };
 
       watchDirs = mkOption {
@@ -164,13 +172,29 @@ in {
         }
       ];
 
-      argv = builtins.concatLists (builtins.map (a: a.opt)
-        (builtins.filter (a: a.when) argmap));
+      globalmap = [
+        {
+          when = cfg.verbose;
+          opt = [ "-vv" ];
+        }
+        {
+          when = cfg.docspell-url != null;
+          opt = [ "-d" "'${cfg.docspell-url}'" ];
+        }
+        {
+          when = cfg.configFile != null;
+          opt = [ "-c" "'${cfg.configFile}'" ];
+        }
+      ];
 
-      cmd = "${cfg.package}/bin/dsc " + "-d '${cfg.docspell-url}'"
-        + (if cfg.verbose then " -vv " else "") + " watch "
-        + (builtins.concatStringsSep " " argv) + " "
-        + (builtins.concatStringsSep " " cfg.watchDirs);
+      to_args = m: builtins.concatLists (builtins.map (a: a.opt)
+        (builtins.filter (a: a.when) m));
+
+      argv = builtins.concatStringsSep " " (to_args argmap);
+      globv = builtins.concatStringsSep " " (to_args globalmap);
+      dirs = builtins.concatStringsSep " " (builtins.map (d: "'${d}'") cfg.watchDirs);
+
+      cmd = "${cfg.package}/bin/dsc ${globv} watch ${argv} ${dirs}";
     in {
       description = "Docspell Watch Directory";
       after = [ "networking.target" ];
