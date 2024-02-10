@@ -152,15 +152,15 @@ in {
         }
         {
           when = cfg.include-filter != null;
-          opt = "--matches" "'${toString cfg.include-filter}'";
+          opt = [ "--matches" "'${toString cfg.include-filter}'" ];
         }
         {
           when = cfg.exclude-filter != null;
-          opt = "--not-matches" "'${toString cfg.exclude-filter}'";
+          opt = [ "--not-matches" "'${toString cfg.exclude-filter}'" ];
         }
         {
           when = cfg.source-id != null;
-          opt = "--source" "'${cfg.source-id}'";
+          opt = [ "--source" "'${cfg.source-id}'" ];
         }
       ];
 
