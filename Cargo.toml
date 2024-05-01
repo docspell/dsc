@@ -44,10 +44,10 @@ pathdiff = "0.2"
 sanitize-filename = "0.5"
 
 [target.'cfg(unix)'.dependencies]
-file-locker = { version = "1.1" }
+file-locker = { version = "1.1.2" }
 
 [target.'cfg(macos)'.dependencies]
-file-locker = { version = "1.1" }
+file-locker = { version = "1.1.2" }
 
 
 [features]
