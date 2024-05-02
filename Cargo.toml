@@ -30,7 +30,7 @@ notify = "4.0.17"
 openssl = { version = "0.10.64", optional = true }
 percent-encoding = { version = "2.3.1" }
 prettytable-rs = { version = "0.10" }
-reqwest = { version = "0.12", default-features = false, features = ["json", "blocking", "multipart"] }
+reqwest = { version = "0.12.4", default-features = false, features = ["json", "blocking", "multipart"] }
 rsotp = "0.1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde-lexpr = "0.1"
