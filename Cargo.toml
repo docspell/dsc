@@ -40,7 +40,7 @@ snafu = { version = "0.8" }
 toml = { version = "0.8" }
 webbrowser = { version = "0.8" }
 zip = { version = "0.6" }
-pathdiff = "0.2"
+pathdiff = "0.2.1"
 sanitize-filename = "0.5"
 
 [target.'cfg(unix)'.dependencies]
