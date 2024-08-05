@@ -26,7 +26,7 @@ env_logger = { version = "0.11.3" }
 glob = "0.3.1"
 hex = "0.4.3"
 log = { version = "0.4.21" }
-notify = "4.0.17"
+notify = "6.0.0"
 openssl = { version = "0.10.64", optional = true }
 percent-encoding = { version = "2.3.1" }
 prettytable-rs = { version = "0.10" }
