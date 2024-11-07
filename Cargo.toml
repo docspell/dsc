@@ -41,7 +41,7 @@ toml = { version = "0.8.12" }
 webbrowser = { version = "0.8.15" }
 zip = { version = "0.6.6" }
 pathdiff = "0.2.1"
-sanitize-filename = "0.5"
+sanitize-filename = "0.6"
 
 [target.'cfg(unix)'.dependencies]
 file-locker = { version = "1.1.2" }
