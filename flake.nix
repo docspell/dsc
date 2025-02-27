@@ -5,7 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     naersk.url = "github:nix-community/naersk/master";
     naersk.inputs.nixpkgs.follows = "nixpkgs";
-    docspell-flake = { url = "github:eikek/docspell?dir=nix"; };
+    docspell-flake = { url = "github:eikek/docspell"; };
   };
 
   outputs = inputs@{ flake-parts, self, ... }:
